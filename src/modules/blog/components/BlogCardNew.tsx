@@ -102,8 +102,8 @@ const BlogCardNew = ({
             <div className='flex justify-between gap-4 px-0.5 text-neutral-400'>
               <Tooltip title='by aulianza'>
                 <Image
-                  src='/images/aulianza-new.png'
-                  alt='Ryan Aulia'
+                  src='/images/cheol.png'
+                  alt='Yeon Cheol'
                   width={25}
                   height={25}
                   rounded='rounded-full'
