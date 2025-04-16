@@ -49,7 +49,7 @@ const App = ({ Component, pageProps: { session, ...pageProps } }: AppProps) => {
       </style>
       <DefaultSeo {...defaultSEOConfig} />
       <SessionProvider session={session}>
-        <ThemeProvider attribute='class' defaultTheme='dark'>
+        <ThemeProvider attribute='class' defaultTheme='light'>
           <CommandPaletteProvider>
             <Layout>
               <CommandPalette />
