@@ -1,12 +1,12 @@
-import { GetServerSideProps, NextPage } from 'next';
-import { NextSeo } from 'next-seo';
+import { GetServerSideProps, NextPage } from "next";
+import { NextSeo } from "next-seo";
 
-import BackButton from '@/common/components/elements/BackButton';
-import Container from '@/common/components/elements/Container';
-import PageHeading from '@/common/components/elements/PageHeading';
-import prisma from '@/common/libs/prisma';
-import { ProjectItemProps } from '@/common/types/projects';
-import ProjectDetail from '@/modules/projects/components/ProjectDetail';
+import BackButton from "@/common/components/elements/BackButton";
+import Container from "@/common/components/elements/Container";
+import PageHeading from "@/common/components/elements/PageHeading";
+import prisma from "@/common/libs/prisma";
+import { ProjectItemProps } from "@/common/types/projects";
+import ProjectDetail from "@/modules/projects/components/ProjectDetail";
 
 interface ProjectsDetailPageProps {
   project: ProjectItemProps;
@@ -21,15 +21,15 @@ const ProjectsDetailPage: NextPage<ProjectsDetailPageProps> = ({ project }) => {
   return (
     <>
       <NextSeo
-        title={`${project?.title} - Project Ryan Aulia`}
+        title={`${project?.title} - Project Yeon Cheol`}
         description={project?.description}
         canonical={canonicalUrl}
         openGraph={{
-          type: 'article',
+          type: "article",
           article: {
             publishedTime: project?.updated_at.toString(),
             modifiedTime: project?.updated_at.toString(),
-            authors: ['Ryan Aulia'],
+            authors: ["Yeon Cheol"],
           },
           url: canonicalUrl,
           images: [
@@ -37,11 +37,11 @@ const ProjectsDetailPage: NextPage<ProjectsDetailPageProps> = ({ project }) => {
               url: project?.image,
             },
           ],
-          siteName: 'Blog Ryan Aulia',
+          siteName: "Blog Yeon Cheol",
         }}
       />
-      <Container data-aos='fade-up'>
-        <BackButton url='/projects' />
+      <Container data-aos="fade-up">
+        <BackButton url="/projects" />
         <PageHeading title={PAGE_TITLE} description={PAGE_DESCRIPTION} />
         <ProjectDetail {...project} />
       </Container>
@@ -61,7 +61,7 @@ export const getServerSideProps: GetServerSideProps = async ({ params }) => {
   if (response === null) {
     return {
       redirect: {
-        destination: '/404',
+        destination: "/404",
         permanent: false,
       },
     };

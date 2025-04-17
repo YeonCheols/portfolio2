@@ -1,18 +1,18 @@
-import axios from 'axios';
-import { GetServerSideProps, NextPage } from 'next';
-import dynamic from 'next/dynamic';
-import { NextSeo } from 'next-seo';
-import { useEffect } from 'react';
+import axios from "axios";
+import { GetServerSideProps, NextPage } from "next";
+import dynamic from "next/dynamic";
+import { NextSeo } from "next-seo";
+import { useEffect } from "react";
 
-import BackButton from '@/common/components/elements/BackButton';
-import Container from '@/common/components/elements/Container';
-import { formatExcerpt } from '@/common/helpers';
-import { BlogDetailProps } from '@/common/types/blog';
-import BlogDetail from '@/modules/blog/components/BlogDetail';
-import { getBlogDetail } from '@/services/blog';
+import BackButton from "@/common/components/elements/BackButton";
+import Container from "@/common/components/elements/Container";
+import { formatExcerpt } from "@/common/helpers";
+import { BlogDetailProps } from "@/common/types/blog";
+import BlogDetail from "@/modules/blog/components/BlogDetail";
+import { getBlogDetail } from "@/services/blog";
 
 const GiscusComment = dynamic(
-  () => import('@/modules/blog/components/GiscusComment'),
+  () => import("@/modules/blog/components/GiscusComment")
 );
 
 interface BlogDetailPageProps {
@@ -33,7 +33,7 @@ const BlogDetailPage: NextPage<BlogDetailPageProps> = ({ blog }) => {
   };
 
   useEffect(() => {
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.NODE_ENV === "production") {
       incrementViews();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -42,15 +42,15 @@ const BlogDetailPage: NextPage<BlogDetailPageProps> = ({ blog }) => {
   return (
     <>
       <NextSeo
-        title={`${blogData?.title?.rendered} - Blog Ryan Aulia`}
+        title={`${blogData?.title?.rendered} - Blog Yeon Cheol`}
         description={description}
         canonical={canonicalUrl}
         openGraph={{
-          type: 'article',
+          type: "article",
           article: {
             publishedTime: blogData?.date,
             modifiedTime: blogData?.date,
-            authors: ['Ryan Aulia', 'aulianza'],
+            authors: ["Yeon Cheol", "aulianza"],
           },
           url: canonicalUrl,
           images: [
@@ -58,13 +58,13 @@ const BlogDetailPage: NextPage<BlogDetailPageProps> = ({ blog }) => {
               url: blogData?.featured_image_url,
             },
           ],
-          siteName: 'aulianza blog',
+          siteName: "aulianza blog",
         }}
       />
-      <Container data-aos='fade-up'>
-        <BackButton url='/blog' />
+      <Container data-aos="fade-up">
+        <BackButton url="/blog" />
         <BlogDetail {...blogData} />
-        <section id='comments'>
+        <section id="comments">
           <GiscusComment isEnableReaction={false} />
         </section>
       </Container>
@@ -80,7 +80,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   if (!blogId) {
     return {
       redirect: {
-        destination: '/',
+        destination: "/",
         permanent: false,
       },
     };
@@ -91,7 +91,7 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   if (response?.status === 404) {
     return {
       redirect: {
-        destination: '/404',
+        destination: "/404",
         permanent: false,
       },
     };
