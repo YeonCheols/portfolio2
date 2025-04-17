@@ -8,8 +8,6 @@ export default async function handler(
 ): Promise<void> {
   const readStatsResponse = await getReadStats();
 
-  console.log("readStatsResponse : ", readStatsResponse);
-
   try {
     const allTimeSinceTodayResponse = await getALLTimeSinceToday();
 

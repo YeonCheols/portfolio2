@@ -35,8 +35,6 @@ const App = ({ Component, pageProps: { session, ...pageProps } }: AppProps) => {
     });
   }, []);
 
-  console.log("session : ", session);
-
   return (
     <>
       <style jsx global>

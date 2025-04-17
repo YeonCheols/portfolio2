@@ -1,17 +1,17 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
+import type { NextApiRequest, NextApiResponse } from "next";
 
-import prisma from '@/common/libs/prisma';
-import { BlogItemProps } from '@/common/types/blog';
-import { getBlogList } from '@/services/blog';
+// import prisma from "@/common/libs/prisma";
+import { BlogItemProps } from "@/common/types/blog";
+import { getBlogList } from "@/services/blog";
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse,
+  res: NextApiResponse
 ): Promise<void> {
   try {
     res.setHeader(
-      'Cache-Control',
-      'public, s-maxage=60, stale-while-revalidate=30',
+      "Cache-Control",
+      "public, s-maxage=60, stale-while-revalidate=30"
     );
 
     const { page, per_page, categories, search } = req.query;
@@ -27,18 +27,18 @@ export default async function handler(
       responseData?.data?.posts?.map(async (blogItem: BlogItemProps) => {
         const { slug } = blogItem;
 
-        const contentMeta = await prisma.contentmeta.findUnique({
-          where: { slug: slug as string },
-          select: { views: true },
-        });
+        // const contentMeta = await prisma.contentmeta.findUnique({
+        //   where: { slug: slug as string },
+        //   select: { views: true },
+        // });
 
-        const viewsCount = contentMeta?.views ?? 0;
+        // const viewsCount = contentMeta?.views ?? 0;
 
         return {
           ...blogItem,
-          total_views_count: viewsCount,
+          total_views_count: 0,
         };
-      }),
+      })
     );
 
     const responses = {

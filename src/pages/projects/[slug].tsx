@@ -4,7 +4,7 @@ import { NextSeo } from "next-seo";
 import BackButton from "@/common/components/elements/BackButton";
 import Container from "@/common/components/elements/Container";
 import PageHeading from "@/common/components/elements/PageHeading";
-import prisma from "@/common/libs/prisma";
+// import prisma from "@/common/libs/prisma";
 import { ProjectItemProps } from "@/common/types/projects";
 import ProjectDetail from "@/modules/projects/components/ProjectDetail";
 
@@ -52,24 +52,24 @@ const ProjectsDetailPage: NextPage<ProjectsDetailPageProps> = ({ project }) => {
 export default ProjectsDetailPage;
 
 export const getServerSideProps: GetServerSideProps = async ({ params }) => {
-  const response = await prisma.projects.findUnique({
-    where: {
-      slug: String(params?.slug),
-    },
-  });
+  // const response = await prisma.projects.findUnique({
+  //   where: {
+  //     slug: String(params?.slug),
+  //   },
+  // });
 
-  if (response === null) {
-    return {
-      redirect: {
-        destination: "/404",
-        permanent: false,
-      },
-    };
-  }
+  // if (response === null) {
+  //   return {
+  //     redirect: {
+  //       destination: "/404",
+  //       permanent: false,
+  //     },
+  //   };
+  // }
 
   return {
     props: {
-      project: JSON.parse(JSON.stringify(response)),
+      // project: JSON.parse(JSON.stringify(response)),
     },
   };
 };
