@@ -1,14 +1,14 @@
-import { GetStaticPaths, GetStaticProps, NextPage } from 'next';
-import { useRouter } from 'next/router';
-import { NextSeo } from 'next-seo';
+import { GetStaticPaths, GetStaticProps, NextPage } from "next";
+import { useRouter } from "next/router";
+import { NextSeo } from "next-seo";
 
-import BackButton from '@/common/components/elements/BackButton';
-import Container from '@/common/components/elements/Container';
-import { parseUrl } from '@/common/helpers';
-import { loadMdxFiles } from '@/common/libs/mdx';
-import { MdxFileContentProps } from '@/common/types/learn';
-import ContentDetail from '@/modules/learn/components/ContentDetail';
-import ContentDetailHeader from '@/modules/learn/components/ContentDetailHeader';
+import BackButton from "@/common/components/elements/BackButton";
+import Container from "@/common/components/elements/Container";
+import { parseUrl } from "@/common/helpers";
+import { loadMdxFiles } from "@/common/libs/mdx";
+import { MdxFileContentProps } from "@/common/types/learn";
+import ContentDetail from "@/modules/learn/components/ContentDetail";
+import ContentDetailHeader from "@/modules/learn/components/ContentDetailHeader";
 
 const LearnContentDetailPage: NextPage<{ data: MdxFileContentProps }> = ({
   data,
@@ -27,24 +27,24 @@ const LearnContentDetailPage: NextPage<{ data: MdxFileContentProps }> = ({
   return (
     <>
       <NextSeo
-        title={`Learn ${meta?.category} : ${PAGE_TITLE} - Ryan Aulia`}
+        title={`Learn ${meta?.category} : ${PAGE_TITLE} - Yeon Cheol`}
         description={PAGE_DESCRIPTION}
         openGraph={{
-          type: 'article',
+          type: "article",
           article: {
             publishedTime: meta?.updated_at,
             modifiedTime: meta?.updated_at,
-            authors: ['Ryan Aulia'],
+            authors: ["Yeon Cheol"],
           },
           images: [
             {
               url: meta?.cover_url as string,
             },
           ],
-          siteName: 'Ryan Aulia',
+          siteName: "Yeon Cheol",
         }}
       />
-      <Container data-aos='fade-up' className='mb-10'>
+      <Container data-aos="fade-up" className="mb-10">
         <BackButton url={`/learn/${parentSlug}`} />
         <ContentDetailHeader {...meta} />
         <ContentDetail content={content} frontMatter={frontMatter} />
@@ -58,7 +58,7 @@ export default LearnContentDetailPage;
 export const getStaticPaths: GetStaticPaths = async () => {
   return {
     paths: [],
-    fallback: 'blocking',
+    fallback: "blocking",
   };
 };
 
@@ -73,7 +73,7 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
   if (!contentData) {
     return {
       redirect: {
-        destination: '/404',
+        destination: "/404",
         permanent: false,
       },
     };

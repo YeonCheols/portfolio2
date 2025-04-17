@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import type { NextApiRequest, NextApiResponse } from 'next';
+import type { NextApiRequest, NextApiResponse } from "next";
 
-import prisma from '@/common/libs/prisma';
+// import prisma from '@/common/libs/prisma';
 
 type Data = {
   status: boolean;
@@ -11,11 +11,11 @@ type Data = {
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse<Data>,
+  res: NextApiResponse<Data>
 ) {
   try {
-    const response = await prisma.projects.findMany();
-    res.status(200).json({ status: true, data: response });
+    // const response = await prisma.projects.findMany();
+    res.status(200).json({ status: true, data: {} });
   } catch (error) {
     res.status(200).json({ status: false, error: error });
   }

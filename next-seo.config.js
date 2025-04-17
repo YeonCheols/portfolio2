@@ -1,43 +1,43 @@
-const canonicalUrl = 'https://aulianza.id';
-const metaImage = 'https://cloud.aulianza.com/public/images/aulianza-id.png';
+const canonicalUrl = "https://aulianza.id";
+const metaImage = "https://cloud.aulianza.com/public/images/aulianza-id.png";
 const metaDescription =
-  'Seasoned Software Engineer especially in Frontend side, with a passion for creating pixel-perfect web experiences';
+  "Seasoned Software Engineer especially in Frontend side, with a passion for creating pixel-perfect web experiences";
 
 const defaultSEOConfig = {
-  defaultTitle: 'yeon cheol - PortFolio',
+  defaultTitle: "yeon cheol - 포트폴리오",
   description: metaDescription,
   canonical: canonicalUrl,
   openGraph: {
     canonical: canonicalUrl,
-    title: 'yeon cheol - PortFolio',
+    title: "yeon cheol - 포트폴리오",
     description: metaDescription,
-    type: 'website',
+    type: "website",
     images: [
       {
         url: metaImage,
-        alt: 'aulianza.id og-image',
+        alt: "aulianza.id og-image",
         width: 800,
         height: 600,
       },
       {
         url: metaImage,
-        alt: 'aulianza.id og-image',
+        alt: "aulianza.id og-image",
         width: 1200,
         height: 630,
       },
       {
         url: metaImage,
-        alt: 'aulianza.id og-image',
+        alt: "aulianza.id og-image",
         width: 1600,
         height: 900,
       },
     ],
-    site_name: 'aulianza.id',
+    site_name: "aulianza.id",
   },
   twitter: {
-    handle: '@handle',
-    site: '@site',
-    cardType: 'summary_large_image',
+    handle: "@handle",
+    site: "@site",
+    cardType: "summary_large_image",
   },
 };
 

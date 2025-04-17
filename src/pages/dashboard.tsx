@@ -1,4 +1,4 @@
-import { GetStaticProps, NextPage } from "next";
+import { GetServerSideProps, NextPage } from "next";
 import { NextSeo } from "next-seo";
 import { SWRConfig } from "swr";
 
@@ -13,9 +13,8 @@ interface DashboardPageProps {
   };
 }
 
-const PAGE_TITLE = "Dashboard";
-const PAGE_DESCRIPTION =
-  "This is my personal dashboard, built with Next.js API routes deployed as serverless functions.";
+const PAGE_TITLE = "대시보드";
+const PAGE_DESCRIPTION = <>연철의 깃허브 대시보드에 오신 것을 환영합니다!</>;
 
 const DashboardPage: NextPage<DashboardPageProps> = ({ fallback }) => {
   return (
@@ -29,9 +28,7 @@ const DashboardPage: NextPage<DashboardPageProps> = ({ fallback }) => {
   );
 };
 
-export default DashboardPage;
-
-export const getStaticProps: GetStaticProps = async () => {
+export const getServerSideProps: GetServerSideProps = async () => {
   const githubUserPersonal = await getGithubUser("personal");
 
   return {
@@ -39,7 +36,9 @@ export const getStaticProps: GetStaticProps = async () => {
       fallback: {
         "/api/github?type=personal": githubUserPersonal?.data,
       },
+      revalidate: 1,
     },
-    revalidate: 1,
   };
 };
+
+export default DashboardPage;

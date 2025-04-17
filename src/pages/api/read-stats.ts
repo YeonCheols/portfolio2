@@ -1,18 +1,19 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextApiRequest, NextApiResponse } from "next";
 
-import { getALLTimeSinceToday, getReadStats } from '@/services/wakatime';
+import { getALLTimeSinceToday, getReadStats } from "@/services/wakatime";
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse,
+  res: NextApiResponse
 ): Promise<void> {
+  const readStatsResponse = await getReadStats();
+
   try {
-    const readStatsResponse = await getReadStats();
     const allTimeSinceTodayResponse = await getALLTimeSinceToday();
 
     res.setHeader(
-      'Cache-Control',
-      'public, s-maxage=60, stale-while-revalidate=30',
+      "Cache-Control",
+      "public, s-maxage=60, stale-while-revalidate=30"
     );
 
     const data = {
@@ -22,6 +23,6 @@ export default async function handler(
 
     res.status(200).json(data);
   } catch (error) {
-    res.status(500).json({ message: 'Internal Server Error' });
+    res.status(500).json({ message: "internal server error" });
   }
 }

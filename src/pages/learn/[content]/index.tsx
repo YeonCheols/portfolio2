@@ -1,15 +1,15 @@
-import { GetStaticPaths, GetStaticProps, NextPage } from 'next';
-import { useRouter } from 'next/router';
-import { NextSeo } from 'next-seo';
+import { GetStaticPaths, GetStaticProps, NextPage } from "next";
+import { useRouter } from "next/router";
+import { NextSeo } from "next-seo";
 
-import BackButton from '@/common/components/elements/BackButton';
-import Container from '@/common/components/elements/Container';
-import Loading from '@/common/components/elements/Loading';
-import PageHeading from '@/common/components/elements/PageHeading';
-import { LEARN_CONTENTS } from '@/common/constant/learn';
-import { loadMdxFiles } from '@/common/libs/mdx';
-import { ContentProps, MdxFileContentProps } from '@/common/types/learn';
-import ContentList from '@/modules/learn/components/ContentList';
+import BackButton from "@/common/components/elements/BackButton";
+import Container from "@/common/components/elements/Container";
+import Loading from "@/common/components/elements/Loading";
+import PageHeading from "@/common/components/elements/PageHeading";
+import { LEARN_CONTENTS } from "@/common/constant/learn";
+import { loadMdxFiles } from "@/common/libs/mdx";
+import { ContentProps, MdxFileContentProps } from "@/common/types/learn";
+import ContentList from "@/modules/learn/components/ContentList";
 
 interface ContentPageProps {
   content: ContentProps | null;
@@ -33,7 +33,7 @@ const LearnContentPage: NextPage<ContentPageProps> = ({
   const { title, description } = content;
 
   const sortedSubContents = subContents.sort(
-    (a, b) => a.frontMatter.id - b.frontMatter.id,
+    (a, b) => a.frontMatter.id - b.frontMatter.id
   );
 
   const canonicalUrl = `https://aulianza.id/learn/${content?.slug}`;
@@ -41,7 +41,7 @@ const LearnContentPage: NextPage<ContentPageProps> = ({
   return (
     <>
       <NextSeo
-        title={`Learn ${title} - Ryan Aulia`}
+        title={`Learn ${title} - Yeon Cheol`}
         description={description}
         canonical={canonicalUrl}
         openGraph={{
@@ -51,11 +51,11 @@ const LearnContentPage: NextPage<ContentPageProps> = ({
               url: content?.image,
             },
           ],
-          siteName: 'Ryan Aulia',
+          siteName: "Yeon Cheol",
         }}
       />
-      <Container data-aos='fade-up'>
-        <BackButton url='/learn' />
+      <Container data-aos="fade-up">
+        <BackButton url="/learn" />
         <PageHeading title={title} description={description} />
         <ContentList
           sortedSubContents={sortedSubContents}
@@ -89,7 +89,7 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
   if (!content) {
     return {
       redirect: {
-        destination: '/404',
+        destination: "/404",
         permanent: false,
       },
     };
