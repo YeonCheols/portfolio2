@@ -28,7 +28,7 @@ jobs:
           destination-github-username: YeonCheols
           destination-repository-name: portfolio2
           user-email: ${{ secrets.EMAIL }}
-          commit-message: ${{ github.event.commits.message }}
+          commit-message: ${{ github.event.commits[0].message }}
           target-branch: master
 
       - name: Test get variable exported by push-to-another-repository
