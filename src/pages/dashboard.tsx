@@ -1,4 +1,4 @@
-import { GetServerSideProps, NextPage } from "next";
+import { GetStaticProps, NextPage } from "next";
 import { NextSeo } from "next-seo";
 import { SWRConfig } from "swr";
 
@@ -28,7 +28,7 @@ const DashboardPage: NextPage<DashboardPageProps> = ({ fallback }) => {
   );
 };
 
-export const getServerSideProps: GetServerSideProps = async () => {
+export const getStaticProps: GetStaticProps = async () => {
   const githubUserPersonal = await getGithubUser("personal");
 
   return {
