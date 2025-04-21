@@ -42,4 +42,6 @@ const NavigationSection = memo(
   },
 );
 
+NavigationSection.displayName = 'NavigationSection';
+
 export default NavigationSection;

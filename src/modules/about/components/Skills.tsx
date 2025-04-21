@@ -59,3 +59,5 @@ const StyledFade = styled.div`
   position: absolute;
   inset: 0;
 `;
+
+Tag.displayName = 'Tag';

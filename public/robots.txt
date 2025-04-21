@@ -3,7 +3,7 @@ User-agent: *
 Allow: /
 
 # Host
-Host: https://github.com/YeonCheols
+Host: https://portfolio-yeon-cheols-projects.vercel.app
 
 # Sitemaps
-Sitemap: https://github.com/YeonCheols/sitemap.xml
+Sitemap: https://portfolio-yeon-cheols-projects.vercel.app/sitemap.xml
