@@ -27,6 +27,10 @@ export default function Document() {
           href="/favicon/safari-pinned-tab.svg"
           color="#121212"
         />
+        <meta
+          name="google-site-verification"
+          content="FOSLZc7SM6cKc0WqDlEjQpzC2gfT3D-MdZCjX5ZCzLc"
+        />
         <meta name="theme-color" content="#121212" />
       </Head>
       <body>
