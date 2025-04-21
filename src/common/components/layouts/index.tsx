@@ -1,16 +1,16 @@
-import clsx from 'clsx';
-import { useRouter } from 'next/router';
-import { useTheme } from 'next-themes';
-import { ReactNode } from 'react';
-import { useWindowSize } from 'usehooks-ts';
+import clsx from "clsx";
+import { useRouter } from "next/router";
+import { useTheme } from "next-themes";
+import { ReactNode } from "react";
+import { useWindowSize } from "usehooks-ts";
 
-import useHasMounted from '@/common/hooks/useHasMounted';
-import ChatButton from '@/modules/chat/components/ChatButton';
+import useHasMounted from "@/common/hooks/useHasMounted";
+import ChatButton from "@/modules/chat/components/ChatButton";
 
-import HeaderSidebar from './header/HeaderSidebar';
-import HeaderTop from './header/HeaderTop';
-import NowPlayingBar from '../elements/NowPlayingBar';
-import NowPlayingCard from '../elements/NowPlayingCard';
+import HeaderSidebar from "./header/HeaderSidebar";
+import HeaderTop from "./header/HeaderTop";
+import NowPlayingBar from "../elements/NowPlayingBar";
+import NowPlayingCard from "../elements/NowPlayingCard";
 
 // import TopBar from '../elements/TopBar';
 
@@ -25,37 +25,37 @@ const Layout = ({ children }: LayoutProps) => {
   const isMobile = width < 480;
 
   const isDarkTheme =
-    hasMounted && (resolvedTheme === 'dark' || resolvedTheme === 'system');
+    hasMounted && (resolvedTheme === "dark" || resolvedTheme === "system");
 
   const router = useRouter();
-  const pageName = router.pathname.split('/')[1];
+  const pageName = router.pathname.split("/")[1];
 
   const isFullPageHeader =
-    pageName === 'playground' ||
-    pageName === 'blog' ||
-    router.pathname.startsWith('/blog/') ||
-    router.pathname.startsWith('/learn/');
+    pageName === "playground" ||
+    pageName === "blog" ||
+    router.pathname.startsWith("/blog/") ||
+    router.pathname.startsWith("/learn/");
 
-  const isShowChatButton = pageName !== 'guestbook';
+  const isShowChatButton = pageName !== "guestbook";
 
   return (
     <>
       {/* <TopBar /> */}
       <div
         className={clsx(
-          'mx-auto max-w-6xl',
-          isDarkTheme ? 'dark:text-darkText' : '',
+          "mx-auto max-w-6xl",
+          isDarkTheme ? "dark:text-darkText" : ""
         )}
       >
         {isFullPageHeader ? (
-          <div className='flex flex-col xl:pb-8'>
+          <div className="flex flex-col xl:pb-8">
             <HeaderTop />
-            <main className='transition-all duration-300'>{children}</main>
+            <main className="transition-all duration-300">{children}</main>
           </div>
         ) : (
-          <div className='flex flex-col lg:flex-row lg:gap-2 lg:py-4 xl:pb-8'>
+          <div className="flex flex-col lg:flex-row lg:gap-2 lg:py-4 xl:pb-8">
             <HeaderSidebar />
-            <main className='max-w-[915px] transition-all duration-300 lg:w-4/5'>
+            <main className="max-w-[915px] transition-all duration-300 lg:w-4/5">
               {children}
             </main>
           </div>
