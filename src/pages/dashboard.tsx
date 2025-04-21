@@ -19,7 +19,7 @@ const PAGE_DESCRIPTION = <>연철의 깃허브 대시보드에 오신 것을 환
 const DashboardPage: NextPage<DashboardPageProps> = ({ fallback }) => {
   return (
     <SWRConfig value={{ fallback }}>
-      <NextSeo title={`${PAGE_TITLE} - Yeon Cheol`} />
+      <NextSeo title={`연철s - ${PAGE_TITLE}`} />
       <Container data-aos="fade-up">
         <PageHeading title={PAGE_TITLE} description={PAGE_DESCRIPTION} />
         <Dashboard />

@@ -62,7 +62,7 @@ const Layout = ({ children }: LayoutProps) => {
         )}
       </div>
       {isShowChatButton && <ChatButton />}
-      {isMobile ? <NowPlayingCard /> : <NowPlayingBar />}
+      {/* {isMobile ? <NowPlayingCard /> : <NowPlayingBar />} */}
     </>
   );
 };
