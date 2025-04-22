@@ -4,7 +4,7 @@ import { NextSeo } from "next-seo";
 import BackButton from "@/common/components/elements/BackButton";
 import Container from "@/common/components/elements/Container";
 import PageHeading from "@/common/components/elements/PageHeading";
-// import prisma from "@/common/libs/prisma";
+import prisma from "@/common/libs/prisma";
 import { ProjectItemProps } from "@/common/types/projects";
 import ProjectDetail from "@/modules/projects/components/ProjectDetail";
 
@@ -16,12 +16,12 @@ const ProjectsDetailPage: NextPage<ProjectsDetailPageProps> = ({ project }) => {
   const PAGE_TITLE = project?.title;
   const PAGE_DESCRIPTION = project?.description;
 
-  const canonicalUrl = `https://aulianza.id/project/${project?.slug}`;
+  const canonicalUrl = `https://ycseng.vercel.app/projects/${project?.slug}`;
 
   return (
     <>
       <NextSeo
-        title={`${project?.title} - Project Yeon Cheol`}
+        title={`연철s 프로젝트 - ${project?.title}`}
         description={project?.description}
         canonical={canonicalUrl}
         openGraph={{
@@ -29,7 +29,7 @@ const ProjectsDetailPage: NextPage<ProjectsDetailPageProps> = ({ project }) => {
           article: {
             publishedTime: project?.updated_at.toString(),
             modifiedTime: project?.updated_at.toString(),
-            authors: ["Yeon Cheol"],
+            authors: ["연철s"],
           },
           url: canonicalUrl,
           images: [
@@ -37,7 +37,7 @@ const ProjectsDetailPage: NextPage<ProjectsDetailPageProps> = ({ project }) => {
               url: project?.image,
             },
           ],
-          siteName: "Blog Yeon Cheol",
+          siteName: "연철s 블로그",
         }}
       />
       <Container data-aos="fade-up">
@@ -52,24 +52,24 @@ const ProjectsDetailPage: NextPage<ProjectsDetailPageProps> = ({ project }) => {
 export default ProjectsDetailPage;
 
 export const getServerSideProps: GetServerSideProps = async ({ params }) => {
-  // const response = await prisma.projects.findUnique({
-  //   where: {
-  //     slug: String(params?.slug),
-  //   },
-  // });
+  const response = await prisma.projects.findUnique({
+    where: {
+      slug: String(params?.slug),
+    },
+  });
 
-  // if (response === null) {
-  //   return {
-  //     redirect: {
-  //       destination: "/404",
-  //       permanent: false,
-  //     },
-  //   };
-  // }
+  if (response === null) {
+    return {
+      redirect: {
+        destination: "/404",
+        permanent: false,
+      },
+    };
+  }
 
   return {
     props: {
-      // project: JSON.parse(JSON.stringify(response)),
+      project: JSON.parse(JSON.stringify(response)),
     },
   };
 };

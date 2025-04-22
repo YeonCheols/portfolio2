@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import Container from "@/common/components/elements/Container";
 import PageHeading from "@/common/components/elements/PageHeading";
-// import prisma from "@/common/libs/prisma";
+import prisma from "@/common/libs/prisma";
 import { ProjectItemProps } from "@/common/types/projects";
 import Projects from "@/modules/projects";
 
@@ -12,9 +12,9 @@ interface ProjectsPageProps {
   projects: ProjectItemProps[];
 }
 
-const PAGE_TITLE = "Projects";
+const PAGE_TITLE = "프로젝트";
 const PAGE_DESCRIPTION =
-  "Several projects that I have worked on, both private and open source.";
+  "제가 작업한 여러 프로젝트들, 개인 프로젝트와 오픈소스 프로젝트 모두를 포함합니다.";
 
 const ProjectsPage: NextPage<ProjectsPageProps> = ({ projects }) => {
   const [visibleProjects, setVisibleProjects] = useState(6);
@@ -24,7 +24,7 @@ const ProjectsPage: NextPage<ProjectsPageProps> = ({ projects }) => {
 
   return (
     <>
-      <NextSeo title={`${PAGE_TITLE} - Yeon Cheol`} />
+      <NextSeo title={`연철s - ${PAGE_TITLE}`} />
       <Container data-aos="fade-up">
         <PageHeading title={PAGE_TITLE} description={PAGE_DESCRIPTION} />
         <Projects
@@ -40,21 +40,21 @@ const ProjectsPage: NextPage<ProjectsPageProps> = ({ projects }) => {
 export default ProjectsPage;
 
 export const getStaticProps: GetStaticProps = async () => {
-  // const response = await prisma.projects.findMany({
-  //   orderBy: [
-  //     {
-  //       is_featured: "desc",
-  //     },
-  //     {
-  //       updated_at: "desc",
-  //     },
-  //   ],
-  // });
+  const response = await prisma.projects.findMany({
+    orderBy: [
+      {
+        is_featured: "desc",
+      },
+      {
+        updated_at: "desc",
+      },
+    ],
+  });
 
   return {
     props: {
-      projects: [],
-      // projects: JSON.parse(JSON.stringify(response)),
+      // projects: [],
+      projects: JSON.parse(JSON.stringify(response)),
     },
     revalidate: 1,
   };
