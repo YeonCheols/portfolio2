@@ -16,7 +16,6 @@ const ProjectDetail = ({
 }: ProjectItemProps) => {
   const stacksArray = JSON.parse(stacks);
 
-  console.log("content : ", content);
   return (
     <div className="space-y-8">
       <div className="flex flex-col items-start justify-between gap-5 sm:flex-row lg:flex-row lg:items-center">
