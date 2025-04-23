@@ -29,7 +29,7 @@ const ProjectCard = ({
         )}
         <div className="relative">
           <Image
-            src={"/images/project/portfolio.png"}
+            src={image}
             width={400}
             height={200}
             alt={title}

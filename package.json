@@ -17,7 +17,8 @@
     "test:ci": "jest --ci",
     "prepare": "husky install",
     "postinstall": "prisma generate",
-    "prisma:studio": "npx prisma studio"
+    "prisma:studio": "npx prisma studio",
+    "prisma:push": "npx prisma db push"
   },
   "dependencies": {
     "@giscus/react": "^2.4.0",
