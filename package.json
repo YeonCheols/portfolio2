@@ -17,7 +17,8 @@
     "test:ci": "jest --ci",
     "prepare": "husky install",
     "postinstall": "prisma generate",
-    "prisma:studio": "npx prisma studio"
+    "prisma:studio": "npx prisma studio",
+    "prisma:push": "npx prisma db push"
   },
   "dependencies": {
     "@giscus/react": "^2.4.0",
@@ -55,7 +56,7 @@
     "react-syntax-highlighter": "^15.6.1",
     "react-use-draggable-scroll": "^0.4.7",
     "remark": "^14.0.3",
-    "remark-gfm": "^4.0.1",
+    "remark-gfm": "3.0.1",
     "remark-mdx": "^3.1.0",
     "remark-parse": "^11.0.0",
     "slick-carousel": "^1.8.1",
@@ -66,6 +67,7 @@
     "unified": "9.0.0",
     "usehooks-ts": "^2.16.0",
     "uuid": "^9.0.1",
+    "vercel": "^41.6.2",
     "yarn": "^1.22.22",
     "zustand": "^4.5.5"
   },
