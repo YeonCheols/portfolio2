@@ -1,19 +1,20 @@
-import styled from '@emotion/styled';
-import { NextPage } from 'next';
+import styled from "@emotion/styled";
+import { NextPage } from "next";
 
-import Container from '@/common/components/elements/Container';
+import Container from "@/common/components/elements/Container";
 
 const Custom404: NextPage = () => {
   return (
     <Container
-      className='flex h-full flex-col items-center justify-center space-y-5 py-40 md:py-20'
-      data-aos='fade-up'
+      className="flex h-full flex-col items-center justify-center space-y-5 py-40 md:py-20"
+      data-aos="fade-up"
     >
-      <StyledHeading title='404' className=' text-7xl font-bold'>
+      <StyledHeading title="404" className=" text-7xl font-bold">
         404
       </StyledHeading>
-      <h2 className='animate-pulse text-center text-xl lg:text-xl'>
-        Whoops, there doesn&apos;t seem to be anything here!
+      <h2 className="animate-pulse text-center text-xl lg:text-xl">
+        요청하신 페이지를 찾을 수 없습니다.
+        <br /> 다시 시도해 주세요.
       </h2>
     </Container>
   );

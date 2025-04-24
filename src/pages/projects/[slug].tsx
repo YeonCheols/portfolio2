@@ -52,6 +52,15 @@ const ProjectsDetailPage: NextPage<ProjectsDetailPageProps> = ({ project }) => {
 export default ProjectsDetailPage;
 
 export const getServerSideProps: GetServerSideProps = async ({ params }) => {
+  if (typeof params?.slug === "undefined") {
+    return {
+      redirect: {
+        destination: "/404",
+        permanent: false,
+      },
+    };
+  }
+
   const response = await prisma.projects.findUnique({
     where: {
       slug: String(params?.slug),
