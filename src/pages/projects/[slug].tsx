@@ -63,8 +63,7 @@ export const getServerSideProps: GetServerSideProps = async ({ params }) => {
 
   const response = await prisma.projects.findUnique({
     where: {
-      slug: "portfolio",
-      // slug: String(params?.slug),
+      slug: String(params?.slug),
     },
   });
 
