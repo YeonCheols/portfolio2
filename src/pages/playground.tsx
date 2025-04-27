@@ -5,12 +5,12 @@ import React from "react";
 import Container from "@/common/components/elements/Container";
 import Playground from "@/modules/playground";
 
-const PAGE_TITLE = "JavaScript Playground";
+const PAGE_TITLE = "js Playground";
 
 const playground: NextPage = () => {
   return (
     <>
-      <NextSeo title={`${PAGE_TITLE} - Yeon Cheol`} />
+      <NextSeo title={`연철s - ${PAGE_TITLE}`} />
       <Container className="!mt-0 pt-20 md:pt-0" data-aos="fade-up">
         <Playground id="playground" isHeading />
       </Container>
