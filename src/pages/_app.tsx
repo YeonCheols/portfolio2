@@ -24,7 +24,7 @@ import defaultSEOConfig from "../../next-seo.config";
 
 const ProgressBar = dynamic(
   () => import("src/common/components/elements/ProgressBar"),
-  { ssr: false }
+  { ssr: false },
 );
 
 const App = ({ Component, pageProps: { session, ...pageProps } }: AppProps) => {
@@ -48,17 +48,17 @@ const App = ({ Component, pageProps: { session, ...pageProps } }: AppProps) => {
         `}
       </style>
       <DefaultSeo {...defaultSEOConfig} />
-      {/* <SessionProvider session={session}> */}
-      <ThemeProvider attribute="class" defaultTheme="light">
-        <CommandPaletteProvider>
-          <Layout>
-            <CommandPalette />
-            <ProgressBar />
-            <Component {...pageProps} />
-          </Layout>
-        </CommandPaletteProvider>
-      </ThemeProvider>
-      {/* </SessionProvider> */}
+      <SessionProvider session={session}>
+        <ThemeProvider attribute="class" defaultTheme="dark">
+          <CommandPaletteProvider>
+            <Layout>
+              <CommandPalette />
+              <ProgressBar />
+              <Component {...pageProps} />
+            </Layout>
+          </CommandPaletteProvider>
+        </ThemeProvider>
+      </SessionProvider>
     </>
   );
 };
