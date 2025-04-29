@@ -1,10 +1,9 @@
-# 연철's 포트폴리오 프로젝트
+# 연철's 포트폴리오
 
 ## 프로젝트 개요
 
 - 프로젝트명: 포트폴리오 웹 사이트
-- 버전: 0.1.0
-- 기술 스택: Next.js, TypeScript, TailwindCSS, Prisma
+- 기술 스택: React, Next.js, TypeScript, TailwindCSS, Prisma, Husky
 
 ## 주요 기술 스택
 
@@ -22,13 +21,22 @@
 - Prisma 6.5.0
 - NextAuth.js 4.24.11
 
-### Development Tools
+### 개발 Tools
 
 - ESLint
 - Prettier
 - Jest
 - Husky
 - CommitLint
+
+![Visual Studio Code](https://img.shields.io/badge/Visual_Studio_Code-0078d7?style=for-the-badge&logo=visual-studio-code&logoColor=white)
+![JavaScript](https://img.shields.io/badge/javascript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=white)
+![TypeScript](https://img.shields.io/badge/typescript-3178C6?style=for-the-badge&logo=Typescript&logoColor=white)
+![React](https://img.shields.io/badge/react-61DAFB?style=for-the-badge&logo=react&logoColor=black)
+![NextJs](https://img.shields.io/badge/next.js-000000?style=for-the-badge&logo=Next.js&logoColor=white)
+![TailWindCss](https://img.shields.io/badge/TAILWINDCSS-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)
+![Prisma](https://img.shields.io/badge/PRISMA-2D3748?style=for-the-badge&logo=prisma&logoColor=white)
+![GithubAction](https://img.shields.io/badge/GITHUBACTION-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)
 
 ## 프로젝트 구조
 
