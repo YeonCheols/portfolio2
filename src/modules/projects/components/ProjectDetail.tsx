@@ -37,13 +37,15 @@ const ProjectDetail = ({
           link_github={link_github}
         />
       </div>
-      <Image
-        src={image}
-        width={800}
-        height={400}
-        alt={title}
-        className="hover:scale-105"
-      />
+      {image.startsWith("https") && (
+        <Image
+          src={image}
+          width={800}
+          height={400}
+          alt={title}
+          className="hover:scale-105"
+        />
+      )}
       {content && (
         <div className="mt-5 space-y-6 leading-[1.8] dark:text-neutral-300">
           <MDXComponent>{content}</MDXComponent>
