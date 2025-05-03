@@ -6,7 +6,7 @@ import PageHeading from "@/common/components/elements/PageHeading";
 import { LEARN_CONTENTS } from "@/common/constant/learn";
 import LearnModule from "@/modules/learn";
 
-const PAGE_TITLE = "Learn";
+const PAGE_TITLE = "learn";
 const PAGE_DESCRIPTION = `It's not a course, it's my personal learning notes. But if you are interested, let's learn together.`;
 
 const LearnPage: NextPage = () => {
@@ -15,7 +15,7 @@ const LearnPage: NextPage = () => {
 
   return (
     <>
-      <NextSeo title={`${PAGE_TITLE} - Yeon Cheol`} />
+      <NextSeo title={`연철s - ${PAGE_TITLE}`} />
       <Container data-aos="fade-up">
         <PageHeading title={PAGE_TITLE} description={PAGE_DESCRIPTION} />
         <LearnModule contents={filteredContents} />
