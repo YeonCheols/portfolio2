@@ -33,15 +33,15 @@ const LearnContentPage: NextPage<ContentPageProps> = ({
   const { title, description } = content;
 
   const sortedSubContents = subContents.sort(
-    (a, b) => a.frontMatter.id - b.frontMatter.id
+    (a, b) => a.frontMatter.id - b.frontMatter.id,
   );
 
-  const canonicalUrl = `https://aulianza.id/learn/${content?.slug}`;
+  const canonicalUrl = `https://ycseng.vercel.app/${content?.slug}`;
 
   return (
     <>
       <NextSeo
-        title={`Learn ${title} - Yeon Cheol`}
+        title={`연철s - Learn ${title}`}
         description={description}
         canonical={canonicalUrl}
         openGraph={{
