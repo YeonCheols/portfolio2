@@ -27,7 +27,7 @@ const LearnContentDetailPage: NextPage<{ data: MdxFileContentProps }> = ({
   return (
     <>
       <NextSeo
-        title={`Learn ${meta?.category} : ${PAGE_TITLE} - Yeon Cheol`}
+        title={`연철s - Learn ${meta?.category} : ${PAGE_TITLE}`}
         description={PAGE_DESCRIPTION}
         openGraph={{
           type: "article",
