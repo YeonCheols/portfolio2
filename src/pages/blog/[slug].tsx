@@ -12,7 +12,7 @@ import BlogDetail from "@/modules/blog/components/BlogDetail";
 import { getBlogDetail } from "@/services/blog";
 
 const GiscusComment = dynamic(
-  () => import("@/modules/blog/components/GiscusComment")
+  () => import("@/modules/blog/components/GiscusComment"),
 );
 
 interface BlogDetailPageProps {
@@ -42,7 +42,7 @@ const BlogDetailPage: NextPage<BlogDetailPageProps> = ({ blog }) => {
   return (
     <>
       <NextSeo
-        title={`${blogData?.title?.rendered} - Blog Yeon Cheol`}
+        title={`연철s blog - ${blogData?.title?.rendered}`}
         description={description}
         canonical={canonicalUrl}
         openGraph={{
