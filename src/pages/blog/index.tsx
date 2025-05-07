@@ -9,7 +9,7 @@ const PAGE_TITLE = "Blog";
 const BlogPage: NextPage = () => {
   return (
     <>
-      <NextSeo title={`${PAGE_TITLE} - Yeon Cheol`} />
+      <NextSeo title={`연철s - ${PAGE_TITLE}`} />
       <Container className="xl:!-mt-5" data-aos="fade-up">
         <BlogListNew />
       </Container>
