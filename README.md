@@ -140,6 +140,15 @@ pnpm prisma:studio
 pnpm prisma:push
 ```
 
+## sitemap 파일 생성
+
+- sitemap config 설정은 next seo 설정을 따름
+- 설정은 [여기](https://github.com/YeonCheols/portfolio2/blob/master/next-sitemap.config.js)를 통해서 수정
+
+```bash
+pnpm postbuild
+```
+
 ## Git Commit Message Convention
 
 이 프로젝트는 [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) 사양을 따릅니다. 아래는 사용되는 커밋 유형입니다:
