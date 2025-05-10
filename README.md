@@ -1,5 +1,24 @@
 # 연철's 포트폴리오
 
+## 목차
+
+- [프로젝트 개요](#프로젝트-개요)
+- [주요 기술 스택](#주요-기술-스택)
+  - [Frontend](#frontend)
+  - [Backend & Database](#backend--database)
+  - [개발 Tools](#개발-tools)
+- [프로젝트 구조](#프로젝트-구조)
+- [주요 기능](#주요-기능)
+- [개발 환경 설정](#개발-환경-설정)
+- [배포](#배포)
+- [프로젝트 실행 방법](#프로젝트-실행-방법)
+- [지원도구](#지원도구)
+- [sitemap 파일 생성](#sitemap-파일-생성)
+- [Git Commit Message Convention](#git-commit-message-convention)
+- [라이선스](#라이선스)
+
+---
+
 ## 프로젝트 개요
 
 - 프로젝트명: 포트폴리오 웹 사이트
@@ -103,6 +122,50 @@ pnpm test
 
 # 린트 체크
 pnpm lint
+
+```
+
+## 지원도구
+
+### 1. 테스트 코드
+
+```bash
+pnpm test
+```
+
+### 2. 타입 체크
+
+```bash
+pnpm typecheck
+```
+
+### 3. lint 체크
+
+```bash
+# lint 체크
+pnpm lint
+
+# lint 수정
+pnpm lint:fix
+```
+
+### 4. 데이터베이스 콘솔
+
+```bash
+# 스튜디오
+pnpm prisma:studio
+
+# 스키마 수정
+pnpm prisma:push
+```
+
+## sitemap 파일 생성
+
+- sitemap config 설정은 next seo 설정을 따름
+- 설정은 [여기](https://github.com/YeonCheols/portfolio2/blob/master/next-sitemap.config.js)를 통해서 수정
+
+```bash
+pnpm postbuild
 ```
 
 ## Git Commit Message Convention
