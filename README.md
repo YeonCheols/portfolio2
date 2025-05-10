@@ -103,6 +103,41 @@ pnpm test
 
 # 린트 체크
 pnpm lint
+
+```
+
+## 지원도구
+
+### 1. 테스트 코드
+
+```bash
+pnpm test
+```
+
+### 2. 타입 체크
+
+```bash
+pnpm typecheck
+```
+
+### 3. lint 체크
+
+```bash
+# lint 체크
+pnpm lint
+
+# lint 수정
+pnpm lint:fix
+```
+
+### 4. 데이터베이스 콘솔
+
+```bash
+# 스튜디오
+pnpm prisma:studio
+
+# 스키마 수정
+pnpm prisma:push
 ```
 
 ## Git Commit Message Convention
