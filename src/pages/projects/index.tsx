@@ -1,10 +1,11 @@
-import { GetStaticProps, NextPage } from "next";
+import { GetServerSideProps, NextPage } from "next";
 import { NextSeo } from "next-seo";
 import { useState } from "react";
 
+import prisma from "@/common/libs/prisma";
+
 import Container from "@/common/components/elements/Container";
 import PageHeading from "@/common/components/elements/PageHeading";
-import prisma from "@/common/libs/prisma";
 import { ProjectItemProps } from "@/common/types/projects";
 import Projects from "@/modules/projects";
 
@@ -39,7 +40,7 @@ const ProjectsPage: NextPage<ProjectsPageProps> = ({ projects }) => {
 
 export default ProjectsPage;
 
-export const getStaticProps: GetStaticProps = async () => {
+export const getServerSideProps: GetServerSideProps = async () => {
   const response = await prisma.projects.findMany({
     orderBy: [
       {
@@ -53,6 +54,7 @@ export const getStaticProps: GetStaticProps = async () => {
 
   return {
     props: {
+      // projects: [],
       projects: JSON.parse(JSON.stringify(response)),
     },
     revalidate: 1,
