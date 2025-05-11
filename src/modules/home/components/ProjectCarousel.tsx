@@ -3,11 +3,12 @@ import { useMemo, useRef } from "react";
 import { useDraggable } from "react-use-draggable-scroll";
 import useSWR from "swr";
 
-import BlogCardNewSkeleton from "@/common/components/skeleton/BlogCardNewSkeleton";
-import { BlogItemProps } from "@/common/types/blog";
-import BlogCardNew from "@/modules/blog/components/BlogCardNew";
 import { fetcher } from "@/services/fetcher";
+
+import ProductCardSkeleton from "@/common/components/skeleton/ProductCardSkeleton";
+import ProjectCard from "@/modules/projects/components/ProjectCard";
 import EmptyState from "@/common/components/elements/EmptyState";
+import { ProjectItemProps } from "@/common/types/projects";
 
 const ProjectCarousel = () => {
   const { data, error, isLoading } = useSWR(
@@ -19,24 +20,22 @@ const ProjectCarousel = () => {
     },
   );
 
-  console.log("data : ", data);
-
-  const blogData: BlogItemProps[] = useMemo(() => {
-    return data?.data?.posts || [];
+  const projectData: ProjectItemProps[] = useMemo(() => {
+    return data?.data || [];
   }, [data]);
 
   const ref =
     useRef<HTMLDivElement>() as React.MutableRefObject<HTMLInputElement>;
   const { events } = useDraggable(ref);
 
-  const renderBlogCards = () => {
+  const renderProjectCards = () => {
     if (isLoading) {
       return Array.from({ length: 3 }, (_, index) => (
-        <BlogCardNewSkeleton key={index} />
+        <ProductCardSkeleton key={index} />
       ));
     }
 
-    return blogData.map((item, index) => (
+    return projectData.map((item, index) => (
       <motion.div
         key={index}
         initial={{ opacity: 0, x: 100 }}
@@ -45,13 +44,13 @@ const ProjectCarousel = () => {
         transition={{ duration: 0.5 }}
         className="min-w-[326px] gap-x-5"
       >
-        <BlogCardNew {...item} />
+        <ProjectCard {...item} />
       </motion.div>
     ));
   };
 
   const renderEmptyState = () => {
-    if (error || blogData.length === 0) {
+    if (error || projectData.length === 0) {
       return (
         <EmptyState
           className="w-full"
@@ -62,12 +61,8 @@ const ProjectCarousel = () => {
   };
 
   return (
-    <div
-      className="flex gap-4 overflow-x-scroll p-1 scrollbar-hide"
-      {...events}
-      ref={ref}
-    >
-      {renderBlogCards()}
+    <div className="grid gap-5 px-1 pt-2 sm:grid-cols-2" {...events} ref={ref}>
+      {renderProjectCards()}
       {renderEmptyState()}
     </div>
   );

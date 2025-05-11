@@ -21,9 +21,26 @@ export default async function handler(
       response = await prisma.projects.findMany({
         skip: (pageNumber - 1) * 5,
         take: pageSize,
+        orderBy: [
+          {
+            is_featured: "desc",
+          },
+          {
+            updated_at: "desc",
+          },
+        ],
       });
     } else {
-      response = await prisma.projects.findMany({});
+      response = await prisma.projects.findMany({
+        orderBy: [
+          {
+            is_featured: "desc",
+          },
+          {
+            updated_at: "desc",
+          },
+        ],
+      });
     }
 
     res.status(200).json({ status: true, data: response });
