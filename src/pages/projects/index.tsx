@@ -54,9 +54,7 @@ export const getServerSideProps: GetServerSideProps = async () => {
 
   return {
     props: {
-      // projects: [],
       projects: JSON.parse(JSON.stringify(response)),
     },
-    revalidate: 1,
   };
 };
