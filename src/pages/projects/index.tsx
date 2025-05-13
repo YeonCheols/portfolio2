@@ -2,12 +2,11 @@ import { GetServerSideProps, NextPage } from "next";
 import { NextSeo } from "next-seo";
 import { useState } from "react";
 
-import prisma from "@/common/libs/prisma";
-
 import Container from "@/common/components/elements/Container";
 import PageHeading from "@/common/components/elements/PageHeading";
 import { ProjectItemProps } from "@/common/types/projects";
 import Projects from "@/modules/projects";
+import axios from "axios";
 
 interface ProjectsPageProps {
   projects: ProjectItemProps[];
@@ -41,20 +40,22 @@ const ProjectsPage: NextPage<ProjectsPageProps> = ({ projects }) => {
 export default ProjectsPage;
 
 export const getServerSideProps: GetServerSideProps = async () => {
-  const response = await prisma.projects.findMany({
-    orderBy: [
-      {
-        is_featured: "desc",
-      },
-      {
-        updated_at: "desc",
-      },
-    ],
-  });
+  const { data, status } = await axios.get(
+    `${process.env.API_URL}/project`,
+    {},
+  );
 
+  if (!data || status !== 200) {
+    return {
+      redirect: {
+        destination: "/",
+        permanent: false,
+      },
+    };
+  }
   return {
     props: {
-      projects: JSON.parse(JSON.stringify(response)),
+      projects: JSON.parse(JSON.stringify(data)),
     },
   };
 };

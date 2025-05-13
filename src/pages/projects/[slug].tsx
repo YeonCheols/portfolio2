@@ -7,6 +7,7 @@ import PageHeading from "@/common/components/elements/PageHeading";
 import prisma from "@/common/libs/prisma";
 import { ProjectItemProps } from "@/common/types/projects";
 import ProjectDetail from "@/modules/projects/components/ProjectDetail";
+import axios from "axios";
 
 interface ProjectsDetailPageProps {
   project: ProjectItemProps;
@@ -61,52 +62,21 @@ export const getServerSideProps: GetServerSideProps = async ({ params }) => {
     };
   }
 
-  const response = await prisma.projects.findUnique({
-    where: {
-      slug: String(params?.slug),
-    },
-  });
+  const { data, status } = await axios.get(
+    `${process.env.API_URL}/project/${params?.slug}`,
+  );
 
-  if (response === null) {
+  if (!data || status !== 200) {
     return {
       redirect: {
-        destination: "/404",
+        destination: "/",
         permanent: false,
       },
     };
   }
-
   return {
     props: {
-      project: JSON.parse(JSON.stringify(response)),
+      project: JSON.parse(JSON.stringify(data)),
     },
   };
 };
-
-// RY: moved from SSG to SSR since data updated frequently from DB
-// export const getStaticProps: GetStaticProps = async ({ params }) => {
-//   const response = await prisma.projects.findUnique({
-//     where: {
-//       slug: String(params?.slug),
-//     },
-//   });
-
-//   return {
-//     props: {
-//       project: JSON.parse(JSON.stringify(response)),
-//     },
-//     revalidate: 10,
-//   };
-// };
-
-// export const getStaticPaths: GetStaticPaths = async () => {
-//   const response = await prisma.projects.findMany();
-//   const paths = response.map((project) => ({
-//     params: { slug: project.slug },
-//   }));
-
-//   return {
-//     paths,
-//     fallback: false,
-//   };
-// };
