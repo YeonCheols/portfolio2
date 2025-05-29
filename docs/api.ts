@@ -1,0 +1,175 @@
+/* eslint-disable */
+/* tslint:disable */
+/*
+ * ---------------------------------------------------------------
+ * ## THIS FILE WAS GENERATED VIA SWAGGER-TYPESCRIPT-API        ##
+ * ##                                                           ##
+ * ## AUTHOR: acacode                                           ##
+ * ## SOURCE: https://github.com/acacode/swagger-typescript-api ##
+ * ---------------------------------------------------------------
+ */
+
+export interface ProjectResponse {
+  /** 프로젝트 ID */
+  id: number;
+  /** 프로젝트 제목 */
+  title: string;
+  /** 프로젝트 슬러그 */
+  slug: string;
+  /** 프로젝트 설명 */
+  description: string;
+  /** 프로젝트 메인 이미지 */
+  image: string;
+  /** 프로젝트 기술 스택 */
+  stacks: string;
+  /** 프로젝트 상세 내용 */
+  content: string;
+  /** 프로젝트 노출 여부 */
+  isShow: boolean;
+  /** 프로젝트 데모 링크 */
+  linkDemo: string;
+  /** 프로젝트 GitHub 링크 */
+  linkGithub: string;
+  /** 프로젝트 정렬 순서 */
+  order: number;
+  /**
+   * 프로젝트 업데이트 일자
+   * @format date-time
+   */
+  updatedAt: string;
+}
+
+export interface AdminProjectCreateRequest {
+  /**
+   * 프로젝트 슬러그 (URL에 사용되는 고유 식별자)
+   * @example "my-awesome-project"
+   */
+  slug: string;
+  /**
+   * 프로젝트 제목
+   * @example "나의 멋진 프로젝트"
+   */
+  title: string;
+  /**
+   * 프로젝트 설명
+   * @example "이 프로젝트는 정말 멋진 기능을 제공합니다."
+   */
+  description: string;
+  /**
+   * 프로젝트 이미지 URL
+   * @example "https://example.com/image.jpg"
+   */
+  image: string;
+  /**
+   * 사용된 기술 스택
+   * @example "React, Node.js, TypeScript"
+   */
+  stacks: string;
+  /**
+   * 프로젝트 상세 내용
+   * @example "프로젝트에 대한 자세한 설명과 구현 내용..."
+   */
+  content?: string;
+  /**
+   * 프로젝트 데모 링크
+   * @example "https://example.com"
+   */
+  linkDemo?: string;
+  /**
+   * GitHub 리포지토리 링크
+   * @example "https://github.com/username/project"
+   */
+  linkGithub?: string;
+  /**
+   * 프로젝트 공개 여부
+   * @default false
+   * @example true
+   */
+  isShow?: boolean;
+}
+
+export interface AdminProjectResponse {
+  /** 프로젝트 ID */
+  id: number;
+  /** 프로젝트 제목 */
+  title: string;
+  /** 프로젝트 슬러그 */
+  slug: string;
+  /** 프로젝트 설명 */
+  description: string;
+  /** 프로젝트 메인 이미지 */
+  image: string;
+  /** 프로젝트 기술 스택 */
+  stacks: string;
+  /** 프로젝트 상세 내용 */
+  content: string;
+  /** 프로젝트 노출 여부 */
+  isShow: boolean;
+  /** 프로젝트 데모 링크 */
+  linkDemo: string;
+  /** 프로젝트 GitHub 링크 */
+  linkGithub: string;
+  /** 프로젝트 정렬 순서 */
+  order: number;
+  /**
+   * 프로젝트 업데이트 일자
+   * @format date-time
+   */
+  updatedAt: string;
+}
+
+export interface AdminProjectUpdateRequest {
+  /**
+   * 프로젝트 슬러그 (URL에 사용되는 고유 식별자)
+   * @example "my-awesome-project"
+   */
+  slug?: string;
+  /**
+   * 프로젝트 제목
+   * @example "나의 멋진 프로젝트"
+   */
+  title?: string;
+  /**
+   * 프로젝트 설명
+   * @example "이 프로젝트는 정말 멋진 기능을 제공합니다."
+   */
+  description?: string;
+  /**
+   * 프로젝트 이미지 URL
+   * @example "https://example.com/image.jpg"
+   */
+  image?: string;
+  /**
+   * 사용된 기술 스택
+   * @example "React, Node.js, TypeScript"
+   */
+  stacks?: string;
+  /**
+   * 프로젝트 상세 내용
+   * @example "프로젝트에 대한 자세한 설명과 구현 내용..."
+   */
+  content?: string;
+  /**
+   * 프로젝트 데모 링크
+   * @example "https://example.com"
+   */
+  linkDemo?: string;
+  /**
+   * GitHub 리포지토리 링크
+   * @example "https://github.com/username/project"
+   */
+  linkGithub?: string;
+  /**
+   * 프로젝트 공개 여부
+   * @default false
+   * @example true
+   */
+  isShow?: boolean;
+}
+
+export interface AdminProjectStatusUpdateRequest {
+  /** 프로젝트 ID */
+  slug: string;
+  /** 프로젝트 노출 여부 */
+  isShow: boolean;
+}

@@ -4,13 +4,12 @@ import { NextSeo } from "next-seo";
 import BackButton from "@/common/components/elements/BackButton";
 import Container from "@/common/components/elements/Container";
 import PageHeading from "@/common/components/elements/PageHeading";
-import prisma from "@/common/libs/prisma";
-import { ProjectItemProps } from "@/common/types/projects";
 import ProjectDetail from "@/modules/projects/components/ProjectDetail";
 import axios from "axios";
+import { ProjectResponse } from "@docs/api";
 
 interface ProjectsDetailPageProps {
-  project: ProjectItemProps;
+  project: ProjectResponse;
 }
 
 const ProjectsDetailPage: NextPage<ProjectsDetailPageProps> = ({ project }) => {
@@ -28,8 +27,8 @@ const ProjectsDetailPage: NextPage<ProjectsDetailPageProps> = ({ project }) => {
         openGraph={{
           type: "article",
           article: {
-            publishedTime: project?.updated_at.toString(),
-            modifiedTime: project?.updated_at.toString(),
+            publishedTime: project?.updatedAt.toString(),
+            modifiedTime: project?.updatedAt.toString(),
             authors: ["연철s"],
           },
           url: canonicalUrl,

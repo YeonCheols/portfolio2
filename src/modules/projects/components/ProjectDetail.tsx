@@ -2,18 +2,18 @@ import Image from "@/common/components/elements/Image";
 import MDXComponent from "@/common/components/elements/MDXComponent";
 import Tooltip from "@/common/components/elements/Tooltip";
 import { STACKS } from "@/common/constant/stacks";
-import { ProjectItemProps } from "@/common/types/projects";
 
 import ProjectLink from "./ProjectLink";
+import { ProjectResponse } from "@docs/api";
 
 const ProjectDetail = ({
   title,
   image,
   stacks,
-  link_demo,
-  link_github,
+  linkDemo,
+  linkGithub,
   content,
-}: ProjectItemProps) => {
+}: ProjectResponse) => {
   const stacksArray = JSON.parse(stacks);
 
   return (
@@ -33,8 +33,8 @@ const ProjectDetail = ({
         </div>
         <ProjectLink
           title={title}
-          link_demo={link_demo}
-          link_github={link_github}
+          link_demo={linkDemo}
+          link_github={linkGithub}
         />
       </div>
       {image.startsWith("https") && (
