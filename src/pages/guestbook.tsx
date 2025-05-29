@@ -6,8 +6,7 @@ import PageHeading from "@/common/components/elements/PageHeading";
 // import Chat from "@/modules/chat";
 
 const PAGE_TITLE = "게스트북";
-const PAGE_DESCRIPTION =
-  "Leave whatever you like to say, suggestions, questions or anything!";
+const PAGE_DESCRIPTION = "말씀하실 내용, 제안, 질문 등 무엇이든 남겨주세요!";
 
 const GuestBookPage: NextPage = () => {
   return (
