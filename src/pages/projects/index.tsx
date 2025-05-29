@@ -1,15 +1,15 @@
 import { GetServerSideProps, NextPage } from "next";
 import { NextSeo } from "next-seo";
 import { useState } from "react";
+import axios from "axios";
 
 import Container from "@/common/components/elements/Container";
 import PageHeading from "@/common/components/elements/PageHeading";
-import { ProjectItemProps } from "@/common/types/projects";
 import Projects from "@/modules/projects";
-import axios from "axios";
+import { ProjectResponse } from "@docs/api";
 
 interface ProjectsPageProps {
-  projects: ProjectItemProps[];
+  projects: ProjectResponse[];
 }
 
 const PAGE_TITLE = "프로젝트";

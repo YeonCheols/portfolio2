@@ -2,13 +2,11 @@ import { motion } from "framer-motion";
 import { useMemo, useRef } from "react";
 import { useDraggable } from "react-use-draggable-scroll";
 import useSWR from "swr";
-
 import { fetcher } from "@/services/fetcher";
-
 import ProductCardSkeleton from "@/common/components/skeleton/ProductCardSkeleton";
 import ProjectCard from "@/modules/projects/components/ProjectCard";
 import EmptyState from "@/common/components/elements/EmptyState";
-import { ProjectItemProps } from "@/common/types/projects";
+import { ProjectResponse } from "docs/api";
 
 const ProjectCarousel = () => {
   const { data, error, isLoading } = useSWR(
@@ -20,7 +18,7 @@ const ProjectCarousel = () => {
     },
   );
 
-  const projectData: ProjectItemProps[] = useMemo(() => {
+  const projectData: ProjectResponse[] = useMemo(() => {
     return data?.data || [];
   }, [data]);
 

@@ -18,7 +18,8 @@
     "prepare": "husky install",
     "postinstall": "prisma generate",
     "prisma:studio": "npx prisma studio",
-    "prisma:push": "npx prisma db push"
+    "prisma:push": "npx prisma db push",
+    "fetch-schema": "NODE_TLS_REJECT_UNAUTHORIZED=0 npx swagger-typescript-api -p https://ycseng-portflio-api.vercel.app/api-json -o ./docs -n api.ts --no-client"
   },
   "dependencies": {
     "@giscus/react": "^2.4.0",
@@ -55,6 +56,7 @@
     "react-spinners": "^0.13.8",
     "react-syntax-highlighter": "^15.6.1",
     "react-use-draggable-scroll": "^0.4.7",
+    "rehype-slug": "^6.0.0",
     "remark": "^14.0.3",
     "remark-gfm": "3.0.1",
     "remark-mdx": "^3.1.0",
@@ -102,6 +104,7 @@
     "postcss": "8.4.31",
     "prettier": "^3.5.3",
     "prettier-plugin-tailwindcss": "^0.5.14",
+    "swagger-typescript-api": "12.0.3",
     "tailwindcss": "3.3.2",
     "typescript": "5.0.4"
   },

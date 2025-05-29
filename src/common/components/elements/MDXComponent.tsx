@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-
+import rehypeSlug from "rehype-slug";
 import CodeBlock from "./CodeBlock";
 
 interface MarkdownRendererProps {
@@ -22,6 +22,7 @@ const MDXComponent = ({ children }: MarkdownRendererProps) => {
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
+      rehypePlugins={[rehypeSlug]}
       components={{
         a: (props) => (
           <a
