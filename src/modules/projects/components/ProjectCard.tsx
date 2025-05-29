@@ -19,7 +19,7 @@ const ProjectCard = ({
 
   return (
     <Link href={`/projects/${slug}`}>
-      <Card className="group relative cursor-pointer border border-neutral-200 dark:border-neutral-900 lg:hover:scale-[102%]">
+      <Card className="group relative cursor-pointer border border-neutral-200 dark:border-neutral-900 lg:hover:scale-[102%] h-full">
         <div className="relative">
           {image.startsWith("https") && (
             <Image
