@@ -14,7 +14,6 @@ const Custom404: NextPage = () => {
       </StyledHeading>
       <h2 className="animate-pulse text-center text-xl lg:text-xl">
         요청하신 페이지를 찾을 수 없습니다.
-        <br /> 다시 시도해 주세요.
       </h2>
     </Container>
   );
