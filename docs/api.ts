@@ -118,6 +118,29 @@ export interface AdminProjectResponse {
   updatedAt: string;
 }
 
+export interface AdminProjectOrderUpdateRequest {
+  /**
+   * 교환할 첫 번째 프로젝트의 고유 식별자 (slug)
+   * @example "project-1"
+   */
+  nextSlug: string;
+  /**
+   * 첫 번째 프로젝트(nextSlug)가 이동할 새로운 순서 번호
+   * @example 2
+   */
+  nextOrderNo: number;
+  /**
+   * 교환할 두 번째 프로젝트의 고유 식별자 (slug)
+   * @example "project-2"
+   */
+  prevSlug: string;
+  /**
+   * 두 번째 프로젝트(prevSlug)가 이동할 새로운 순서 번호
+   * @example 1
+   */
+  prevOrderNo: number;
+}
+
 export interface AdminProjectUpdateRequest {
   /**
    * 프로젝트 슬러그 (URL에 사용되는 고유 식별자)
@@ -172,4 +195,92 @@ export interface AdminProjectStatusUpdateRequest {
   slug: string;
   /** 프로젝트 노출 여부 */
   isShow: boolean;
+}
+
+export interface AdminProfileCreateRequest {
+  /**
+   * 프로필 이름
+   * @example "1번 프로필"
+   */
+  name: string;
+  /**
+   * 프로필 이미지 URL
+   * @example "https://example.com/profile.jpg"
+   */
+  imageUrl: string;
+  /**
+   * 프로필 활성화 여부
+   * @example true
+   */
+  isActive?: boolean;
+}
+
+export interface AdminProfileResponse {
+  /**
+   * 프로필 ID
+   * @example 1
+   */
+  id: number;
+  /** 프로필 이름 */
+  name: string;
+  /**
+   * 프로필 이미지 URL
+   * @example "https://example.com/profile.jpg"
+   */
+  imageUrl: string;
+  /**
+   * 프로필 활성화 여부
+   * @example true
+   */
+  isActive: boolean;
+  /**
+   * 프로필 순서
+   * @example 1
+   */
+  order: number;
+  /**
+   * 프로필 업데이트 일자
+   * @format date-time
+   * @example "2025-05-29 01:30:21.469"
+   */
+  updatedAt: string;
+}
+
+export interface AdminProfileOrderUpdateRequest {
+  /**
+   * 프로필 고유 ID
+   * @example 1
+   */
+  id: number;
+  /**
+   * 프로필 정렬 번호
+   * @example 1
+   */
+  order: number;
+}
+
+export interface AdminProfileUpdateRequest {
+  /**
+   * 프로필 이름
+   * @example "1번 프로필"
+   */
+  name?: string;
+  /**
+   * 프로필 이미지 URL
+   * @example "https://example.com/profile.jpg"
+   */
+  imageUrl?: string;
+  /**
+   * 프로필 활성화 여부
+   * @example true
+   */
+  isActive?: boolean;
+}
+
+export interface AdminProfileStatusUpdateRequest {
+  /**
+   * 프로필 노출 여부
+   * @example true
+   */
+  isActive: boolean;
 }

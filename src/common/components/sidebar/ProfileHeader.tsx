@@ -3,6 +3,10 @@ import Link from "next/link";
 import { MdVerified as VerifiedIcon } from "react-icons/md";
 
 import Image from "../elements/Image";
+import { fetcher } from "@/services/fetcher";
+import useSWR from "swr";
+import { AdminProfileResponse } from "@docs/api";
+import { useMemo } from "react";
 
 interface ProfileHeaderProps {
   expandMenu: boolean;
@@ -11,21 +15,39 @@ interface ProfileHeaderProps {
 }
 
 const ProfileHeader = ({ expandMenu, imageSize }: ProfileHeaderProps) => {
+  const { data } = useSWR("/api/profile", fetcher);
+
+  const profile: AdminProfileResponse = data?.data;
+  const profileInfo = useMemo(() => {
+    if (profile?.imageUrl) {
+      return {
+        profileImage: profile?.imageUrl,
+        profileName: profile?.name,
+      };
+    }
+    return {
+      profileImage: "/images/profile/main-profile.png",
+      profileName: "프로필",
+    };
+  }, [profile]);
+
   return (
     <div
       className={clsx(
         "flex w-full flex-grow items-center gap-4 lg:flex-col lg:items-start lg:gap-0.5 lg:px-2",
-        expandMenu && "flex-col !items-start"
+        expandMenu && "flex-col !items-start",
       )}
     >
-      <Image
-        src="/images/profile/main-profile.png"
-        alt="프로필"
-        width={expandMenu ? 80 : imageSize}
-        height={expandMenu ? 80 : imageSize}
-        rounded="rounded-full"
-        className="rotate-3 dark:border-neutral-600 lg:hover:scale-105"
-      />
+      {profileInfo && (
+        <Image
+          src={profileInfo.profileImage}
+          alt={profileInfo.profileName}
+          width={expandMenu ? 80 : imageSize}
+          height={expandMenu ? 80 : imageSize}
+          rounded="rounded-full"
+          className="rotate-3 dark:border-neutral-600 lg:hover:scale-105"
+        />
+      )}
       <>
         <div className="mt-1 flex items-center gap-2 lg:mt-4">
           <Link href="/" passHref>
