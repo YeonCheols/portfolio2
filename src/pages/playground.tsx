@@ -5,7 +5,7 @@ import React from "react";
 import Container from "@/common/components/elements/Container";
 import Playground from "@/modules/playground";
 
-const PAGE_TITLE = "js 놀이터";
+const PAGE_TITLE = "js playground";
 
 const playground: NextPage = () => {
   return (

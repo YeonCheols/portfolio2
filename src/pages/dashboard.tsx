@@ -14,7 +14,7 @@ interface DashboardPageProps {
 }
 
 const PAGE_TITLE = "대시보드";
-const PAGE_DESCRIPTION = <>연철의 깃허브 대시보드에 오신 것을 환영합니다!</>;
+const PAGE_DESCRIPTION = "연철의 깃허브 대시보드에 오신 것을 환영합니다!";
 
 const DashboardPage: NextPage<DashboardPageProps> = ({ fallback }) => {
   return (
