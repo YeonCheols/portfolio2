@@ -157,6 +157,9 @@ pnpm prisma:studio
 
 # 스키마 수정
 pnpm prisma:push
+
+# api type 받아오기
+pnpm fetch-schema
 ```
 
 ## sitemap 파일 생성
