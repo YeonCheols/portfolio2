@@ -163,7 +163,7 @@ pnpm prisma:push
 ### 5. APi type 가져오기
 
 ```bash
-# api type 받아오기
+# api 받아오기
 pnpm fetch-schema
 ```
 
