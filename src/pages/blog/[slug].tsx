@@ -42,7 +42,7 @@ const BlogDetailPage: NextPage<BlogDetailPageProps> = ({ blog }) => {
   return (
     <>
       <NextSeo
-        title={`연철s blog - ${blogData?.title?.rendered}`}
+        title={`연철s 블로그 - ${blogData?.title?.rendered}`}
         description={description}
         canonical={canonicalUrl}
         openGraph={{
