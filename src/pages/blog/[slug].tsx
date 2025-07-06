@@ -36,7 +36,6 @@ const BlogDetailPage: NextPage<BlogDetailPageProps> = ({ blog }) => {
     if (process.env.NODE_ENV === "production") {
       incrementViews();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
