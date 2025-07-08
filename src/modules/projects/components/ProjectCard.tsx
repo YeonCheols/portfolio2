@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { AiFillPushpin as PinIcon } from "react-icons/ai";
 import { HiOutlineArrowSmRight as ViewIcon } from "react-icons/hi";
 
 import Card from "@/common/components/elements/Card";

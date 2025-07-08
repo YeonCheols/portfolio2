@@ -3,7 +3,7 @@ User-agent: *
 Allow: /
 
 # Host
-Host: https://ycseng.vercel.app
+Host: https://www.ycseng.com
 
 # Sitemaps
-Sitemap: https://ycseng.vercel.app/sitemap.xml
+Sitemap: https://www.ycseng.com/sitemap.xml
