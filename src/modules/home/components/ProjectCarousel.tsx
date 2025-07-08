@@ -33,6 +33,15 @@ const ProjectCarousel = () => {
       ));
     }
 
+    if (error || projectData.length === 0) {
+      return (
+        <EmptyState
+          className="w-full"
+          message={error ? "오류가 발생했습니다" : "포스트가 없습니다"}
+        />
+      );
+    }
+
     return projectData.map((item, index) => (
       <motion.div
         key={index}
@@ -47,21 +56,9 @@ const ProjectCarousel = () => {
     ));
   };
 
-  const renderEmptyState = () => {
-    if (error || projectData.length === 0) {
-      return (
-        <EmptyState
-          className="w-full"
-          message={error ? "오류가 발생했습니다" : "포스트가 없습니다"}
-        />
-      );
-    }
-  };
-
   return (
     <div className="grid gap-5 px-1 pt-2 sm:grid-cols-2" {...events} ref={ref}>
       {renderProjectCards()}
-      {renderEmptyState()}
     </div>
   );
 };
