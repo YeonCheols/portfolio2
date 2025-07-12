@@ -5,7 +5,6 @@ import InfiniteLoopSlider from "@/common/components/elements/InfiniteLoopSlider"
 import { STACKS } from "@/common/constant/stacks";
 import { fetcher } from "@/services/fetcher";
 import useSWR from "swr";
-import Skeleton from "react-loading-skeleton";
 import ProductCardSkeleton from "@/common/components/skeleton/ProductCardSkeleton";
 
 const Tag = memo(({ icon, title }: { icon: ReactNode; title: string }) => (
@@ -22,6 +21,7 @@ const Skills = () => {
     Array<[string, ReactNode]>
   >([]);
 
+  // TODO : 공통 utils 교체
   const stacksIcons = useMemo(() => {
     if (!stacksData?.data) return [];
 
