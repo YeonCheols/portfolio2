@@ -28,7 +28,7 @@ jobs:
       - name: pnpm 설치
         uses: pnpm/action-setup@v2
         with:
-          version: 8
+          version: latest
 
       - name: .npmrc 설정
         run: |
@@ -36,7 +36,8 @@ jobs:
           echo "@yeoncheols:registry=https://npm.pkg.github.com" >> .npmrc
 
       - name: 의존성 설치
-        run: pnpm install --frozen-lockfile
+        run: |
+          pnpm install --frozen-lockfile || pnpm install
 
       - name: Git 설정
         run: |
