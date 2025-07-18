@@ -3,3 +3,6 @@
 
 # 커스텀 커밋 메시지 검증 스크립트 실행
 node scripts/validate-commit.js "$1"
+
+# commitlint 실행
+npx --no-install commitlint --edit "$1"
