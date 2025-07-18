@@ -20,13 +20,101 @@ jobs:
         with:
           fetch-depth: 0 # 태그까지 모두 받아오기
 
-      - name: Tag create
-        id: tag_version
-        uses: mathieudutour/github-tag-action@v6.1
+      - name: Node.js 설정
+        uses: actions/setup-node@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          node-version: "18"
+
+      - name: 의존성 설치
+        run: npm ci
+
+      - name: Git 설정
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+
+      - name: 커밋 메시지 검증 및 태그 생성
+        id: tag_version
+        run: |
+          # 최신 커밋 메시지 가져오기
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+
+          # 임시 파일에 커밋 메시지 저장
+          echo "$COMMIT_MSG" > /tmp/commit_msg.txt
+
+          # validate-commit.js로 커밋 메시지 검증
+          node scripts/validate-commit.js /tmp/commit_msg.txt
+
+          # 검증 통과 시 태그 생성
+          if [ $? -eq 0 ]; then
+            # 현재 버전 가져오기 (package.json에서)
+            CURRENT_VERSION=$(node -p "require('./package.json').version")
+            
+            # 커밋 타입 확인 (feat, fix, breaking change 등)
+            COMMIT_TYPE=$(echo "$COMMIT_MSG" | head -1 | sed -E 's/^([a-z]+).*/\1/')
+            
+            # 버전 증가 로직
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
+            
+            case $COMMIT_TYPE in
+              "feat")
+                # 새로운 기능이면 minor 버전 증가
+                NEW_MINOR=$((MINOR + 1))
+                NEW_PATCH=0
+                NEW_VERSION="$MAJOR.$NEW_MINOR.$NEW_PATCH"
+                ;;
+              "fix"|"perf"|"refactor")
+                # 버그 수정이나 성능 개선이면 patch 버전 증가
+                NEW_PATCH=$((PATCH + 1))
+                NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
+                ;;
+              *)
+                # 기타 변경사항이면 patch 버전 증가
+                NEW_PATCH=$((PATCH + 1))
+                NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
+                ;;
+            esac
+            
+            # 새로운 태그 생성
+            NEW_TAG="v$NEW_VERSION"
+            
+            # 태그가 이미 존재하는지 확인
+            if git tag | grep -q "^$NEW_TAG$"; then
+              echo "Tag $NEW_TAG already exists, using existing tag..."
+              echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
+              echo "changelog=Tag $NEW_TAG already exists" >> $GITHUB_OUTPUT
+            else
+              # package.json 버전 업데이트
+              npm version $NEW_VERSION --no-git-tag-version
+              
+              # 변경사항 커밋
+              git add package.json
+              git commit -m "chore: bump version to $NEW_VERSION" || true
+              
+              # 태그 생성
+              git tag $NEW_TAG
+              git push origin $NEW_TAG
+              git push origin master
+              
+              # 변경사항 로그 생성 (이전 태그부터 현재까지)
+              PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+              if [ -n "$PREV_TAG" ]; then
+                CHANGELOG=$(git log --oneline $PREV_TAG..HEAD --pretty=format:"- %s")
+              else
+                CHANGELOG=$(git log --oneline --pretty=format:"- %s")
+              fi
+              
+              echo "new_tag=$NEW_TAG" >> $GITHUB_OUTPUT
+              echo "changelog=$CHANGELOG" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "Commit message validation failed, skipping tag creation"
+            echo "new_tag=" >> $GITHUB_OUTPUT
+            echo "changelog=Commit message validation failed" >> $GITHUB_OUTPUT
+          fi
 
       - name: Release create
+        if: steps.tag_version.outputs.new_tag != ''
         uses: ncipollo/release-action@v1
         with:
           tag: ${{ steps.tag_version.outputs.new_tag }}
