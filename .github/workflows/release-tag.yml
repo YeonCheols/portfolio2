@@ -30,6 +30,11 @@ jobs:
         with:
           version: 8
 
+      - name: .npmrc 설정
+        run: |
+          echo "//npm.pkg.github.com/:_authToken=${{ secrets.GITHUB_TOKEN }}" > .npmrc
+          echo "@yeoncheols:registry=https://npm.pkg.github.com" >> .npmrc
+
       - name: 의존성 설치
         run: pnpm install --frozen-lockfile
 
