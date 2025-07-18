@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-import prisma from "@/common/libs/prisma";
 import axios from "axios";
 
 type Data = {

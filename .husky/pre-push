@@ -1,0 +1,14 @@
+#!/bin/sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+pnpm lint
+if [ $? -ne 0 ]; then
+  echo "Lint failed. Push aborted."
+  exit 1
+fi
+
+pnpm type-check
+if [ $? -ne 0 ]; then
+  echo "Type check failed. Push aborted."
+  exit 1
+fi
