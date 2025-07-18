@@ -47,10 +47,10 @@ jobs:
       - name: 커밋 메시지 검증 및 태그 생성
         id: tag_version
         run: |
-                    # 머지 커밋을 건너뛰고 최근 커밋들에서 가장 높은 우선순위 타입 찾기
+          # 머지 커밋을 건너뛰고 최근 커밋들에서 가장 높은 우선순위 타입 찾기
           HIGHEST_PRIORITY_TYPE=""
           COMMIT_MESSAGES=()
-          
+
           # 최근 10개 커밋 확인
           for i in {1..10}; do
             MSG=$(git log -$i --pretty=%B | head -1)
@@ -92,19 +92,19 @@ jobs:
               esac
             fi
           done
-          
+
           if [ -z "$HIGHEST_PRIORITY_TYPE" ]; then
             echo "No valid commit found in recent history"
             echo "new_tag=" >> $GITHUB_OUTPUT
             echo "changelog=No valid commit found" >> $GITHUB_OUTPUT
             exit 0
           fi
-          
+
           echo "Debug: 최고 우선순위 타입 = $HIGHEST_PRIORITY_TYPE"
-          echo "Debug: 커밋 메시지들 = ${COMMIT_MESSAGES[*]}"
+          echo "Debug: 커밋 메시지들 = ${COMMIT_MESSAGES[*]:-}"
 
           # 첫 번째 커밋 메시지로 검증 (검증은 여전히 필요)
-          FIRST_COMMIT_MSG="${COMMIT_MESSAGES[0]}"
+          FIRST_COMMIT_MSG="${COMMIT_MESSAGES[0]:-}"
           echo "$FIRST_COMMIT_MSG" > /tmp/commit_msg.txt
           echo "Debug: 검증용 커밋 메시지 = '$FIRST_COMMIT_MSG'"
 
