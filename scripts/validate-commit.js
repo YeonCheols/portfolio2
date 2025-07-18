@@ -12,12 +12,18 @@ if (!commitMsgFile) {
   process.exit(1);
 }
 
-// macOS 시스템 알림 함수
-function showNotification(title, message) {
+// macOS 시스템 알림 함수 (경고 아이콘 포함)
+function showNotification(title, message, isError = true) {
   try {
-    // macOS에서 시스템 알림 표시
+    // macOS에서 시스템 알림 표시 (경고 아이콘과 함께)
+    const icon = isError ? "⚠️" : "✅";
+    const sound = isError ? "Basso" : "Glass"; // 경고음 사용
+    const subtitle = isError
+      ? "커밋 메시지 검증 실패"
+      : "커밋 메시지 검증 성공";
+
     execSync(
-      `osascript -e 'display notification "${message}" with title "${title}" sound name "Glass"'`,
+      `osascript -e 'display notification "${message}" with title "${title}" subtitle "${subtitle}" sound name "${sound}"'`,
       { stdio: "ignore" },
     );
   } catch (error) {
@@ -60,10 +66,10 @@ if (!conventionalCommitPattern.test(firstLine)) {
   console.error("  fix(ui): 버튼 스타일 수정");
   console.error("  docs: README 업데이트");
 
-  // 시스템 알림 표시
+  // 시스템 알림 표시 (경고 스타일)
   showNotification(
-    "커밋 실패",
-    "커밋 메시지 형식이 올바르지 않습니다. Conventional Commits 형식을 확인하세요.",
+    "⚠️ 커밋 실패",
+    "커밋 메시지 형식이 올바르지 않습니다.\nConventional Commits 형식을 확인하세요.",
   );
 
   process.exit(1);
@@ -75,10 +81,10 @@ if (firstLine.length > 50) {
   console.error(`현재 길이: ${firstLine.length}자`);
   console.error(`제목: ${firstLine}`);
 
-  // 시스템 알림 표시
+  // 시스템 알림 표시 (경고 스타일)
   showNotification(
-    "커밋 실패",
-    `커밋 제목이 50자를 초과했습니다. (현재: ${firstLine.length}자)`,
+    "⚠️ 커밋 실패",
+    `커밋 제목이 50자를 초과했습니다.\n현재: ${firstLine.length}자 (제한: 50자)`,
   );
 
   process.exit(1);
@@ -89,8 +95,11 @@ if (firstLine.endsWith(".")) {
   console.error("❌ 커밋 제목은 마침표로 끝나면 안됩니다.");
   console.error(`제목: ${firstLine}`);
 
-  // 시스템 알림 표시
-  showNotification("커밋 실패", "커밋 제목은 마침표로 끝나면 안됩니다.");
+  // 시스템 알림 표시 (경고 스타일)
+  showNotification(
+    "⚠️ 커밋 실패",
+    "커밋 제목은 마침표로 끝나면 안됩니다.\n마침표를 제거해주세요.",
+  );
 
   process.exit(1);
 }
@@ -101,8 +110,11 @@ if (subject && subject[0] !== subject[0].toLowerCase()) {
   console.error("❌ 커밋 제목은 소문자로 시작해야 합니다.");
   console.error(`제목: ${firstLine}`);
 
-  // 시스템 알림 표시
-  showNotification("커밋 실패", "커밋 제목은 소문자로 시작해야 합니다.");
+  // 시스템 알림 표시 (경고 스타일)
+  showNotification(
+    "⚠️ 커밋 실패",
+    "커밋 제목은 소문자로 시작해야 합니다.\n첫 글자를 소문자로 변경해주세요.",
+  );
 
   process.exit(1);
 }
@@ -120,10 +132,10 @@ if (lines.length > 1) {
       console.error(`현재 길이: ${line.length}자`);
       console.error(`내용: ${line}`);
 
-      // 시스템 알림 표시
+      // 시스템 알림 표시 (경고 스타일)
       showNotification(
-        "커밋 실패",
-        `본문 ${i + 1}번째 줄이 72자를 초과합니다. (현재: ${line.length}자)`,
+        "⚠️ 커밋 실패",
+        `본문 ${i + 1}번째 줄이 72자를 초과합니다.\n현재: ${line.length}자 (제한: 72자)`,
       );
 
       process.exit(1);
@@ -134,6 +146,6 @@ if (lines.length > 1) {
 console.log("✅ 커밋 메시지가 Conventional Commits 형식을 따릅니다.");
 
 // 성공 시에도 알림 표시 (선택사항)
-// showNotification("커밋 성공", "커밋 메시지가 올바른 형식입니다.");
+// showNotification("✅ 커밋 성공", "커밋 메시지가 올바른 형식입니다.", false);
 
 process.exit(0);
