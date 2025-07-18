@@ -26,7 +26,7 @@ jobs:
           node-version: "18"
 
       - name: 의존성 설치
-        run: npm ci
+        run: pnpm install --frozen-lockfile
 
       - name: Git 설정
         run: |
@@ -85,7 +85,7 @@ jobs:
               echo "changelog=Tag $NEW_TAG already exists" >> $GITHUB_OUTPUT
             else
               # package.json 버전 업데이트
-              npm version $NEW_VERSION --no-git-tag-version
+              pnpm version $NEW_VERSION --no-git-tag-version
               
               # 변경사항 커밋
               git add package.json

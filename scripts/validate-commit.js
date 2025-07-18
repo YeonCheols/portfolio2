@@ -25,7 +25,6 @@ function showNotification(message, title = "", isError = false) {
     );
   } catch (error) {
     // 알림 실패 시 무시 (터미널 환경 등에서 실패할 수 있음)
-    console.error("catch errror", error);
     console.info("알림을 표시할 수 없습니다.");
   }
 }
