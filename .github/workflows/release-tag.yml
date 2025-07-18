@@ -36,7 +36,7 @@ jobs:
           echo "@yeoncheols:registry=https://npm.pkg.github.com" >> .npmrc
 
       - name: 의존성 설치
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
       - name: Git 설정
         run: |
