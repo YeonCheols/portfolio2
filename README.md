@@ -178,15 +178,35 @@ pnpm postbuild
 
 ## Git Commit Message Convention
 
-이 프로젝트는 [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) 사양을 따릅니다. 아래는 사용되는 커밋 유형입니다:
+이 프로젝트는 [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) 사양을 따릅니다.
+
+자세한 커밋 메시지 가이드는 [커밋 컨벤션 문서](./docs/COMMIT_CONVENTION.md)를 참조하세요.
+
+### 주요 커밋 타입
 
 - **feat**: 새로운 기능 추가
 - **fix**: 버그 수정
 - **docs**: 문서 수정
 - **style**: 코드 포맷팅, 세미콜론 등 (기능 변화 없음)
 - **refactor**: 코드 리팩토링 (기능 변화 없음)
+- **perf**: 성능 개선
 - **test**: 테스트 코드 추가/수정
+- **build**: 빌드 시스템 변경
+- **ci**: CI 설정 변경
 - **chore**: 빌드, 도구 설정, 기타
+- **revert**: 이전 커밋 되돌리기
+
+### 커밋 메시지 검증
+
+이 프로젝트는 자동으로 커밋 메시지를 검증합니다:
+
+```bash
+# 커밋 메시지 형식 도움말
+npm run commit:help
+
+# 커밋 메시지 검증 (수동)
+npm run commit:check
+```
 
 ## 라이선스
 
