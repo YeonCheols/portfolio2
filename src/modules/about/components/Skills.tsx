@@ -1,11 +1,12 @@
 import styled from "@emotion/styled";
-import { memo, ReactNode, useEffect, useMemo, useState } from "react";
+import { memo, ReactNode, useMemo } from "react";
 
 import InfiniteLoopSlider from "@/common/components/elements/InfiniteLoopSlider";
-import { STACKS } from "@/common/constant/stacks";
+import { StackIcon, StackType } from "@yeoncheols/portfolio-core-ui";
 import { fetcher } from "@/services/fetcher";
 import useSWR from "swr";
 import ProductCardSkeleton from "@/common/components/skeleton/ProductCardSkeleton";
+import { TagSearchResponse } from "@docs/api";
 
 const Tag = memo(({ icon, title }: { icon: ReactNode; title: string }) => (
   <div className="mr-3 flex w-max items-center gap-2 rounded-full border border-neutral-300 bg-neutral-50 px-5 py-2 text-[15px] shadow-sm dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-50">
@@ -15,47 +16,54 @@ const Tag = memo(({ icon, title }: { icon: ReactNode; title: string }) => (
 ));
 
 const Skills = () => {
-  const { data: stacksData, isLoading } = useSWR("/api/stacks", fetcher);
+  const { data: stacksData, isLoading } = useSWR<TagSearchResponse>(
+    "/api/stacks",
+    fetcher,
+  );
 
-  const [shuffledSkills, setShuffledSkills] = useState<
-    Array<[string, ReactNode]>
-  >([]);
-
-  // TODO : 공통 utils 교체
-  const stacksIcons = useMemo(() => {
+  // API 데이터를 StackType 형태로 변환
+  const skillsData = useMemo(() => {
     if (!stacksData?.data) return [];
 
-    return stacksData.data.reduce(
-      (acc: { [key: string]: ReactNode }, stack: any) => {
-        acc[stack.name] = STACKS[stack.name];
-        return acc;
-      },
-      {},
+    return stacksData.data.map(
+      (stack) =>
+        ({
+          name: stack.name,
+          icon: stack.icon,
+          color: stack.color,
+          id: stack.id,
+        }) as StackType,
     );
   }, [stacksData]);
 
-  useEffect(() => {
-    const skillsArray = Object.entries(stacksIcons) as [string, ReactNode][];
-    const shuffledArray = [...skillsArray].sort(() => Math.random() - 0.5);
-    setShuffledSkills(shuffledArray);
-  }, [stacksIcons]);
+  // 3개의 슬라이더를 위한 데이터 준비
+  const sliders = useMemo(() => {
+    if (skillsData.length === 0) return [];
 
-  const sliders = useMemo(
-    () =>
-      Array.from({ length: 3 }, (_, index) => {
-        const sliderSkills = [...shuffledSkills].sort(
-          () => Math.random() - 0.5,
-        );
-        return (
-          <InfiniteLoopSlider key={index} isReverse={index === 1}>
-            {sliderSkills.map(([title, icon], index) => (
-              <Tag key={index} icon={icon} title={title} />
-            ))}
-          </InfiniteLoopSlider>
-        );
-      }),
-    [shuffledSkills],
-  );
+    return Array.from({ length: 3 }, (_, index) => {
+      // 각 슬라이더마다 다른 순서로 스킬을 섞어서 배치
+      const shuffledSkills = [...skillsData].sort(() => Math.random() - 0.5);
+
+      return (
+        <InfiniteLoopSlider key={index} isReverse={index === 1}>
+          {shuffledSkills.map((skill, skillIndex) => (
+            <Tag
+              key={`${index}-${skillIndex}`}
+              icon={
+                <StackIcon
+                  name={skill.name}
+                  icon={skill.icon}
+                  color={skill.color}
+                  size={20}
+                />
+              }
+              title={skill.name}
+            />
+          ))}
+        </InfiniteLoopSlider>
+      );
+    });
+  }, [skillsData]);
 
   if (isLoading) {
     return <ProductCardSkeleton />;
