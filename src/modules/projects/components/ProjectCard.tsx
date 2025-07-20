@@ -5,11 +5,11 @@ import Card from "@/common/components/elements/Card";
 import Image from "@/common/components/elements/Image";
 import Tooltip from "@/common/components/elements/Tooltip";
 import { STACKS } from "@/common/constant/stacks";
-import { ProjectResponse, TagSearchResponse } from "docs/api";
+import { ProjectResponse, TagResponse, TagSearchResponse } from "docs/api";
 import { StackIcon, StackIconProps } from "@yeoncheols/portfolio-core-ui";
 import useSWR from "swr";
 import { fetcher } from "@/services/fetcher";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 
 const ProjectCard = ({
   title,
@@ -23,17 +23,31 @@ const ProjectCard = ({
     "/api/stacks",
     fetcher,
   );
+  const stacksMap = useMemo(() => {
+    if (!stacksData?.data) {
+      return new Map<string, TagResponse>();
+    }
+    return new Map(stacksData.data.map((stack) => [stack.name, stack]));
+  }, [stacksData]);
+
   const getStackIcon = useCallback(
     (stackName: string) => {
-      if (!stacksData) {
-        return null;
-      }
-      return stacksData?.data.find(
-        (s) => s.name === stackName,
-      ) as StackIconProps;
+      return stacksMap.get(stackName) as StackIconProps | undefined;
     },
-    [stacksData],
+    [stacksMap],
   );
+
+  // const getStackIcon = useCallback(
+  //   (stackName: string) => {
+  //     if (!stacksData) {
+  //       return null;
+  //     }
+  //     return stacksData?.data.find(
+  //       (s) => s.name === stackName
+  //     ) as StackIconProps;
+  //   },
+  //   [stacksData]
+  // );
 
   const stacksArray = JSON.parse(stacks);
 
@@ -65,18 +79,16 @@ const ProjectCard = ({
             {description}
           </p>
           <div className="flex flex-wrap items-center gap-3 pt-2">
-            {stacksArray?.map((stack: string, index: number) => (
-              <div key={index}>
-                <Tooltip title={stack}>
-                  {(() => {
-                    const iconProps = getStackIcon(stack);
-                    return iconProps && iconProps.name ? (
-                      <StackIcon {...iconProps} size={20} />
-                    ) : null;
-                  })()}
-                </Tooltip>
-              </div>
-            ))}
+            {stacksArray?.map((stack: string) => {
+              const iconProps = getStackIcon(stack);
+              return (
+                <div key={stack}>
+                  <Tooltip title={stack}>
+                    {iconProps?.name && <StackIcon {...iconProps} size={20} />}
+                  </Tooltip>
+                </div>
+              );
+            })}
           </div>
         </div>
       </Card>
