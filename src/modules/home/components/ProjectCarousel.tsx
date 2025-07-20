@@ -6,11 +6,12 @@ import { fetcher } from "@/services/fetcher";
 import ProductCardSkeleton from "@/common/components/skeleton/ProductCardSkeleton";
 import ProjectCard from "@/modules/projects/components/ProjectCard";
 import EmptyState from "@/common/components/elements/EmptyState";
-import { ProjectResponse } from "docs/api";
+import { ProjectResponse, ProjectSearchResponse } from "docs/api";
+import cn from "@/common/libs/cn";
 
 const ProjectCarousel = () => {
-  const { data, error, isLoading } = useSWR(
-    `/api/projects?page=1&size=5`,
+  const { data, error, isLoading } = useSWR<{ data: ProjectSearchResponse }>(
+    `/api/projects?page=1&size=4`,
     fetcher,
     {
       revalidateOnFocus: false,
@@ -19,7 +20,7 @@ const ProjectCarousel = () => {
   );
 
   const projectData: ProjectResponse[] = useMemo(() => {
-    return data?.data || [];
+    return data?.data?.data || [];
   }, [data]);
 
   const ref =
@@ -28,7 +29,7 @@ const ProjectCarousel = () => {
 
   const renderProjectCards = () => {
     if (isLoading) {
-      return Array.from({ length: 3 }, (_, index) => (
+      return Array.from({ length: 4 }, (_, index) => (
         <ProductCardSkeleton key={index} />
       ));
     }
@@ -57,7 +58,14 @@ const ProjectCarousel = () => {
   };
 
   return (
-    <div className="grid gap-5 px-1 pt-2 sm:grid-cols-2" {...events} ref={ref}>
+    <div
+      className={cn(
+        "grid gap-5 px-1 pt-2 sm:grid-cols-2",
+        !isLoading && projectData.length === 0 && "flex items-center",
+      )}
+      {...events}
+      ref={ref}
+    >
       {renderProjectCards()}
     </div>
   );

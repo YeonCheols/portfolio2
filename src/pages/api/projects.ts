@@ -20,7 +20,7 @@ export default async function handler(
       page: pageNumber,
       size: pageSize,
     };
-    const { data } = await axios.get(`${process.env.API_URL}/project`, {
+    const { data } = await axios.get(`${process.env.API_URL}/project/search`, {
       params: requestParams,
     });
 
