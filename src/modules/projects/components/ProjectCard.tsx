@@ -5,7 +5,11 @@ import Card from "@/common/components/elements/Card";
 import Image from "@/common/components/elements/Image";
 import Tooltip from "@/common/components/elements/Tooltip";
 import { STACKS } from "@/common/constant/stacks";
-import { ProjectResponse } from "docs/api";
+import { ProjectResponse, TagSearchResponse } from "docs/api";
+import { StackIcon, StackIconProps } from "@yeoncheols/portfolio-core-ui";
+import useSWR from "swr";
+import { fetcher } from "@/services/fetcher";
+import { useCallback } from "react";
 
 const ProjectCard = ({
   title,
@@ -14,6 +18,23 @@ const ProjectCard = ({
   image,
   stacks,
 }: ProjectResponse) => {
+  // TODO : tag 단일 검색 API 교체 필요
+  const { data: stacksData, isLoading } = useSWR<TagSearchResponse>(
+    "/api/stacks",
+    fetcher,
+  );
+  const getStackIcon = useCallback(
+    (stackName: string) => {
+      if (!stacksData) {
+        return null;
+      }
+      return stacksData?.data.find(
+        (s) => s.name === stackName,
+      ) as StackIconProps;
+    },
+    [stacksData],
+  );
+
   const stacksArray = JSON.parse(stacks);
 
   return (
@@ -46,7 +67,14 @@ const ProjectCard = ({
           <div className="flex flex-wrap items-center gap-3 pt-2">
             {stacksArray?.map((stack: string, index: number) => (
               <div key={index}>
-                <Tooltip title={stack}>{STACKS[stack]}</Tooltip>
+                <Tooltip title={stack}>
+                  {(() => {
+                    const iconProps = getStackIcon(stack);
+                    return iconProps && iconProps.name ? (
+                      <StackIcon {...iconProps} size={20} />
+                    ) : null;
+                  })()}
+                </Tooltip>
               </div>
             ))}
           </div>
