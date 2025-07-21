@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import InfiniteScroll from "react-infinite-scroll-component";
 
 import EmptyState from "@/common/components/elements/EmptyState";
+import Loading from "@/common/components/elements/Loading";
 
 import ProjectCard from "./ProjectCard";
 import { ProjectResponse } from "@docs/api";
@@ -10,25 +11,33 @@ interface ProjectsComponentProps {
   projects: ProjectResponse[];
   loadMore: () => void;
   hasMore: boolean;
+  isLoading?: boolean;
 }
 
-const Projects = ({ projects, loadMore, hasMore }: ProjectsComponentProps) => {
-  const filteredProjects = projects.filter((project) => project?.isShow);
+const Projects = ({
+  projects,
+  loadMore,
+  hasMore,
+  isLoading = false,
+}: ProjectsComponentProps) => {
+  if (isLoading && projects.length === 0) {
+    return <Loading />;
+  }
 
-  if (filteredProjects.length === 0) {
+  if (projects.length === 0) {
     return <EmptyState message="No Data" />;
   }
 
   return (
     <InfiniteScroll
-      dataLength={filteredProjects.length}
+      dataLength={projects.length}
       next={loadMore}
       hasMore={hasMore}
-      loader={<h4>Loading...</h4>}
+      loader={<Loading />}
       style={{ overflow: "hidden" }}
     >
       <div className="grid gap-5 px-1 pt-2 sm:grid-cols-2">
-        {filteredProjects.map((project, index) => (
+        {projects.map((project, index) => (
           <motion.div
             key={index}
             initial={{ opacity: 0, scale: 0.8 }}
