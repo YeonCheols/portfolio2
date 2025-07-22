@@ -1,7 +1,7 @@
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import Link from "next/link";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import Container from "@/common/components/elements/Container";
 import PageHeading from "@/common/components/elements/PageHeading";
@@ -21,14 +21,17 @@ export default function TagsPage({ tags }: TagsPageProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState<"name" | "count">("name");
 
-  const filteredTags = tags
-    .filter((tag) => tag.name.toLowerCase().includes(searchTerm.toLowerCase()))
-    .sort((a, b) => {
-      if (sortBy === "name") {
-        return a.name.localeCompare(b.name);
-      }
-      return b.count - a.count;
-    });
+  const filteredTags = useMemo(() => {
+    const lowercasedSearchTerm = searchTerm.toLowerCase();
+    return [...tags]
+      .filter((tag) => tag.name.toLowerCase().includes(lowercasedSearchTerm))
+      .sort((a, b) => {
+        if (sortBy === "name") {
+          return a.name.localeCompare(b.name);
+        }
+        return b.count - a.count;
+      });
+  }, [tags, searchTerm, sortBy]);
 
   return (
     <>
@@ -47,7 +50,11 @@ export default function TagsPage({ tags }: TagsPageProps) {
           <SectionHeading title={`All Tags (${tags.length})`} />
 
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <label htmlFor="search-tags" className="sr-only">
+              Search tags
+            </label>
             <input
+              id="search-tags"
               type="text"
               placeholder="Search tags..."
               value={searchTerm}
@@ -55,7 +62,11 @@ export default function TagsPage({ tags }: TagsPageProps) {
               className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
             />
 
+            <label htmlFor="sort-tags" className="sr-only">
+              Sort by
+            </label>
             <select
+              id="sort-tags"
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as "name" | "count")}
               className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
