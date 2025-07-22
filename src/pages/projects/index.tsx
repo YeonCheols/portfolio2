@@ -5,12 +5,8 @@ import useSWRInfinite from "swr/infinite";
 import Container from "@/common/components/elements/Container";
 import PageHeading from "@/common/components/elements/PageHeading";
 import Projects from "@/modules/projects";
-import { ProjectResponse, ProjectSearchResponse } from "@docs/api";
+import { ProjectSearchResponse } from "@docs/api";
 import { fetcher } from "@/services/fetcher";
-
-interface ProjectsPageProps {
-  projects: ProjectResponse[];
-}
 
 const PAGE_TITLE = "프로젝트";
 const PAGE_DESCRIPTION =
