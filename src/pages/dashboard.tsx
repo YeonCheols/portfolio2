@@ -29,7 +29,15 @@ const DashboardPage: NextPage<DashboardPageProps> = ({ fallback }) => {
 };
 
 export const getStaticProps: GetStaticProps = async () => {
-  const githubUserPersonal = await getGithubUser("personal");
+  let githubUserPersonal = null;
+
+  try {
+    githubUserPersonal = await getGithubUser("personal");
+  } catch (error) {
+    console.warn("GitHub API 호출 실패:", error);
+    // NOTE: GitHub API 오류 시 빈 데이터로 fallback
+    githubUserPersonal = { data: null };
+  }
 
   return {
     props: {
