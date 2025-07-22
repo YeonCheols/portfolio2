@@ -1,0 +1,114 @@
+import { GetServerSideProps } from "next";
+import Head from "next/head";
+import Link from "next/link";
+import { useState } from "react";
+
+import Container from "@/common/components/elements/Container";
+import PageHeading from "@/common/components/elements/PageHeading";
+import SectionHeading from "@/common/components/elements/SectionHeading";
+import axios from "axios";
+
+interface Tag {
+  name: string;
+  count: number;
+}
+
+interface TagsPageProps {
+  tags: Tag[];
+}
+
+export default function TagsPage({ tags }: TagsPageProps) {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState<"name" | "count">("name");
+
+  const filteredTags = tags
+    .filter((tag) => tag.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    .sort((a, b) => {
+      if (sortBy === "name") {
+        return a.name.localeCompare(b.name);
+      }
+      return b.count - a.count;
+    });
+
+  return (
+    <>
+      <Head>
+        <title>Tags | YeonCheol&apos;s Portfolio</title>
+        <meta name="description" content="All tags used in my blog posts" />
+      </Head>
+
+      <Container>
+        <PageHeading
+          title="Tags"
+          description="All tags used in my blog posts and projects"
+        />
+
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <SectionHeading title={`All Tags (${tags.length})`} />
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <input
+              type="text"
+              placeholder="Search tags..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+            />
+
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as "name" | "count")}
+              className="rounded-lg border border-neutral-300 bg-white px-4 py-2 text-sm dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+            >
+              <option value="name">Sort by Name</option>
+              <option value="count">Sort by Count</option>
+            </select>
+          </div>
+        </div>
+
+        {filteredTags.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-neutral-600 dark:text-neutral-400">
+              No tags found matching &quot;{searchTerm}&quot;
+            </p>
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-3">
+            {filteredTags.map((tag) => (
+              <Link
+                key={tag.name}
+                href={`/tags/${tag.name}`}
+                className="group inline-flex items-center gap-2 rounded-full bg-neutral-200 px-4 py-2 text-sm font-medium text-neutral-700 transition-all hover:bg-neutral-300 hover:scale-105 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700"
+              >
+                <div className="h-2 w-2 rounded-full bg-neutral-500 dark:bg-neutral-600"></div>
+                <span>{tag.name}</span>
+                <span className="text-neutral-500 dark:text-neutral-500">
+                  ({tag.count})
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </Container>
+    </>
+  );
+}
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  try {
+    const { data } = await axios.get(`${process.env.API_URL}/tag`);
+
+    return {
+      props: {
+        tags: data || [],
+      },
+    };
+  } catch (error) {
+    console.error("Error fetching tags:", error);
+    return {
+      props: {
+        tags: [],
+      },
+    };
+  }
+};

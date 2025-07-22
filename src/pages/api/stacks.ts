@@ -12,6 +12,7 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<Data>,
 ) {
+  console.log("req : ", req);
   try {
     const { data } = await axios.get(`${process.env.API_URL}/tag`);
 

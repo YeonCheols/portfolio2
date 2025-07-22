@@ -97,7 +97,7 @@ export const MENU_ITEMS: MenuItemProps[] = [
     type: "Pages",
   },
   {
-    title: "Tags",
+    title: "#Tags",
     href: "/tags",
     icon: <TagIcon size={iconSize} />,
     isShow: true,
