@@ -7,14 +7,10 @@ import Container from "@/common/components/elements/Container";
 import PageHeading from "@/common/components/elements/PageHeading";
 import SectionHeading from "@/common/components/elements/SectionHeading";
 import axios from "axios";
-
-interface Tag {
-  name: string;
-  count: number;
-}
+import { TagResponse } from "@docs/api";
 
 interface TagsPageProps {
-  tags: Tag[];
+  tags: TagResponse[];
 }
 
 export default function TagsPage({ tags }: TagsPageProps) {
@@ -29,7 +25,7 @@ export default function TagsPage({ tags }: TagsPageProps) {
         if (sortBy === "name") {
           return a.name.localeCompare(b.name);
         }
-        return b.count - a.count;
+        return b.projectCount - a.projectCount;
       });
   }, [tags, searchTerm, sortBy]);
 
@@ -41,10 +37,7 @@ export default function TagsPage({ tags }: TagsPageProps) {
       </Head>
 
       <Container>
-        <PageHeading
-          title="Tags"
-          description="All tags used in my blog posts and projects"
-        />
+        <PageHeading title="Tags" description="All tags by projects" />
 
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <SectionHeading title={`All Tags (${tags.length})`} />
@@ -94,7 +87,7 @@ export default function TagsPage({ tags }: TagsPageProps) {
                 <div className="h-2 w-2 rounded-full bg-neutral-500 dark:bg-neutral-600"></div>
                 <span>{tag.name}</span>
                 <span className="text-neutral-500 dark:text-neutral-500">
-                  ({tag.count})
+                  ({tag.projectCount})
                 </span>
               </Link>
             ))}

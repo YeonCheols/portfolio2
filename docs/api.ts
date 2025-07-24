@@ -52,6 +52,56 @@ export interface ProjectSearchResponse {
   size: number;
 }
 
+export interface ProjectTagResponse {
+  /** 태그 ID */
+  id: number;
+  /** 태그 이름 */
+  name: string;
+  /** 태그 아이콘 */
+  icon: string;
+  /** 태그 색상 */
+  color: string;
+  /** 태그 카테고리 */
+  category: string;
+  /**
+   * 업데이트 시간
+   * @format date-time
+   */
+  updatedAt: string;
+}
+
+export interface ProjectByTagResponse {
+  /** 프로젝트 ID */
+  id: number;
+  /** 프로젝트 제목 */
+  title: string;
+  /** 프로젝트 슬러그 */
+  slug: string;
+  /** 프로젝트 설명 */
+  description: string;
+  /** 프로젝트 메인 이미지 */
+  image: string;
+  /** 프로젝트 기술 스택 */
+  stacks: string;
+  /** 프로젝트 상세 내용 */
+  content: string;
+  /** 프로젝트 노출 여부 */
+  isShow: boolean;
+  /** 프로젝트 데모 링크 */
+  linkDemo: string;
+  /** 프로젝트 GitHub 링크 */
+  linkGithub: string;
+  /** 프로젝트 정렬 순서 */
+  order: number;
+  /**
+   * 프로젝트 업데이트 일자
+   * @format date-time
+   */
+  updatedAt: string;
+  /** 프로젝트 태그 */
+  projectTags: string[];
+}
+
 export interface ProfileResponse {
   /**
    * 프로필 ID
@@ -109,6 +159,11 @@ export interface TagResponse {
    * @example "frontend"
    */
   category: "frontend" | "backend" | "database" | "devops" | "tool" | "other";
+  /**
+   * 연결된 프로젝트 개수
+   * @example 5
+   */
+  projectCount: number;
   /**
    * 업데이트 일자
    * @format date-time
