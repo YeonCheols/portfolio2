@@ -20,12 +20,12 @@ const Projects = ({
   hasMore,
   isLoading = false,
 }: ProjectsComponentProps) => {
-  if (isLoading && projects.length === 0) {
+  if (isLoading) {
     return <Loading />;
   }
 
-  if (projects.length === 0) {
-    return <EmptyState message="No Data" />;
+  if (!isLoading && projects.length === 0) {
+    return <EmptyState className="w-full" message="프로젝트가 없습니다" />;
   }
 
   return (

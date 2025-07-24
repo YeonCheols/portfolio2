@@ -19,7 +19,7 @@ const ProjectCard = ({
   stacks,
 }: ProjectResponse) => {
   // TODO : tag 단일 검색 API 교체 필요
-  const { data: stacksData, isLoading } = useSWR<TagSearchResponse>(
+  const { data: stacksData } = useSWR<TagSearchResponse>(
     "/api/stacks",
     fetcher,
   );
@@ -36,18 +36,6 @@ const ProjectCard = ({
     },
     [stacksMap],
   );
-
-  // const getStackIcon = useCallback(
-  //   (stackName: string) => {
-  //     if (!stacksData) {
-  //       return null;
-  //     }
-  //     return stacksData?.data.find(
-  //       (s) => s.name === stackName
-  //     ) as StackIconProps;
-  //   },
-  //   [stacksData]
-  // );
 
   const stacksArray = JSON.parse(stacks);
 

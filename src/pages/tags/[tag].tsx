@@ -7,6 +7,8 @@ import Container from "@/common/components/elements/Container";
 import PageHeading from "@/common/components/elements/PageHeading";
 import { ProjectByTagResponse } from "@docs/api";
 import Loading from "@/common/components/elements/Loading";
+import { motion } from "framer-motion";
+import ProjectCard from "@/modules/projects/components/ProjectCard";
 
 export default function TagPage({
   projects,
@@ -15,6 +17,10 @@ export default function TagPage({
   projects: ProjectByTagResponse[];
   params: { tag: string };
 }) {
+  if (!projects) {
+    return <Loading />;
+  }
+
   return (
     <>
       <Head>
@@ -55,38 +61,17 @@ export default function TagPage({
         ) : (
           <div className="space-y-6">
             {projects.map((project) => (
-              <article
-                key={project.id}
-                className="rounded-lg border border-neutral-300 bg-white p-6 transition-all hover:border-neutral-400 hover:shadow-md dark:border-neutral-700 dark:bg-neutral-800 dark:hover:border-neutral-600"
-              >
-                <Link href={`/projects/${project.slug}`}>
-                  <h2 className="mb-2 text-xl font-semibold text-neutral-900 hover:text-blue-600 dark:text-white dark:hover:text-blue-400">
-                    {project.title}
-                  </h2>
-                </Link>
-
-                <p className="mb-4 text-neutral-600 dark:text-neutral-400">
-                  {project.description}
-                </p>
-
-                <div className="flex items-center justify-between">
-                  {/* <div className="flex flex-wrap gap-2">
-                    {project.projectTags &&
-                      project.projectTags.map((projectTag) => (
-                        <Link
-                          key={projectTag}
-                          href={`/tags/${projectTag}`}
-                          className="rounded-full bg-neutral-100 px-3 py-1 text-xs text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-700 dark:text-neutral-300 dark:hover:bg-neutral-600"
-                        >
-                          #{projectTag?.name}
-                        </Link>
-                      ))}
-                  </div> */}
-
-                  <time className="text-sm text-neutral-500 dark:text-neutral-500">
-                    {new Date(project.updatedAt).toLocaleDateString()}
-                  </time>
-                </div>
+              <article key={project.id}>
+                <motion.div
+                  key={project.id}
+                  initial={{ opacity: 0, x: 100 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -100 }}
+                  transition={{ duration: 0.5 }}
+                  className="min-w-[326px] gap-x-5"
+                >
+                  <ProjectCard {...project} />
+                </motion.div>
               </article>
             ))}
           </div>

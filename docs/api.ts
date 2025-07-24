@@ -61,8 +61,11 @@ export interface ProjectTagResponse {
   icon: string;
   /** 태그 색상 */
   color: string;
-  /** 태그 카테고리 */
-  category: string;
+  /**
+   * 태그 카테고리
+   * @example "frontend"
+   */
+  category: "frontend" | "backend" | "database" | "devops" | "tool" | "other";
   /**
    * 업데이트 시간
    * @format date-time
@@ -99,7 +102,7 @@ export interface ProjectByTagResponse {
    */
   updatedAt: string;
   /** 프로젝트 태그 */
-  projectTags: string[];
+  projectTags: ProjectTagResponse[];
 }
 
 export interface ProfileResponse {
