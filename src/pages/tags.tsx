@@ -2,6 +2,7 @@ import { GetServerSideProps } from "next";
 import Head from "next/head";
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { NextSeo } from "next-seo";
 
 import Container from "@/common/components/elements/Container";
 import PageHeading from "@/common/components/elements/PageHeading";
@@ -31,10 +32,7 @@ export default function TagsPage({ tags }: TagsPageProps) {
 
   return (
     <>
-      <Head>
-        <title>Tags | YeonCheol&apos;s Portfolio</title>
-        <meta name="description" content="All tags used in my blog posts" />
-      </Head>
+      <NextSeo title={`연철s - 태그모음`} />
 
       <Container>
         <PageHeading title="Tags" description="All tags by projects" />
