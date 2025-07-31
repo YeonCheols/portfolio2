@@ -1,4 +1,5 @@
 import { google } from "googleapis";
+import axios from "axios";
 
 // OpenSSL 오류 해결을 위한 환경변수 설정
 if (process.env.NODE_TLS_REJECT_UNAUTHORIZED === "0") {
@@ -234,35 +235,58 @@ export const getPerformanceMetrics = async (projectId: string) => {
   }
 };
 
-// 토큰 사용량 추정 (실제 API 호출 기반)
+// 토큰 사용량 추정 (Gemini 파일 기준으로 통일)
 export const getTokenUsage = async () => {
   try {
-    const response = await fetch(
+    const requestBody = {
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: "Hello" }],
+        },
+      ],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 1500,
+        topK: 40,
+        topP: 0.95,
+      },
+      safetySettings: [
+        {
+          category: "HARM_CATEGORY_HARASSMENT",
+          threshold: "BLOCK_MEDIUM_AND_ABOVE",
+        },
+        {
+          category: "HARM_CATEGORY_HATE_SPEECH",
+          threshold: "BLOCK_MEDIUM_AND_ABOVE",
+        },
+        {
+          category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+          threshold: "BLOCK_MEDIUM_AND_ABOVE",
+        },
+        {
+          category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+          threshold: "BLOCK_MEDIUM_AND_ABOVE",
+        },
+      ],
+    };
+
+    const response = await axios.post(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      requestBody,
       {
-        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          contents: [
-            {
-              role: "user",
-              parts: [{ text: "Hello" }],
-            },
-          ],
-          generationConfig: {
-            maxOutputTokens: 10,
-          },
-        }),
+        timeout: 30000, // 30초 타임아웃
       },
     );
 
-    const data = await response.json();
+    const data = response.data;
 
     // 디버깅을 위한 로그 추가
-    console.log("Gemini API 응답:", JSON.stringify(data, null, 2));
-    console.log("응답 헤더:", Object.fromEntries(response.headers.entries()));
+    console.info("Gemini API 응답:", JSON.stringify(data, null, 2));
+    console.info("응답 헤더:", response.headers);
 
     // usageMetadata가 없는 경우를 대비한 fallback 처리
     const usageMetadata = data.usageMetadata || {};
@@ -278,9 +302,9 @@ export const getTokenUsage = async () => {
       candidatesTokenCount,
       totalTokenCount,
       headers: {
-        quotaUser: response.headers.get("x-quota-user") || null,
-        quotaRemaining: response.headers.get("x-quota-remaining") || null,
-        quotaLimit: response.headers.get("x-quota-limit") || null,
+        quotaUser: response.headers["x-quota-user"] || null,
+        quotaRemaining: response.headers["x-quota-remaining"] || null,
+        quotaLimit: response.headers["x-quota-limit"] || null,
       },
       // 디버깅을 위한 추가 정보
       hasUsageMetadata: !!data.usageMetadata,

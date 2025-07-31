@@ -16,6 +16,7 @@ const TechnicalChat = ({ isWidget = false }: TechnicalChatProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
@@ -34,6 +35,7 @@ const TechnicalChat = ({ isWidget = false }: TechnicalChatProps) => {
     try {
       const response = await axios.post("/api/technical-chat", {
         question: inputValue,
+        sessionId: sessionId, // 기존 세션이 있으면 전송
       });
 
       const assistantMessage: Message = {
@@ -44,6 +46,11 @@ const TechnicalChat = ({ isWidget = false }: TechnicalChatProps) => {
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
+
+      // 새로운 세션 ID 저장 (첫 번째 메시지인 경우)
+      if (response.data.sessionId && !sessionId) {
+        setSessionId(response.data.sessionId);
+      }
     } catch (error) {
       console.error("Chat error:", error);
       const errorMessage: Message = {
@@ -66,16 +73,34 @@ const TechnicalChat = ({ isWidget = false }: TechnicalChatProps) => {
     }
   };
 
+  const handleNewChat = () => {
+    setMessages([]);
+    setSessionId(null);
+  };
+
   return (
     <div
       className={`flex flex-col h-full ${isWidget ? "max-w-md" : "max-w-4xl"}`}
     >
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-t-lg">
-        <h3 className="text-lg font-semibold">🤖 기술 멘토</h3>
-        <p className="text-sm opacity-90">
-          프로그래밍과 기술에 대한 질문을 해주세요!
-        </p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h3 className="text-lg font-semibold">🤖 기술 멘토</h3>
+            <p className="text-sm opacity-90">
+              프로그래밍과 기술에 대한 질문을 해주세요!
+            </p>
+          </div>
+          {messages.length > 0 && (
+            <button
+              onClick={handleNewChat}
+              className="px-3 py-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded text-sm transition-colors duration-200"
+              title="새로운 대화 시작"
+            >
+              새 대화
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Messages */}
@@ -85,6 +110,9 @@ const TechnicalChat = ({ isWidget = false }: TechnicalChatProps) => {
             <div className="text-4xl mb-2">💬</div>
             <p>기술적인 질문을 해주세요!</p>
             <p className="text-sm mt-2">예: React hooks는 어떻게 사용하나요?</p>
+            <p className="text-xs mt-1 text-gray-400 dark:text-neutral-500">
+              이전 대화 내용을 기억합니다
+            </p>
           </div>
         )}
 

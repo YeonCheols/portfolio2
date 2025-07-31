@@ -1,8 +1,19 @@
 import axios from "axios";
 
 const GEMINI_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent";
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash";
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+
+// 채팅 세션 관리를 위한 인터페이스
+export interface ChatSession {
+  sessionId: string;
+  messages: Array<{
+    role: "user" | "model";
+    content: string;
+    timestamp: Date;
+  }>;
+  context?: UserContext;
+}
 
 export interface GeminiMessage {
   role: "user" | "model";
@@ -38,12 +49,10 @@ export interface UserContext {
   level?: "beginner" | "intermediate" | "advanced";
   techStack?: string[];
   interests?: string[];
-  previousMessages?: Array<{
-    role: "user" | "assistant";
-    content: string;
-    timestamp: Date;
-  }>;
 }
+
+// 채팅 세션 저장소 (실제 프로덕션에서는 Redis나 데이터베이스 사용 권장)
+const chatSessions = new Map<string, ChatSession>();
 
 // 기술 스택별 특화 프롬프트
 const techStackPrompts = {
@@ -117,10 +126,41 @@ const levelPrompts = {
   `,
 };
 
-export const createTechnicalChatPrompt = (
-  userQuestion: string,
-  context?: UserContext,
-) => {
+// 새로운 채팅 세션 생성
+export const createChatSession = (context?: UserContext): string => {
+  const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+  const session: ChatSession = {
+    sessionId,
+    messages: [],
+    context,
+  };
+
+  chatSessions.set(sessionId, session);
+
+  // 세션 정리 (24시간 후 자동 삭제)
+  setTimeout(
+    () => {
+      chatSessions.delete(sessionId);
+    },
+    24 * 60 * 60 * 1000,
+  );
+
+  return sessionId;
+};
+
+// 채팅 세션 가져오기
+export const getChatSession = (sessionId: string): ChatSession | null => {
+  return chatSessions.get(sessionId) || null;
+};
+
+// 채팅 세션 삭제
+export const deleteChatSession = (sessionId: string): boolean => {
+  return chatSessions.delete(sessionId);
+};
+
+// 시스템 프롬프트 생성
+const createSystemPrompt = (context?: UserContext): string => {
   let systemPrompt = `당신은 전문적이고 친근한 기술 멘토입니다. 
 
 다음 원칙을 따라 답변해주세요:
@@ -131,6 +171,7 @@ export const createTechnicalChatPrompt = (
 4. **최신 정보**: 최신 기술 트렌드와 베스트 프랙티스를 반영
 5. **한국어 답변**: 한국어로 답변하되, 필요한 경우 영어 용어도 함께 표기
 6. **친근한 톤**: 격식차리지 않고 친근하게 대화하듯 설명
+7. **대화 연속성**: 이전 대화 내용을 참고하여 자연스럽게 대화를 이어가세요
 
 `;
 
@@ -152,18 +193,6 @@ export const createTechnicalChatPrompt = (
       });
     }
   }
-
-  // 이전 대화 컨텍스트 추가
-  if (context?.previousMessages?.length) {
-    const recentMessages = context.previousMessages.slice(-3);
-    systemPrompt += `\n이전 대화 내용:\n`;
-    recentMessages.forEach((msg) => {
-      systemPrompt += `${msg.role === "user" ? "사용자" : "AI"}: ${msg.content}\n`;
-    });
-    systemPrompt += "\n";
-  }
-
-  systemPrompt += `사용자 질문: ${userQuestion}`;
 
   return systemPrompt;
 };
@@ -267,6 +296,222 @@ export const createSpecializedPrompt = (
   return specializedPrompts[questionType] || "";
 };
 
+// 채팅 세션을 사용한 Gemini API 호출
+export const postGeminiChat = async (
+  sessionId: string,
+  userMessage: string,
+  options?: {
+    temperature?: number;
+    maxTokens?: number;
+  },
+) => {
+  const session = getChatSession(sessionId);
+  if (!session) {
+    throw new Error("채팅 세션을 찾을 수 없습니다.");
+  }
+
+  // 시스템 프롬프트 생성
+  const systemPrompt = createSystemPrompt(session.context);
+
+  // 질문 유형 감지 및 특화 프롬프트 추가
+  const questionType = detectQuestionType(userMessage);
+  const specializedPrompt = createSpecializedPrompt(userMessage, questionType);
+
+  // 대화 히스토리 구성
+  const messages: GeminiMessage[] = [];
+
+  // 시스템 메시지 추가
+  messages.push({
+    role: "user",
+    parts: [{ text: systemPrompt }],
+  });
+
+  // 이전 대화 내용 추가 (최근 5개 메시지)
+  const recentMessages = session.messages.slice(-10);
+  for (const msg of recentMessages) {
+    messages.push({
+      role: msg.role,
+      parts: [{ text: msg.content }],
+    });
+  }
+
+  // 현재 사용자 메시지 추가
+  if (specializedPrompt) {
+    messages.push({
+      role: "user",
+      parts: [{ text: specializedPrompt + "\n\n" + userMessage }],
+    });
+  } else {
+    messages.push({
+      role: "user",
+      parts: [{ text: userMessage }],
+    });
+  }
+
+  const requestBody: GeminiRequest = {
+    contents: messages,
+    generationConfig: {
+      temperature: options?.temperature ?? 0.7,
+      maxOutputTokens: options?.maxTokens ?? 1500,
+      topK: 40,
+      topP: 0.95,
+    },
+    safetySettings: [
+      {
+        category: "HARM_CATEGORY_HARASSMENT",
+        threshold: "BLOCK_MEDIUM_AND_ABOVE",
+      },
+      {
+        category: "HARM_CATEGORY_HATE_SPEECH",
+        threshold: "BLOCK_MEDIUM_AND_ABOVE",
+      },
+      {
+        category: "HARM_CATEGORY_SEXUALLY_EXPLICIT",
+        threshold: "BLOCK_MEDIUM_AND_ABOVE",
+      },
+      {
+        category: "HARM_CATEGORY_DANGEROUS_CONTENT",
+        threshold: "BLOCK_MEDIUM_AND_ABOVE",
+      },
+    ],
+  };
+
+  try {
+    // API 키 확인
+    if (!GEMINI_API_KEY) {
+      console.error("Gemini API 키가 설정되지 않았습니다.");
+      return {
+        status: 500,
+        message: "Gemini API 키가 설정되지 않았습니다.",
+      };
+    }
+
+    console.log("Gemini Chat API 호출 시작:", {
+      sessionId,
+      messageCount: messages.length,
+      hasApiKey: !!GEMINI_API_KEY,
+      model: "gemini-1.5-flash",
+    });
+
+    const response = await axios.post(
+      `${GEMINI_URL}:generateContent?key=${GEMINI_API_KEY}`,
+      requestBody,
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+        timeout: 30000, // 30초 타임아웃
+      },
+    );
+
+    const status = response?.status;
+
+    // 사용량 정보 추출
+    const usageInfo = {
+      model: "gemini-1.5-flash",
+      promptTokens: response?.data?.usageMetadata?.promptTokenCount || 0,
+      candidatesTokenCount:
+        response?.data?.usageMetadata?.candidatesTokenCount || 0,
+      totalTokenCount: response?.data?.usageMetadata?.totalTokenCount || 0,
+      headers: {
+        quotaUser: response?.headers?.["x-quota-user"],
+        quotaRemaining: response?.headers?.["x-quota-remaining"],
+        quotaLimit: response?.headers?.["x-quota-limit"],
+      },
+    };
+
+    console.log("Gemini Chat API 응답 상태:", status);
+    console.log("Gemini Chat API 사용량 정보:", usageInfo);
+
+    if (status >= 400) {
+      console.error("Gemini Chat API 오류 응답:", {
+        status,
+        statusText: response?.statusText,
+        data: response?.data,
+        usageInfo,
+      });
+      return {
+        status,
+        message: response?.statusText || "API 호출 실패",
+        usageInfo,
+      };
+    }
+
+    const data: GeminiResponse = response.data;
+    const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+    // 대화 히스토리에 메시지 추가
+    session.messages.push({
+      role: "user",
+      content: userMessage,
+      timestamp: new Date(),
+    });
+
+    session.messages.push({
+      role: "model",
+      content: reply,
+      timestamp: new Date(),
+    });
+
+    // 세션 업데이트
+    chatSessions.set(sessionId, session);
+
+    console.log("Gemini Chat API 성공 응답:", {
+      sessionId,
+      hasCandidates: !!data?.candidates,
+      candidatesLength: data?.candidates?.length,
+      hasReply: !!reply,
+      replyLength: reply.length,
+      totalMessages: session.messages.length,
+      usageInfo,
+    });
+
+    return {
+      status,
+      data: { reply },
+      usageInfo,
+      sessionId,
+    };
+  } catch (error: any) {
+    console.error("Gemini Chat API Error 상세:", {
+      sessionId,
+      message: error?.message,
+      code: error?.code,
+      status: error?.response?.status,
+      statusText: error?.response?.statusText,
+      data: error?.response?.data,
+      config: {
+        url: error?.config?.url,
+        method: error?.config?.method,
+        headers: error?.config?.headers,
+      },
+    });
+
+    // 구체적인 오류 메시지 반환
+    let errorMessage = "Gemini API 호출 중 오류가 발생했습니다.";
+
+    if (error?.response?.status === 400) {
+      errorMessage = "잘못된 요청입니다. 프롬프트를 확인해주세요.";
+    } else if (error?.response?.status === 401) {
+      errorMessage = "API 키가 유효하지 않습니다.";
+    } else if (error?.response?.status === 403) {
+      errorMessage = "API 사용 권한이 없습니다.";
+    } else if (error?.response?.status === 429) {
+      errorMessage = "API 호출 한도를 초과했습니다. 잠시 후 다시 시도해주세요.";
+    } else if (error?.code === "ECONNABORTED") {
+      errorMessage = "요청 시간이 초과되었습니다. 다시 시도해주세요.";
+    } else if (error?.code === "ENOTFOUND") {
+      errorMessage = "API 서버에 연결할 수 없습니다.";
+    }
+
+    return {
+      status: 500,
+      message: errorMessage,
+    };
+  }
+};
+
+// 기존 단일 요청 방식 (하위 호환성을 위해 유지)
 export const postGeminiPrompt = async (
   prompt: string,
   options?: {
@@ -283,7 +528,7 @@ export const postGeminiPrompt = async (
     ],
     generationConfig: {
       temperature: options?.temperature ?? 0.7,
-      maxOutputTokens: options?.maxTokens ?? 1000,
+      maxOutputTokens: options?.maxTokens ?? 1500,
       topK: 40,
       topP: 0.95,
     },
@@ -325,7 +570,7 @@ export const postGeminiPrompt = async (
     });
 
     const response = await axios.post(
-      `${GEMINI_URL}?key=${GEMINI_API_KEY}`,
+      `${GEMINI_URL}:generateContent?key=${GEMINI_API_KEY}`,
       requestBody,
       {
         headers: {
@@ -422,32 +667,57 @@ export const postGeminiPrompt = async (
   }
 };
 
+// 새로운 채팅 기반 기술 메시지 전송 함수
 export const sendTechnicalMessage = async (
   question: string,
   context?: UserContext,
 ) => {
   try {
-    // 질문 유형 감지
-    const questionType = detectQuestionType(question);
+    // 새로운 채팅 세션 생성
+    const sessionId = createChatSession(context);
 
-    // 기본 프롬프트 생성
-    let prompt = createTechnicalChatPrompt(question, context);
-
-    // 질문 유형별 특화 프롬프트 추가
-    const specializedPrompt = createSpecializedPrompt(question, questionType);
-    if (specializedPrompt) {
-      prompt = specializedPrompt + "\n\n" + prompt;
-    }
-
-    const response = await postGeminiPrompt(prompt);
+    const response = await postGeminiChat(sessionId, question);
 
     if (response?.status >= 400) {
       throw new Error(response?.message);
     }
 
-    return response?.data?.reply || "답변을 생성할 수 없습니다.";
+    return {
+      reply: response?.data?.reply || "답변을 생성할 수 없습니다.",
+      sessionId,
+    };
   } catch (error) {
     console.error("Technical Chat Error:", error);
-    return "죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.";
+    return {
+      reply:
+        "죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+      sessionId: null,
+    };
+  }
+};
+
+// 기존 채팅 세션에 메시지 전송
+export const sendMessageToSession = async (
+  sessionId: string,
+  message: string,
+) => {
+  try {
+    const response = await postGeminiChat(sessionId, message);
+
+    if (response?.status >= 400) {
+      throw new Error(response?.message);
+    }
+
+    return {
+      reply: response?.data?.reply || "답변을 생성할 수 없습니다.",
+      sessionId,
+    };
+  } catch (error) {
+    console.error("Session Chat Error:", error);
+    return {
+      reply:
+        "죄송합니다. 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.",
+      sessionId: null,
+    };
   }
 };
