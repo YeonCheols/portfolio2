@@ -1,5 +1,8 @@
 import { useState } from "react";
 import axios from "axios";
+import { MdClose as CloseIcon } from "react-icons/md";
+
+import useChatStore from "@/common/stores/useChatStore";
 
 interface Message {
   id: string;
@@ -17,6 +20,7 @@ const TechnicalChat = ({ isWidget = false }: TechnicalChatProps) => {
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const { toggleChat } = useChatStore();
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
@@ -86,20 +90,31 @@ const TechnicalChat = ({ isWidget = false }: TechnicalChatProps) => {
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-t-lg">
         <div className="flex justify-between items-center">
           <div>
-            <h3 className="text-lg font-semibold">🤖 기술 멘토</h3>
+            <h3 className="text-lg font-semibold">🤖 AI 챗봇</h3>
             <p className="text-sm opacity-90">
               프로그래밍과 기술에 대한 질문을 해주세요!
             </p>
           </div>
-          {messages.length > 0 && (
-            <button
-              onClick={handleNewChat}
-              className="px-3 py-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded text-sm transition-colors duration-200"
-              title="새로운 대화 시작"
-            >
-              새 대화
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {messages.length > 0 && (
+              <button
+                onClick={handleNewChat}
+                className="px-3 py-1 bg-white bg-opacity-20 hover:bg-opacity-30 rounded text-sm transition-colors duration-200"
+                title="새로운 대화 시작"
+              >
+                새 대화
+              </button>
+            )}
+            {isWidget && (
+              <button
+                onClick={toggleChat}
+                className="p-1 hover:bg-white hover:bg-opacity-20 rounded transition-colors duration-200"
+                title="채팅 닫기"
+              >
+                <CloseIcon size={20} />
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
