@@ -238,12 +238,11 @@ export const getPerformanceMetrics = async (projectId: string) => {
 export const getTokenUsage = async () => {
   try {
     const response = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${process.env.GEMINI_API_KEY}`,
         },
         body: JSON.stringify({
           contents: [
@@ -261,15 +260,31 @@ export const getTokenUsage = async () => {
 
     const data = await response.json();
 
+    // 디버깅을 위한 로그 추가
+    console.log("Gemini API 응답:", JSON.stringify(data, null, 2));
+    console.log("응답 헤더:", Object.fromEntries(response.headers.entries()));
+
+    // usageMetadata가 없는 경우를 대비한 fallback 처리
+    const usageMetadata = data.usageMetadata || {};
+
+    // 토큰 정보가 없는 경우 기본값 설정
+    const promptTokens = usageMetadata.promptTokenCount || 0;
+    const candidatesTokenCount = usageMetadata.candidatesTokenCount || 0;
+    const totalTokenCount =
+      usageMetadata.totalTokenCount || promptTokens + candidatesTokenCount;
+
     return {
-      promptTokens: data.usageMetadata?.promptTokenCount || 0,
-      candidatesTokenCount: data.usageMetadata?.candidatesTokenCount || 0,
-      totalTokenCount: data.usageMetadata?.totalTokenCount || 0,
+      promptTokens,
+      candidatesTokenCount,
+      totalTokenCount,
       headers: {
         quotaUser: response.headers.get("x-quota-user") || null,
         quotaRemaining: response.headers.get("x-quota-remaining") || null,
         quotaLimit: response.headers.get("x-quota-limit") || null,
       },
+      // 디버깅을 위한 추가 정보
+      hasUsageMetadata: !!data.usageMetadata,
+      responseKeys: Object.keys(data),
     };
   } catch (error) {
     console.error("Token Usage API 오류:", error);
