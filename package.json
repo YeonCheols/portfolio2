@@ -35,6 +35,7 @@
     "date-fns-tz": "^2.0.1",
     "firebase": "^10.14.1",
     "framer-motion": "^10.18.0",
+    "googleapis": "^154.1.0",
     "gray-matter": "^4.0.3",
     "moment": "^2.30.1",
     "next": "15.4.1",

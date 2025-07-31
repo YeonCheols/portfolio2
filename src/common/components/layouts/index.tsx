@@ -29,8 +29,6 @@ const Layout = ({ children }: LayoutProps) => {
     router.pathname.startsWith("/blog/") ||
     router.pathname.startsWith("/learn/");
 
-  const isShowChatButton = pageName !== "guestbook";
-
   return (
     <>
       <div
@@ -53,7 +51,7 @@ const Layout = ({ children }: LayoutProps) => {
           </div>
         )}
       </div>
-      {isShowChatButton && <ChatButton />}
+      <ChatButton />
     </>
   );
 };
