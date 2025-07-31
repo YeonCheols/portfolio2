@@ -30,10 +30,10 @@ export default function TechnicalChatPage() {
             <div className="mt-8 text-center text-sm text-gray-500 dark:text-neutral-400">
               <p>💡 질문 예시:</p>
               <div className="mt-2 space-y-1">
-                <p>"React hooks는 어떻게 사용하나요?"</p>
-                <p>"TypeScript와 JavaScript의 차이점은?"</p>
-                <p>"Next.js에서 API 라우트를 만드는 방법은?"</p>
-                <p>"웹 성능 최적화 방법을 알려주세요"</p>
+                <p>&ldquo;React hooks는 어떻게 사용하나요?&rdquo;</p>
+                <p>&ldquo;TypeScript와 JavaScript의 차이점은?&rdquo;</p>
+                <p>&ldquo;Next.js에서 API 라우트를 만드는 방법은?&rdquo;</p>
+                <p>&ldquo;웹 성능 최적화 방법을 알려주세요&rdquo;</p>
               </div>
             </div>
           </div>
