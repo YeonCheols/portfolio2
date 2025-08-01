@@ -177,11 +177,13 @@ const TechnicalChat = ({ isWidget = false }: TechnicalChatProps) => {
       <div className="p-4 bg-white dark:bg-neutral-900 border-t border-gray-200 dark:border-neutral-700">
         <div className="flex space-x-2">
           <textarea
+            id="technical-chat"
+            name="technical-chat"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onKeyDown={handleKeyPress}
             placeholder="기술적인 질문을 입력하세요..."
-            className="flex-1 p-3 border border-gray-300 dark:border-neutral-600 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-neutral-800 text-gray-900 dark:text-neutral-100 placeholder-gray-500 dark:placeholder-neutral-400"
+            className="flex-1 p-3 border border-gray-300 dark:border-neutral-600 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-neutral-800 text-gray-900 dark:text-neutral-100 placeholder-gray-500 dark:placeholder-neutral-400 "
             rows={2}
             disabled={isLoading}
           />
