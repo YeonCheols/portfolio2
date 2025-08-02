@@ -37,8 +37,8 @@
 
 ### Backend & Database
 
-- Prisma 6.5.0
-- NextAuth.js 4.24.11
+- nestjs (별도 프로젝트) 
+- supabase database
 
 ### 개발 Tools
 
