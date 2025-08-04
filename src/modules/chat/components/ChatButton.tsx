@@ -47,7 +47,7 @@ const ChatButton = () => {
               damping: 25,
             }}
           >
-            <div className="shadow-3xl w-full rounded-xl border border-neutral-300 bg-neutral-50 ring-1 ring-black/5 backdrop-blur-2xl dark:divide-neutral-700 dark:border-neutral-600 dark:border-neutral-800 dark:bg-[#1b1b1b80] md:w-[450px] h-[100vh] md:h-[80vh]">
+            <div className="shadow-3xl w-full rounded-xl border border-neutral-300 bg-neutral-50 ring-1 ring-black/5 backdrop-blur-2xl dark:divide-neutral-700 dark:border-neutral-600 dark:border-neutral-800 dark:bg-[#1b1b1b80]">
               <TechnicalChat isWidget={true} />
             </div>
           </motion.div>
