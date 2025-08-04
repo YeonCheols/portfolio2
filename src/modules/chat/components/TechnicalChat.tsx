@@ -84,10 +84,14 @@ const TechnicalChat = ({ isWidget = false }: TechnicalChatProps) => {
 
   return (
     <div
-      className={`flex flex-col h-full ${isWidget ? "max-w-md" : "max-w-4xl"}`}
+      className={`flex flex-col ${
+        isWidget
+          ? "md:w-[450px] md:h-[80vh] h-[90vh] max-w-full md:max-w-md md:w-[450px]"
+          : "h-screen max-w-4xl"
+      }`}
     >
-      {/* Header */}
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-t-lg">
+      {/* Header - 고정 위치 */}
+      <div className="flex-shrink-0 bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 rounded-t-lg">
         <div className="flex justify-between items-center">
           <div>
             <h3 className="text-lg font-semibold">🤖 AI 챗봇</h3>
@@ -118,8 +122,8 @@ const TechnicalChat = ({ isWidget = false }: TechnicalChatProps) => {
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-neutral-900">
+      {/* Messages - 스크롤 가능한 영역 */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 dark:bg-neutral-900 min-h-0">
         {messages.length === 0 && (
           <div className="text-center text-gray-500 dark:text-neutral-400 py-8">
             <div className="text-4xl mb-2">💬</div>
@@ -173,8 +177,8 @@ const TechnicalChat = ({ isWidget = false }: TechnicalChatProps) => {
         )}
       </div>
 
-      {/* Input */}
-      <div className="p-4 bg-white dark:bg-neutral-900 border-t border-gray-200 dark:border-neutral-700">
+      {/* Input - 고정 위치 */}
+      <div className="flex-shrink-0 p-4 bg-white dark:bg-neutral-900 border-t border-gray-200 dark:border-neutral-700">
         <div className="flex space-x-2">
           <textarea
             id="technical-chat"
