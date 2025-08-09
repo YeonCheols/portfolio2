@@ -22,7 +22,7 @@
 ## 프로젝트 개요
 
 - 프로젝트명: 포트폴리오 웹 사이트
-- 기술 스택: React, Next.js, TypeScript, TailwindCSS, Prisma, Husky
+- 기술 스택: React, Next.js, TypeScript, TailwindCSS, Husky
 
 ## 주요 기술 스택
 
