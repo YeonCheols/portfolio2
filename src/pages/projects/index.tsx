@@ -62,7 +62,7 @@ const ProjectsPage = () => {
           projects={allProjects}
           loadMore={loadMore}
           hasMore={hasMore}
-          isLoading={isLoading || isValidating}
+          isLoading={isLoading}
         />
       </Container>
     </>
