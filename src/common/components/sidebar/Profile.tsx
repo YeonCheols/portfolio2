@@ -17,15 +17,7 @@ interface ProfileProps {
 
 const Profile = ({ isScrolled = false }: ProfileProps) => {
   const isMobile = useIsMobile();
-
-  const getImageSize = () => {
-    let size = isMobile ? 40 : 80;
-    if (!isMobile && isScrolled) {
-      size = 0;
-    }
-    return size;
-  };
-
+  const [profileImageSize, setProfileImageSize] = useState<number>(80);
   const [expandMenu, setExpandMenu] = useState<boolean>(false);
 
   const hideNavbar = () => {
@@ -44,6 +36,10 @@ const Profile = ({ isScrolled = false }: ProfileProps) => {
     };
   }, [expandMenu]);
 
+  useEffect(() => {
+    setProfileImageSize(isMobile ? 40 : 80);
+  }, [isMobile]);
+
   return (
     <MenuContext.Provider value={{ hideNavbar }}>
       <div
@@ -53,7 +49,7 @@ const Profile = ({ isScrolled = false }: ProfileProps) => {
         )}
       >
         <div className="flex items-start justify-between lg:flex-col lg:space-y-4">
-          <ProfileHeader expandMenu={expandMenu} imageSize={getImageSize()} />
+          <ProfileHeader expandMenu={expandMenu} imageSize={40} />
 
           {isMobile && (
             <div

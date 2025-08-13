@@ -86,7 +86,7 @@ const TechnicalChat = ({ isWidget = false }: TechnicalChatProps) => {
     <div
       className={`flex flex-col ${
         isWidget
-          ? "md:w-[450px] md:h-[80vh] h-[90vh] max-w-full md:max-w-md md:w-[450px]"
+          ? "md:w-[450px] md:h-[80vh] h-[100vh] max-w-full md:max-w-md md:w-[450px]"
           : "h-screen max-w-4xl"
       }`}
     >
