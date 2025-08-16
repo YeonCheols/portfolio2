@@ -27,6 +27,8 @@
     "@mdx-js/loader": "^2.3.0",
     "@mdx-js/react": "^2.3.0",
     "@monaco-editor/react": "^4.7.0",
+    "@sentry/nextjs": "^10.5.0",
+    "@sentry/react": "^10.5.0",
     "@yeoncheols/portfolio-core-ui": "0.2.0",
     "aos": "^3.0.0-beta.6",
     "axios": "^1.8.2",
