@@ -26,7 +26,6 @@ Sentry.init({
   },
   // 초기화 완료 로그
   beforeBreadcrumb(breadcrumb) {
-    console.log("Sentry Breadcrumb:", breadcrumb);
     return breadcrumb;
   },
 });
