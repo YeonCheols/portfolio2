@@ -47,7 +47,7 @@ class SentryErrorBoundary extends React.Component<Props, State> {
               Something went wrong
             </h2>
             <p className="text-gray-600 mb-4">
-              We've been notified and are working to fix the issue.
+              We&apos;ve been notified and are working to fix the issue.
             </p>
             <button
               onClick={() =>
