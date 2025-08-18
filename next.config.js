@@ -24,8 +24,7 @@ const nextConfig = {
 };
 
 module.exports = withSentryConfig(nextConfig, {
-  org: "example-org",
-  project: "example-project",
+  // org와 project는 Sentry CLI에서 자동으로 감지되므로 제거
   // Only print logs for uploading source maps in CI
   // Set to `true` to suppress logs
   silent: !process.env.CI,

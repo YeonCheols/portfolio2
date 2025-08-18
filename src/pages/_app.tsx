@@ -12,6 +12,7 @@ import "@/common/styles/globals.css";
 
 import CommandPalette from "@/common/components/elements/CommandPalette";
 import Layout from "@/common/components/layouts";
+import SentryErrorBoundary from "@/common/components/elements/SentryErrorBoundary";
 import { CommandPaletteProvider } from "@/common/context/CommandPaletteContext";
 import {
   firaCode,
@@ -51,11 +52,13 @@ const App = ({ Component, pageProps: { session, ...pageProps } }: AppProps) => {
       <SessionProvider session={session}>
         <ThemeProvider attribute="class" defaultTheme="dark">
           <CommandPaletteProvider>
-            <Layout>
-              <CommandPalette />
-              <ProgressBar />
-              <Component {...pageProps} />
-            </Layout>
+            <SentryErrorBoundary>
+              <Layout>
+                <CommandPalette />
+                <ProgressBar />
+                <Component {...pageProps} />
+              </Layout>
+            </SentryErrorBoundary>
           </CommandPaletteProvider>
         </ThemeProvider>
       </SessionProvider>
