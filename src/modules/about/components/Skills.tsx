@@ -6,7 +6,7 @@ import { StackIcon, StackType } from "@yeoncheols/portfolio-core-ui";
 import { fetcher } from "@/services/fetcher";
 import useSWR from "swr";
 import { TagSearchResponse } from "@docs/api";
-import Loading from "@/common/components/elements/Loading";
+import BlogCardSkeleton from "@/common/components/skeleton/BlogCardSkeleton";
 
 const Tag = memo(({ icon, title }: { icon: ReactNode; title: string }) => (
   <div className="mr-3 flex w-max items-center gap-2 rounded-full border border-neutral-300 bg-neutral-50 px-5 py-2 text-[15px] shadow-sm dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-50">
@@ -66,7 +66,7 @@ const Skills = () => {
   }, [skillsData]);
 
   if (isLoading) {
-    return <Loading />;
+    return <BlogCardSkeleton />;
   }
 
   return (
