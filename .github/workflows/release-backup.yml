@@ -1,0 +1,74 @@
+name: Create Release Backup
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  create-release-backup:
+    name: Create backup branch for release
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      actions: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Create release backup branch
+        id: create-backup
+        run: |
+          # 릴리즈 태그로 체크아웃
+          git checkout ${{ github.event.release.tag_name }}
+
+          # 현재 날짜와 시간으로 백업 브랜치 이름 생성 (예: backup-20241201-1430)
+          current_date=$(date +"%Y%m%d")
+          current_time=$(date +"%H%M")
+          backup_branch="backup-${current_date}-${current_time}"
+
+          # 릴리즈 정보를 포함한 설명 추가
+          release_info="Release: ${{ github.event.release.tag_name }} - ${{ github.event.release.name }}"
+
+          # 이미 존재하는지 확인 (같은 시간대에 생성된 경우)
+          if git ls-remote --heads origin $backup_branch | grep $backup_branch; then
+            echo "Backup branch $backup_branch already exists, adding timestamp..."
+            backup_branch="backup-${current_date}-${current_time}-$(date +"%S")"
+          fi
+
+          # 백업 브랜치 생성
+          git checkout -b $backup_branch
+
+          # 릴리즈 정보를 커밋 메시지에 포함
+          git commit --allow-empty -m "Backup created for $release_info"
+
+          # 백업 브랜치 푸시
+          git push origin $backup_branch
+
+          echo "Created backup branch: $backup_branch"
+          echo "backup_branch=$backup_branch" >> $GITHUB_OUTPUT
+          echo "created=true" >> $GITHUB_OUTPUT
+
+      - name: Comment on release
+        if: steps.create-backup.outputs.created == 'true'
+        run: |
+          backup_branch="${{ steps.create-backup.outputs.backup_branch }}"
+          echo "✅ Backup branch created: \`$backup_branch\`"
+          echo "📅 Date: $(date +"%Y-%m-%d %H:%M:%S")"
+          echo "🏷️  Release: ${{ github.event.release.tag_name }} - ${{ github.event.release.name }}"
+          echo "💾 This branch contains the exact state of the code at this release"
+          echo "🔄 You can use this branch to restore the code to this specific point in time"
+
+      - name: Skip message
+        if: steps.create-backup.outputs.created == 'false'
+        run: |
+          echo "ℹ️  Backup branch already exists for this release, skipping creation."
