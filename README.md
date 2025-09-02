@@ -238,6 +238,10 @@ macOS 환경에서 커밋 메시지가 올바르지 않을 때 직관적인 경�
 
 - api, 자바스크립트 런타임 오류 로그 수집
 
+### backup 브랜치 생성
+
+- master branch  push 시 현재날짜 기준으로 자동 백업 브랜치 생성
+- 날짜는 현재시간 기준으로 YYMMDDSS 로 생성
 ### 라이선스
 
 - MIT License
