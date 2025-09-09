@@ -1,26 +1,17 @@
 import { NextApiRequest, NextApiResponse } from "next";
 
-import { sendMessage } from "@/services/contact";
-
-const FORM_API_KEY = process.env.CONTACT_FORM_API_KEY as string;
+import axios from "axios";
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
+  const { formData } = req.body;
+
   try {
-    const { formData } = req.body;
+    await axios.post(`${process.env.API_URL}/mail/send`, formData);
 
-    const updatedFormData = new FormData();
-    updatedFormData.append("access_key", FORM_API_KEY);
-
-    for (const key in formData) {
-      updatedFormData.append(key, formData[key]);
-    }
-
-    const response = await sendMessage(updatedFormData);
-
-    res.status(200).json({ status: 200, message: response?.data?.message });
+    res.status(200).json({ status: 200 });
   } catch (error) {
     console.error("your error: ", error);
     res.status(500).json({ error: "Something went wrong!" });
