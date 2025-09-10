@@ -3,9 +3,6 @@ import {
   BsEnvelopeAtFill as EmailIcon,
   BsGithub as GithubIcon,
   BsTags as TagIcon,
-  BsInstagram as InstagramIcon,
-  BsLinkedin as LinkedinIcon,
-  BsTwitter as TwitterIcon,
 } from "react-icons/bs";
 import {
   FiBookOpen as LearnIcon,
@@ -17,6 +14,7 @@ import {
   FiUser as ProfileIcon,
 } from "react-icons/fi";
 import { PiChatCircleDotsBold as ChatIcon } from "react-icons/pi";
+import { PiClockBold as CareerIcon } from "react-icons/pi";
 import { SiJavascript } from "react-icons/si";
 
 import { MenuItemProps } from "../types/menu";
@@ -94,6 +92,15 @@ export const MENU_ITEMS: MenuItemProps[] = [
     isShow: true,
     isExternal: false,
     eventName: "Pages: Chat",
+    type: "Pages",
+  },
+  {
+    title: "Career",
+    href: "/career",
+    icon: <CareerIcon size={iconSize} />,
+    isShow: true,
+    isExternal: false,
+    eventName: "Pages: Timeline",
     type: "Pages",
   },
   {
