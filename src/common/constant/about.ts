@@ -1,23 +1,14 @@
 export const ABOUT = `
 <p>
-    Hello! Thanks for stopping by my personal website.
+    안녕하세요! 저의 웹사이트에 방문해 주셔서 감사합니다.
 </p>
 <p>
-    I'm Ryan. I've been working in web development for over 10 years, doing both the coding you see on the screen (frontend) and the stuff that happens behind the scenes (backend). I know how to manage projects using methods like Waterfall and Agile. But what really gets me excited is making websites and apps that are easy for everyone to use and look good too!
+    저는 프론트엔드 개발자 성연철입니다. 5년차 개발자로 일하고 있으며 UI/UX 개발을 중점적으로 담당하고 있습니다.
 </p>
 <p>
-    I'm really into JavaScript and PHP, which are languages used to build websites. I also know a bunch of frameworks that make building websites even easier, like React, Vue, Angular, Node.js, and PHP frameworks like Codeigniter and Laravel. I love learning about new web tools and features.
+    저는 웹사이트를 구축하는 데 사용되는 JavaScript와 Python 등에 관심이 많습니다. 또한 React, Vue, Angular, Node.js와 같은 프레임워크등 웹사이트 구축을 더욱 쉽게 만들어주는 다양한 프레임워크들을 알고 있습니다. 새로운 웹 도구와 기능에 대해 배우는 것을 좋아합니다.
 </p>
 <p>
-    In my career, I've led teams to build software for a wide range of companies, from large corporations to innovative startups.
-</p>
-<p>
-    I believe that good communication is super important in any job.
-</p>
-<p>
-    I'm good at adapting to different situations, working efficiently, and always trying to do my best. My experience has taught me how to solve problems and lead teams, but I'm also happy to work with others to get things done. I'm excited about the chance to work together and make cool stuff!
-</p>
-<p>
-    I'm looking forward to the possibility of working with you!
+    저는 좋은 소통이 어떤 직업에서든 매우 중요하다고 생각합니다.
 </p>
 `;
