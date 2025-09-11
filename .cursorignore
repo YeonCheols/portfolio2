@@ -1,0 +1,24 @@
+# 가상 환경 및 의존성 파일 제외
+.venv/
+node_modules/
+
+# 환경 변수 및 보안 파일 제외
+.env
+scripts/validate-commit.js
+
+# 로그 파일
+*.log
+
+# 빌드 파일
+build/
+dist/
+out/
+.next/
+.vercel/
+.nuxt/
+.output/
+.vite/
+.swc/
+.turbo/
+.bun/
+.husky/

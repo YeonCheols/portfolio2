@@ -32,6 +32,15 @@ export const MENU_ITEMS: MenuItemProps[] = [
     type: "Pages",
   },
   {
+    title: "About",
+    href: "/about",
+    icon: <ProfileIcon size={iconSize} />,
+    isShow: true,
+    isExternal: false,
+    eventName: "Pages: About",
+    type: "Pages",
+  },
+  {
     title: "Dashboard",
     href: "/dashboard",
     icon: <DashboardIcon size={iconSize} />,
@@ -68,15 +77,6 @@ export const MENU_ITEMS: MenuItemProps[] = [
     type: "Pages",
   },
   {
-    title: "About",
-    href: "/about",
-    icon: <ProfileIcon size={iconSize} />,
-    isShow: false,
-    isExternal: false,
-    eventName: "Pages: About",
-    type: "Pages",
-  },
-  {
     title: "Contact",
     href: "/contact",
     icon: <ContactIcon size={iconSize} />,
@@ -92,15 +92,6 @@ export const MENU_ITEMS: MenuItemProps[] = [
     isShow: true,
     isExternal: false,
     eventName: "Pages: Chat",
-    type: "Pages",
-  },
-  {
-    title: "Career",
-    href: "/career",
-    icon: <CareerIcon size={iconSize} />,
-    isShow: true,
-    isExternal: false,
-    eventName: "Pages: Timeline",
     type: "Pages",
   },
   {
