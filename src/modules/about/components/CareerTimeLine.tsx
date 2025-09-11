@@ -1,9 +1,4 @@
-export interface TimelineItem {
-  date: string;
-  title: string;
-  description: string;
-  align?: "left" | "right";
-}
+import { TimelineItem } from "@/common/types/careers";
 
 interface CareerTimeLineProps {
   items: TimelineItem[];
@@ -21,12 +16,6 @@ const CareerTimeLine = ({ items }: CareerTimeLineProps) => {
             <p className="text-3xl md:text-4xl leading-normal md:leading-relaxed mb-2">
               나의 여정
             </p>
-            <a
-              href="#"
-              className="mr-auto rounded border border-yellow-500 px-4 py-2 text-yellow-700 transition-colors hover:border-transparent hover:bg-yellow-500 hover:text-white dark:border-yellow-400 dark:text-yellow-300 hover:dark:bg-yellow-400 hover:dark:text-neutral-900 shadow hover:shadow-lg bg-transparent"
-            >
-              위로 이동
-            </a>
           </div>
           <div className="ml-0 md:ml-12 lg:w-2/3 sticky">
             <div className="container mx-auto w-full h-full">
@@ -72,7 +61,18 @@ const CareerTimeLine = ({ items }: CareerTimeLineProps) => {
                         <h4
                           className={`mb-3 font-bold text-lg md:text-2xl ${isLeft ? "" : "text-left"}`}
                         >
-                          {item.title}
+                          {item.link ? (
+                            <a
+                              href={item.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="hover:underline text-blue-500 hover:text-blue-600 dark:text-blue-300 dark:hover:text-blue-200"
+                            >
+                              {item.title}
+                            </a>
+                          ) : (
+                            item.title
+                          )}
                         </h4>
                         <p className="text-sm md:text-base leading-snug text-neutral-700 dark:text-neutral-300">
                           {item.description}
