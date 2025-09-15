@@ -6,10 +6,6 @@ interface TabsProps {
   tabs: TabProps[];
 }
 
-export const Tab = ({ children }: TabProps) => {
-  return <>{children}</>;
-};
-
 export const Tabs = ({ tabs }: TabsProps) => {
   const initialActiveIndex = tabs.findIndex((tab) => tab.isActive);
   const [activeTab, setActiveTab] = useState(

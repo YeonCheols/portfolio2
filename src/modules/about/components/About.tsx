@@ -16,6 +16,7 @@ import CareerTimeLine from "./CareerTimeLine";
 import type { TimelineItem } from "@/common/types/careers";
 import { CAREERS } from "@/common/constant/careers";
 import { TabProps } from "@/common/types/tab";
+import { ActiveTabKeys } from "@/common/types/about";
 
 const TabLabel = ({ children }: { children: React.ReactNode }) => (
   <div className="flex items-center justify-center gap-1.5">{children}</div>
@@ -43,7 +44,7 @@ const TIMELINE_ITEMS: TimelineItem[] = CAREERS.map((c) => {
   };
 });
 
-const TABS: TabProps[] = [
+const getTabs = (activeKey: ActiveTabKeys): TabProps[] => [
   {
     label: (
       <TabLabel>
@@ -51,6 +52,7 @@ const TABS: TabProps[] = [
       </TabLabel>
     ),
     children: <Story />,
+    isActive: activeKey === ActiveTabKeys.about,
   },
   {
     label: (
@@ -59,7 +61,7 @@ const TABS: TabProps[] = [
       </TabLabel>
     ),
     children: <CareerTimeLine items={TIMELINE_ITEMS} />,
-    isActive: true,
+    isActive: activeKey === ActiveTabKeys.timeline,
   },
   {
     label: (
@@ -68,6 +70,7 @@ const TABS: TabProps[] = [
       </TabLabel>
     ),
     children: <CareerList />,
+    isActive: activeKey === ActiveTabKeys.career,
   },
   {
     label: (
@@ -76,6 +79,7 @@ const TABS: TabProps[] = [
       </TabLabel>
     ),
     children: <Resume />,
+    isActive: activeKey === ActiveTabKeys.resume,
   },
   {
     label: (
@@ -84,11 +88,12 @@ const TABS: TabProps[] = [
       </TabLabel>
     ),
     children: <EducationList />,
+    isActive: activeKey === ActiveTabKeys.education,
   },
 ];
 
-const About = () => {
-  return <Tabs tabs={TABS} />;
+const About = ({ activeTab }: { activeTab: ActiveTabKeys }) => {
+  return <Tabs tabs={getTabs(activeTab)} />;
 };
 
 export default About;
