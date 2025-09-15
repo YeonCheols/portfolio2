@@ -33,7 +33,7 @@ export const MENU_ITEMS: MenuItemProps[] = [
   },
   {
     title: "About",
-    href: "/about",
+    href: "/about?activeTab=timeline",
     icon: <ProfileIcon size={iconSize} />,
     isShow: true,
     isExternal: false,
