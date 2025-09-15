@@ -4,7 +4,6 @@ import ProjectPreview from "./ProjectPreview";
 import Introduction from "./Introduction";
 import Services from "./Services";
 import SkillsSection from "./SkillsSection";
-import CareerTimelineSection from "./CareerTimelineSection";
 
 const Home = () => {
   return (
@@ -14,8 +13,6 @@ const Home = () => {
       <ProjectPreview />
       <Breakline className="my-8" />
       <SkillsSection />
-      <Breakline className="my-8" />
-      <CareerTimelineSection />
       <Breakline className="my-8" />
       <Services />
     </>

@@ -1,4 +1,4 @@
-import { NextPage } from "next";
+import { GetServerSideProps, NextPage } from "next";
 import { NextSeo } from "next-seo";
 
 import Container from "@/common/components/elements/Container";
@@ -8,7 +8,7 @@ import About from "@/modules/about";
 const PAGE_TITLE = "about";
 const PAGE_DESCRIPTION = "경력사항에 대한 내용을 확인할 수 있습니다.";
 
-const AboutPage: NextPage = () => {
+const AboutPage = ({ activeTab }: { activeTab: string }) => {
   return (
     <>
       <NextSeo title={`연철s- ${PAGE_TITLE}`} />
@@ -21,3 +21,11 @@ const AboutPage: NextPage = () => {
 };
 
 export default AboutPage;
+
+export const getServerSideProps: GetServerSideProps = async ({ query }) => {
+  return {
+    props: {
+      activeTab: query.activeTab ?? "career",
+    },
+  };
+};
