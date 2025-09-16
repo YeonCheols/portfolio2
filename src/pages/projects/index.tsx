@@ -13,31 +13,30 @@ const PAGE_DESCRIPTION =
   "제가 작업한 여러 프로젝트들, 개인 프로젝트와 오픈소스 프로젝트 모두를 포함합니다.";
 
 const ProjectsPage = () => {
-  const { data, error, isLoading, size, setSize, isValidating } =
-    useSWRInfinite<{
-      status: boolean;
-      data: ProjectSearchResponse;
-    }>(
-      (index, previousPageData) => {
-        // NOTE: 첫 페이지이거나 이전 페이지에 데이터가 없는경우
-        if (index === 0) return `/api/projects?page=1&size=4`;
+  const { data, isLoading, size, setSize, isValidating } = useSWRInfinite<{
+    status: boolean;
+    data: ProjectSearchResponse;
+  }>(
+    (index, previousPageData) => {
+      // NOTE: 첫 페이지이거나 이전 페이지에 데이터가 없는경우
+      if (index === 0) return `/api/projects?page=1&size=4`;
 
-        if (
-          !previousPageData ||
-          !previousPageData.data ||
-          previousPageData.data.data.length === 0
-        ) {
-          return null;
-        }
+      if (
+        !previousPageData ||
+        !previousPageData.data ||
+        previousPageData.data.data.length === 0
+      ) {
+        return null;
+      }
 
-        return `/api/projects?page=${index + 1}&size=4`;
-      },
-      fetcher,
-      {
-        revalidateOnFocus: false,
-        refreshInterval: 0,
-      },
-    );
+      return `/api/projects?page=${index + 1}&size=4`;
+    },
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      refreshInterval: 0,
+    },
+  );
 
   const allProjects = useMemo(() => {
     if (!data) return [];

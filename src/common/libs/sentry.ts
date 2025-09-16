@@ -2,14 +2,10 @@ import * as Sentry from "@sentry/nextjs";
 
 // 에러 캡처
 export const captureError = (error: Error, context?: Record<string, any>) => {
-  console.log("captureError called:", error.message, context);
-  console.log("Sentry object:", Sentry);
-
   try {
     Sentry.captureException(error, {
       contexts: context ? { custom: context } : undefined,
     });
-    console.log("Sentry.captureException called successfully");
   } catch (sentryError) {
     console.error("Sentry.captureException failed:", sentryError);
   }
@@ -20,14 +16,8 @@ export const captureMessage = (
   message: string,
   level: Sentry.SeverityLevel = "error", // 기본값을 error로 변경
 ) => {
-  console.log("captureMessage called:", message, level);
-  console.log("Sentry object:", Sentry);
-  console.log("Sentry.captureMessage function:", Sentry.captureMessage);
-
   try {
     const result = Sentry.captureMessage(message, level);
-    console.log("Sentry.captureMessage result:", result);
-    console.log("Sentry.captureMessage called successfully");
   } catch (sentryError) {
     console.error("Sentry.captureMessage failed:", sentryError);
   }
@@ -55,7 +45,6 @@ export const setContext = (name: string, context: Record<string, any>) => {
 // 성능 모니터링을 위한 트랜잭션 시작
 export const startTransaction = (name: string, operation: string) => {
   // Sentry 트랜잭션은 현재 버전에서 다르게 처리됨
-  console.log("startTransaction called:", name, operation);
   return null;
 };
 

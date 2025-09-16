@@ -22,8 +22,6 @@ export const loadMdxFiles = (slug: string): MdxFileProps[] => {
 
   const files = fs.readdirSync(dirPath);
 
-  console.log("files : ", files);
-
   const contents = files.map((file) => {
     const filePath = path.join(dirPath, file);
     const source = fs.readFileSync(filePath, "utf-8");

@@ -13,14 +13,6 @@ export default async function handler(
   try {
     const { question, context, sessionId } = req.body;
 
-    console.log("Technical Chat API 요청:", {
-      question:
-        question?.substring(0, 50) + (question?.length > 50 ? "..." : ""),
-      hasContext: !!context,
-      contextKeys: context ? Object.keys(context) : [],
-      sessionId: sessionId || "새 세션",
-    });
-
     if (!question || typeof question !== "string") {
       console.error("잘못된 요청: 질문이 없거나 문자열이 아님");
       return res.status(400).json({ error: "질문이 필요합니다." });
@@ -34,12 +26,6 @@ export default async function handler(
     } else {
       result = await sendTechnicalMessage(question, context);
     }
-
-    console.log("Technical Chat API 성공 응답:", {
-      replyLength: result?.reply?.length || 0,
-      hasReply: !!result?.reply,
-      sessionId: result?.sessionId,
-    });
 
     res.status(200).json({
       reply: result.reply,

@@ -150,8 +150,6 @@ export const fetchGithubData = async (username: string, token: string) => {
   const status: number = response.status;
   const responseJson = response.data;
 
-  console.log("responseJson : ", responseJson);
-
   if (status > 400) {
     return { status, data: {} };
   }
