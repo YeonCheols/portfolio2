@@ -36,7 +36,7 @@ const LearnContentPage: NextPage<ContentPageProps> = ({
     (a, b) => a.frontMatter.id - b.frontMatter.id,
   );
 
-  const canonicalUrl = `https://ycseng.vercel.app/${content?.slug}`;
+  const canonicalUrl = `https://www.ycseng.com/${content?.slug}`;
 
   return (
     <>

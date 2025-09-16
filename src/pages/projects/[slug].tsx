@@ -16,7 +16,7 @@ const ProjectsDetailPage: NextPage<ProjectsDetailPageProps> = ({ project }) => {
   const PAGE_TITLE = project?.title;
   const PAGE_DESCRIPTION = project?.description;
 
-  const canonicalUrl = `https://ycseng.vercel.app/projects/${project?.slug}`;
+  const canonicalUrl = `https://www.ycseng.com/projects/${project?.slug}`;
 
   return (
     <>
