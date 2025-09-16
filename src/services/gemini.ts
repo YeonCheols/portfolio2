@@ -386,13 +386,6 @@ export const postGeminiChat = async (
       };
     }
 
-    console.log("Gemini Chat API 호출 시작:", {
-      sessionId,
-      messageCount: messages.length,
-      hasApiKey: !!GEMINI_API_KEY,
-      model: "gemini-1.5-flash",
-    });
-
     const response = await axios.post(
       `${GEMINI_URL}:generateContent?key=${GEMINI_API_KEY}`,
       requestBody,
@@ -419,9 +412,6 @@ export const postGeminiChat = async (
         quotaLimit: response?.headers?.["x-quota-limit"],
       },
     };
-
-    console.log("Gemini Chat API 응답 상태:", status);
-    console.log("Gemini Chat API 사용량 정보:", usageInfo);
 
     if (status >= 400) {
       console.error("Gemini Chat API 오류 응답:", {
@@ -455,16 +445,6 @@ export const postGeminiChat = async (
 
     // 세션 업데이트
     chatSessions.set(sessionId, session);
-
-    console.log("Gemini Chat API 성공 응답:", {
-      sessionId,
-      hasCandidates: !!data?.candidates,
-      candidatesLength: data?.candidates?.length,
-      hasReply: !!reply,
-      replyLength: reply.length,
-      totalMessages: session.messages.length,
-      usageInfo,
-    });
 
     return {
       status,
@@ -562,13 +542,6 @@ export const postGeminiPrompt = async (
       };
     }
 
-    console.log("Gemini API 호출 시작:", {
-      url: GEMINI_URL,
-      hasApiKey: !!GEMINI_API_KEY,
-      promptLength: prompt.length,
-      model: "gemini-1.5-flash",
-    });
-
     const response = await axios.post(
       `${GEMINI_URL}:generateContent?key=${GEMINI_API_KEY}`,
       requestBody,
@@ -596,9 +569,6 @@ export const postGeminiPrompt = async (
       },
     };
 
-    console.log("Gemini API 응답 상태:", status);
-    console.log("Gemini API 사용량 정보:", usageInfo);
-
     if (status >= 400) {
       console.error("Gemini API 오류 응답:", {
         status,
@@ -615,14 +585,6 @@ export const postGeminiPrompt = async (
 
     const data: GeminiResponse = response.data;
     const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
-    console.log("Gemini API 성공 응답:", {
-      hasCandidates: !!data?.candidates,
-      candidatesLength: data?.candidates?.length,
-      hasReply: !!reply,
-      replyLength: reply.length,
-      usageInfo,
-    });
 
     return {
       status,

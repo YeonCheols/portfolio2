@@ -43,9 +43,6 @@ const ProjectsPage = () => {
     return data.flatMap((page) => page.data.data || []);
   }, [data]);
 
-  console.log("data :", data?.[0]?.data.total);
-  console.log("allProjects :", allProjects);
-
   const totalProjects = data?.[0]?.data?.allTotal || 0;
   const hasMore = allProjects.length < totalProjects;
 
