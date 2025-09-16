@@ -2,10 +2,10 @@ import { motion } from "framer-motion";
 import InfiniteScroll from "react-infinite-scroll-component";
 
 import EmptyState from "@/common/components/elements/EmptyState";
-import Loading from "@/common/components/elements/Loading";
 
 import ProjectCard from "./ProjectCard";
 import { ProjectResponse } from "@docs/api";
+import ProductCardSkeleton from "@/common/components/skeleton/ProductCardSkeleton";
 
 interface ProjectsComponentProps {
   projects: ProjectResponse[];
@@ -14,6 +14,16 @@ interface ProjectsComponentProps {
   isLoading?: boolean;
 }
 
+const ProjectSkeleton = () => {
+  return (
+    <div className={"grid gap-5 px-1 pt-2 sm:grid-cols-2"}>
+      {Array.from({ length: 4 }, (_, index) => (
+        <ProductCardSkeleton key={index} />
+      ))}
+    </div>
+  );
+};
+
 const Projects = ({
   projects,
   loadMore,
@@ -21,9 +31,8 @@ const Projects = ({
   isLoading = false,
 }: ProjectsComponentProps) => {
   if (isLoading) {
-    return <Loading />;
+    return <ProjectSkeleton />;
   }
-
   if (!isLoading && projects.length === 0) {
     return <EmptyState className="w-full" message="프로젝트가 없습니다" />;
   }
@@ -33,7 +42,7 @@ const Projects = ({
       dataLength={projects.length}
       next={loadMore}
       hasMore={hasMore}
-      loader={<Loading />}
+      loader={<ProjectSkeleton />}
       style={{ overflow: "hidden" }}
     >
       <div className="grid gap-5 px-1 pt-2 sm:grid-cols-2">
