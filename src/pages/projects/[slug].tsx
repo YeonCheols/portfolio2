@@ -1,11 +1,12 @@
 import { GetServerSideProps, NextPage } from "next";
 import { NextSeo } from "next-seo";
+import axios from "axios";
 
 import BackButton from "@/common/components/elements/BackButton";
 import Container from "@/common/components/elements/Container";
 import PageHeading from "@/common/components/elements/PageHeading";
-import ProjectDetail from "@/modules/projects/components/ProjectDetail";
-import axios from "axios";
+import { useStacks } from "@/common/hooks/useStacks";
+import { ProjectPreview as ProjectPreviewDetail } from "@yeoncheols/portfolio-core-ui";
 import { ProjectResponse } from "@docs/api";
 
 interface ProjectsDetailPageProps {
@@ -16,7 +17,9 @@ const ProjectsDetailPage: NextPage<ProjectsDetailPageProps> = ({ project }) => {
   const PAGE_TITLE = project?.title;
   const PAGE_DESCRIPTION = project?.description;
 
-  const canonicalUrl = `https://ycseng.vercel.app/projects/${project?.slug}`;
+  const canonicalUrl = `https://www.ycseng.com/projects/${project?.slug}`;
+
+  const { StackIcons } = useStacks();
 
   return (
     <>
@@ -43,7 +46,7 @@ const ProjectsDetailPage: NextPage<ProjectsDetailPageProps> = ({ project }) => {
       <Container data-aos="fade-up">
         <BackButton url="/projects" />
         <PageHeading title={PAGE_TITLE} description={PAGE_DESCRIPTION} />
-        <ProjectDetail {...project} />
+        <ProjectPreviewDetail data={project} stackIcons={StackIcons} />
       </Container>
     </>
   );

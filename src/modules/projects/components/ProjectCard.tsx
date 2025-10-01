@@ -3,13 +3,9 @@ import { HiOutlineArrowSmRight as ViewIcon } from "react-icons/hi";
 
 import Card from "@/common/components/elements/Card";
 import Image from "@/common/components/elements/Image";
-import Tooltip from "@/common/components/elements/Tooltip";
-import { STACKS } from "@/common/constant/stacks";
-import { ProjectResponse, TagResponse, TagSearchResponse } from "docs/api";
-import { StackIcon, StackIconProps } from "@yeoncheols/portfolio-core-ui";
-import useSWR from "swr";
-import { fetcher } from "@/services/fetcher";
-import { useCallback, useMemo } from "react";
+import { Tooltip as CoreTooltip } from "@yeoncheols/portfolio-core-ui";
+import { ProjectResponse } from "docs/api";
+import { useStacks } from "@/common/hooks/useStacks";
 
 const ProjectCard = ({
   title,
@@ -18,24 +14,7 @@ const ProjectCard = ({
   image,
   stacks,
 }: ProjectResponse) => {
-  // TODO : tag 단일 검색 API 교체 필요
-  const { data: stacksData } = useSWR<TagSearchResponse>(
-    "/api/stacks",
-    fetcher,
-  );
-  const stacksMap = useMemo(() => {
-    if (!stacksData?.data) {
-      return new Map<string, TagResponse>();
-    }
-    return new Map(stacksData.data.map((stack) => [stack.name, stack]));
-  }, [stacksData]);
-
-  const getStackIcon = useCallback(
-    (stackName: string) => {
-      return stacksMap.get(stackName) as StackIconProps | undefined;
-    },
-    [stacksMap],
-  );
+  const { StackIcons } = useStacks();
 
   const stacksArray = JSON.parse(stacks);
 
@@ -52,7 +31,7 @@ const ProjectCard = ({
               className="h-48 rounded-t-xl object-cover object-left w-full"
             />
           )}
-          <div className="absolute left-0 top-0 flex flex h-full w-full items-center justify-center gap-1 rounded-t-xl bg-black text-sm font-medium text-white opacity-0 transition-opacity duration-300 group-hover:opacity-80">
+          <div className="absolute left-0 top-0 flex h-full w-full items-center justify-center gap-1 rounded-t-xl bg-black text-sm font-medium text-white opacity-0 transition-opacity duration-300 group-hover:opacity-80">
             <span>View Project</span>
             <ViewIcon size={20} />
           </div>
@@ -68,12 +47,9 @@ const ProjectCard = ({
           </p>
           <div className="flex flex-wrap items-center gap-3 pt-2">
             {stacksArray?.map((stack: string) => {
-              const iconProps = getStackIcon(stack);
               return (
                 <div key={stack}>
-                  <Tooltip title={stack}>
-                    {iconProps?.name && <StackIcon {...iconProps} size={20} />}
-                  </Tooltip>
+                  <CoreTooltip title={stack}>{StackIcons[stack]}</CoreTooltip>
                 </div>
               );
             })}
