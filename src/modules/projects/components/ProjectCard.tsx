@@ -4,7 +4,6 @@ import { HiOutlineArrowSmRight as ViewIcon } from "react-icons/hi";
 import Card from "@/common/components/elements/Card";
 import Image from "@/common/components/elements/Image";
 import Tooltip from "@/common/components/elements/Tooltip";
-import { STACKS } from "@/common/constant/stacks";
 import { ProjectResponse, TagResponse, TagSearchResponse } from "docs/api";
 import { StackIcon, StackIconProps } from "@yeoncheols/portfolio-core-ui";
 import useSWR from "swr";
@@ -52,7 +51,7 @@ const ProjectCard = ({
               className="h-48 rounded-t-xl object-cover object-left w-full"
             />
           )}
-          <div className="absolute left-0 top-0 flex flex h-full w-full items-center justify-center gap-1 rounded-t-xl bg-black text-sm font-medium text-white opacity-0 transition-opacity duration-300 group-hover:opacity-80">
+          <div className="absolute left-0 top-0 flex h-full w-full items-center justify-center gap-1 rounded-t-xl bg-black text-sm font-medium text-white opacity-0 transition-opacity duration-300 group-hover:opacity-80">
             <span>View Project</span>
             <ViewIcon size={20} />
           </div>
@@ -69,6 +68,7 @@ const ProjectCard = ({
           <div className="flex flex-wrap items-center gap-3 pt-2">
             {stacksArray?.map((stack: string) => {
               const iconProps = getStackIcon(stack);
+              console.log("iconProps : ", iconProps);
               return (
                 <div key={stack}>
                   <Tooltip title={stack}>

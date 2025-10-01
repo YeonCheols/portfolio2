@@ -1,17 +1,13 @@
 import { GetServerSideProps, NextPage } from "next";
 import { NextSeo } from "next-seo";
+import axios from "axios";
 
 import BackButton from "@/common/components/elements/BackButton";
 import Container from "@/common/components/elements/Container";
 import PageHeading from "@/common/components/elements/PageHeading";
-import axios from "axios";
-import { ProjectResponse, TagResponse, TagSearchResponse } from "@docs/api";
-import {
-  ProjectPreview as ProjectPreviewDetail,
-  getIconComponent,
-} from "@yeoncheols/portfolio-core-ui";
-import useSWR from "swr";
-import { fetcher } from "@/services/fetcher";
+import { useStacks } from "@/common/hooks/useStacks";
+import { ProjectPreview as ProjectPreviewDetail } from "@yeoncheols/portfolio-core-ui";
+import { ProjectResponse } from "@docs/api";
 
 interface ProjectsDetailPageProps {
   project: ProjectResponse;
@@ -23,29 +19,7 @@ const ProjectsDetailPage: NextPage<ProjectsDetailPageProps> = ({ project }) => {
 
   const canonicalUrl = `https://www.ycseng.com/projects/${project?.slug}`;
 
-  const { data: stacksData } = useSWR<TagSearchResponse>(
-    "/api/stacks",
-    fetcher,
-  );
-
-  const StackIcons: Record<string, JSX.Element> =
-    stacksData?.data.reduce(
-      (acc: Record<string, JSX.Element>, item: TagResponse) => {
-        const IconComponent = getIconComponent(item.icon);
-        if (!IconComponent) {
-          return acc;
-        }
-        acc[item.name] = (
-          <IconComponent
-            size={20}
-            className={`${item.color}`}
-            title={item.name}
-          />
-        );
-        return acc;
-      },
-      {},
-    ) || {};
+  const { StackIcons } = useStacks();
 
   return (
     <>
