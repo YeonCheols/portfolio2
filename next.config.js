@@ -3,6 +3,8 @@ const { withSentryConfig } = require("@sentry/nextjs");
 const nextConfig = {
   reactStrictMode: false,
   swcMinify: true,
+  allowDevOrigins: ["*.ycseng.com"],
+  transpilePackages: ["@yeoncheols/portfolio-core-ui"],
   images: {
     remotePatterns: [
       {

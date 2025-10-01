@@ -4,9 +4,14 @@ import { NextSeo } from "next-seo";
 import BackButton from "@/common/components/elements/BackButton";
 import Container from "@/common/components/elements/Container";
 import PageHeading from "@/common/components/elements/PageHeading";
-import ProjectDetail from "@/modules/projects/components/ProjectDetail";
 import axios from "axios";
-import { ProjectResponse } from "@docs/api";
+import { ProjectResponse, TagResponse, TagSearchResponse } from "@docs/api";
+import {
+  ProjectPreview as ProjectPreviewDetail,
+  getIconComponent,
+} from "@yeoncheols/portfolio-core-ui";
+import useSWR from "swr";
+import { fetcher } from "@/services/fetcher";
 
 interface ProjectsDetailPageProps {
   project: ProjectResponse;
@@ -17,6 +22,30 @@ const ProjectsDetailPage: NextPage<ProjectsDetailPageProps> = ({ project }) => {
   const PAGE_DESCRIPTION = project?.description;
 
   const canonicalUrl = `https://www.ycseng.com/projects/${project?.slug}`;
+
+  const { data: stacksData } = useSWR<TagSearchResponse>(
+    "/api/stacks",
+    fetcher,
+  );
+
+  const StackIcons: Record<string, JSX.Element> =
+    stacksData?.data.reduce(
+      (acc: Record<string, JSX.Element>, item: TagResponse) => {
+        const IconComponent = getIconComponent(item.icon);
+        if (!IconComponent) {
+          return acc;
+        }
+        acc[item.name] = (
+          <IconComponent
+            size={20}
+            className={`${item.color}`}
+            title={item.name}
+          />
+        );
+        return acc;
+      },
+      {},
+    ) || {};
 
   return (
     <>
@@ -43,7 +72,7 @@ const ProjectsDetailPage: NextPage<ProjectsDetailPageProps> = ({ project }) => {
       <Container data-aos="fade-up">
         <BackButton url="/projects" />
         <PageHeading title={PAGE_TITLE} description={PAGE_DESCRIPTION} />
-        <ProjectDetail {...project} />
+        <ProjectPreviewDetail data={project} stackIcons={StackIcons} />
       </Container>
     </>
   );
