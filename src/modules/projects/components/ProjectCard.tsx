@@ -3,7 +3,7 @@ import { HiOutlineArrowSmRight as ViewIcon } from "react-icons/hi";
 
 import Card from "@/common/components/elements/Card";
 import Image from "@/common/components/elements/Image";
-import Tooltip from "@/common/components/elements/Tooltip";
+import { Tooltip as CoreTooltip } from "@yeoncheols/portfolio-core-ui";
 import { ProjectResponse, TagResponse, TagSearchResponse } from "docs/api";
 import { StackIcon, StackIconProps } from "@yeoncheols/portfolio-core-ui";
 import useSWR from "swr";
@@ -71,9 +71,9 @@ const ProjectCard = ({
               console.log("iconProps : ", iconProps);
               return (
                 <div key={stack}>
-                  <Tooltip title={stack}>
+                  <CoreTooltip title={stack}>
                     {iconProps?.name && <StackIcon {...iconProps} size={20} />}
-                  </Tooltip>
+                  </CoreTooltip>
                 </div>
               );
             })}

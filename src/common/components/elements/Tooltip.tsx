@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { ReactNode, useState } from "react";
+import { Tooltip as CoreTooltip } from "@yeoncheols/portfolio-core-ui";
 
 interface TooltipProps {
   title: string;
