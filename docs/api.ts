@@ -200,6 +200,32 @@ export interface TagSearchResponse {
   size: number;
 }
 
+export interface SendMailRequest {
+  /**
+   * 수신자 이메일(미제공 시 기본값 사용)
+   * @example "s9292909@gmail.com"
+   */
+  email?: string;
+  /**
+   * 메일 제목
+   * @example "문의가 도착했습니다"
+   */
+  subject: string;
+  /**
+   * 메일 HTML 내용
+   * @example "<p>안녕하세요</p>"
+   */
+  content: string;
+}
+
+export interface SendMailResponse {
+  /**
+   * 성공 여부
+   * @example true
+   */
+  success: boolean;
+}
+
 export interface AdminProfileCreateRequest {
   /**
    * 프로필 이름
