@@ -4,11 +4,8 @@ import { HiOutlineArrowSmRight as ViewIcon } from "react-icons/hi";
 import Card from "@/common/components/elements/Card";
 import Image from "@/common/components/elements/Image";
 import { Tooltip as CoreTooltip } from "@yeoncheols/portfolio-core-ui";
-import { ProjectResponse, TagResponse, TagSearchResponse } from "docs/api";
-import { StackIcon, StackIconProps } from "@yeoncheols/portfolio-core-ui";
-import useSWR from "swr";
-import { fetcher } from "@/services/fetcher";
-import { useCallback, useMemo } from "react";
+import { ProjectResponse } from "docs/api";
+import { useStacks } from "@/common/hooks/useStacks";
 
 const ProjectCard = ({
   title,
@@ -17,24 +14,7 @@ const ProjectCard = ({
   image,
   stacks,
 }: ProjectResponse) => {
-  // TODO : tag 단일 검색 API 교체 필요
-  const { data: stacksData } = useSWR<TagSearchResponse>(
-    "/api/stacks",
-    fetcher,
-  );
-  const stacksMap = useMemo(() => {
-    if (!stacksData?.data) {
-      return new Map<string, TagResponse>();
-    }
-    return new Map(stacksData.data.map((stack) => [stack.name, stack]));
-  }, [stacksData]);
-
-  const getStackIcon = useCallback(
-    (stackName: string) => {
-      return stacksMap.get(stackName) as StackIconProps | undefined;
-    },
-    [stacksMap],
-  );
+  const { StackIcons } = useStacks();
 
   const stacksArray = JSON.parse(stacks);
 
@@ -67,13 +47,9 @@ const ProjectCard = ({
           </p>
           <div className="flex flex-wrap items-center gap-3 pt-2">
             {stacksArray?.map((stack: string) => {
-              const iconProps = getStackIcon(stack);
-              console.log("iconProps : ", iconProps);
               return (
                 <div key={stack}>
-                  <CoreTooltip title={stack}>
-                    {iconProps?.name && <StackIcon {...iconProps} size={20} />}
-                  </CoreTooltip>
+                  <CoreTooltip title={stack}>{StackIcons[stack]}</CoreTooltip>
                 </div>
               );
             })}
