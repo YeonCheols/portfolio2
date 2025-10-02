@@ -1,7 +1,6 @@
 import AOS from "aos";
 import type { AppProps } from "next/app";
 import dynamic from "next/dynamic";
-import { SessionProvider } from "next-auth/react";
 import { DefaultSeo } from "next-seo";
 import { ThemeProvider } from "next-themes";
 import { useEffect } from "react";
@@ -49,19 +48,17 @@ const App = ({ Component, pageProps: { session, ...pageProps } }: AppProps) => {
         `}
       </style>
       <DefaultSeo {...defaultSEOConfig} />
-      <SessionProvider session={session}>
-        <ThemeProvider attribute="class" defaultTheme="dark">
-          <CommandPaletteProvider>
-            <SentryErrorBoundary>
-              <Layout>
-                <CommandPalette />
-                <ProgressBar />
-                <Component {...pageProps} />
-              </Layout>
-            </SentryErrorBoundary>
-          </CommandPaletteProvider>
-        </ThemeProvider>
-      </SessionProvider>
+      <ThemeProvider attribute="class" defaultTheme="dark">
+        <CommandPaletteProvider>
+          <SentryErrorBoundary>
+            <Layout>
+              <CommandPalette />
+              <ProgressBar />
+              <Component {...pageProps} />
+            </Layout>
+          </SentryErrorBoundary>
+        </CommandPaletteProvider>
+      </ThemeProvider>
     </>
   );
 };
