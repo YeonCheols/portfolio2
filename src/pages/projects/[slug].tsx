@@ -1,13 +1,23 @@
 import { GetServerSideProps, NextPage } from "next";
 import { NextSeo } from "next-seo";
 import axios from "axios";
+import dynamic from "next/dynamic";
 
 import BackButton from "@/common/components/elements/BackButton";
 import Container from "@/common/components/elements/Container";
 import PageHeading from "@/common/components/elements/PageHeading";
 import { useStacks } from "@/common/hooks/useStacks";
-import { ProjectPreview as ProjectPreviewDetail } from "@yeoncheols/portfolio-core-ui";
 import { ProjectResponse } from "@docs/api";
+
+// 동적 import로 외부 패키지 컴포넌트 로드
+const ProjectPreviewDetail = dynamic(
+  () =>
+    import("@yeoncheols/portfolio-core-ui").then((mod) => mod.ProjectPreview),
+  {
+    ssr: false,
+    loading: () => <div>Loading...</div>,
+  },
+);
 
 interface ProjectsDetailPageProps {
   project: ProjectResponse;
@@ -46,7 +56,7 @@ const ProjectsDetailPage: NextPage<ProjectsDetailPageProps> = ({ project }) => {
       <Container data-aos="fade-up">
         <BackButton url="/projects" />
         <PageHeading title={PAGE_TITLE} description={PAGE_DESCRIPTION} />
-        {/* <ProjectPreviewDetail data={project} stackIcons={StackIcons} /> */}
+        <ProjectPreviewDetail data={project} stackIcons={StackIcons} />
       </Container>
     </>
   );

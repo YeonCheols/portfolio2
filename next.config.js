@@ -1,4 +1,4 @@
-const { withSentryConfig } = require("@sentry/nextjs");
+// const { withSentryConfig } = require("@sentry/nextjs");
 
 const nextConfig = {
   reactStrictMode: false,
@@ -21,15 +21,27 @@ const nextConfig = {
         aggregateTimeout: 300,
       };
     }
+
+    // ES 모듈 처리를 위한 설정
+    config.resolve.extensionAlias = {
+      ".js": [".js", ".ts", ".tsx"],
+      ".mjs": [".mjs", ".mts"],
+    };
+
     return config;
+  },
+  experimental: {
+    // ES 모듈 지원 강화
+    esmExternals: "loose",
   },
 };
 
-module.exports = withSentryConfig(nextConfig, {
-  // org와 project는 Sentry CLI에서 자동으로 감지되므로 제거
-  // Only print logs for uploading source maps in CI
-  // Set to `true` to suppress logs
-  silent: !process.env.CI,
-  // Automatically tree-shake Sentry logger statements to reduce bundle size
-  disableLogger: true,
-});
+module.exports = nextConfig;
+// module.exports = withSentryConfig(nextConfig, {
+//   // org와 project는 Sentry CLI에서 자동으로 감지되므로 제거
+//   // Only print logs for uploading source maps in CI
+//   // Set to `true` to suppress logs
+//   silent: !process.env.CI,
+//   // Automatically tree-shake Sentry logger statements to reduce bundle size
+//   disableLogger: true,
+// });
