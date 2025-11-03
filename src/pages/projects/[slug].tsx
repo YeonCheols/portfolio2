@@ -1,23 +1,23 @@
 import { GetServerSideProps, NextPage } from "next";
-import { NextSeo } from "next-seo";
+// import { NextSeo } from "next-seo";
 import axios from "axios";
-import dynamic from "next/dynamic";
+// import dynamic from "next/dynamic";
 
-import BackButton from "@/common/components/elements/BackButton";
-import Container from "@/common/components/elements/Container";
-import PageHeading from "@/common/components/elements/PageHeading";
-import { useStacks } from "@/common/hooks/useStacks";
+// import BackButton from "@/common/components/elements/BackButton";
+// import Container from "@/common/components/elements/Container";
+// import PageHeading from "@/common/components/elements/PageHeading";
+// import { useStacks } from "@/common/hooks/useStacks";
 import { ProjectResponse } from "@docs/api";
 
 // 동적 import로 외부 패키지 컴포넌트 로드
-const ProjectPreviewDetail = dynamic(
-  () =>
-    import("@yeoncheols/portfolio-core-ui").then((mod) => mod.ProjectPreview),
-  {
-    ssr: false,
-    loading: () => <div>Loading...</div>,
-  },
-);
+// const ProjectPreviewDetail = dynamic(
+//   () =>
+//     import("@yeoncheols/portfolio-core-ui").then((mod) => mod.ProjectPreview),
+//   {
+//     ssr: false,
+//     loading: () => <div>Loading...</div>,
+//   },
+// );
 
 interface ProjectsDetailPageProps {
   project: ProjectResponse;
