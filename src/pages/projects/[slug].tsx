@@ -64,31 +64,31 @@ const ProjectsDetailPage = ({ project }: ProjectsDetailPageProps) => {
 
 export default ProjectsDetailPage;
 
-// export const getServerSideProps: GetServerSideProps = async ({ params }) => {
-//   if (typeof params?.slug === "undefined") {
-//     return {
-//       redirect: {
-//         destination: "/404",
-//         permanent: false,
-//       },
-//     };
-//   }
+export const getServerSideProps: GetServerSideProps = async ({ params }) => {
+  if (typeof params?.slug === "undefined") {
+    return {
+      redirect: {
+        destination: "/404",
+        permanent: false,
+      },
+    };
+  }
 
-//   const { data, status } = await axios.get(
-//     `${process.env.API_URL}/project/${params?.slug}`,
-//   );
+  const { data, status } = await axios.get(
+    `${process.env.API_URL}/project/${params?.slug}`,
+  );
 
-//   if (!data || status !== 200) {
-//     return {
-//       redirect: {
-//         destination: "/",
-//         permanent: false,
-//       },
-//     };
-//   }
-//   return {
-//     props: {
-//       project: JSON.parse(JSON.stringify(data)),
-//     },
-//   };
-// };
+  if (!data || status !== 200) {
+    return {
+      redirect: {
+        destination: "/",
+        permanent: false,
+      },
+    };
+  }
+  return {
+    props: {
+      project: JSON.parse(JSON.stringify(data)),
+    },
+  };
+};
