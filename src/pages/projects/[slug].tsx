@@ -1,6 +1,5 @@
 import { GetServerSideProps, NextPage } from "next";
 import { NextSeo } from "next-seo";
-import axios from "axios";
 // import dynamic from "next/dynamic";
 
 // import BackButton from "@/common/components/elements/BackButton";
@@ -74,21 +73,33 @@ export const getServerSideProps: GetServerSideProps = async ({ params }) => {
     };
   }
 
-  const { data, status } = await axios.get(
-    `${process.env.API_URL}/project/${params?.slug}`,
-  );
+  try {
+    // 동적 import를 사용하여 서버 사이드에서 안전하게 모듈 로드
+    const axios = (await import("axios")).default;
+    const { data, status } = await axios.get(
+      `${process.env.API_URL}/project/${params?.slug}`,
+    );
 
-  if (typeof data === "undefined" || status !== 200) {
+    if (typeof data === "undefined" || status !== 200) {
+      return {
+        redirect: {
+          destination: "/",
+          permanent: false,
+        },
+      };
+    }
+    return {
+      props: {
+        project: JSON.parse(JSON.stringify(data)),
+      },
+    };
+  } catch (error) {
+    console.error("Project fetch error:", error);
     return {
       redirect: {
-        destination: "/",
+        destination: "/404",
         permanent: false,
       },
     };
   }
-  return {
-    props: {
-      project: JSON.parse(JSON.stringify(data)),
-    },
-  };
 };
