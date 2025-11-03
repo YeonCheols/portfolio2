@@ -1,6 +1,6 @@
-import { GetServerSideProps, NextPage } from "next";
+// import { GetServerSideProps, NextPage } from "next";
 // import { NextSeo } from "next-seo";
-import axios from "axios";
+// import axios from "axios";
 // import dynamic from "next/dynamic";
 
 // import BackButton from "@/common/components/elements/BackButton";
@@ -23,7 +23,7 @@ interface ProjectsDetailPageProps {
   project: ProjectResponse;
 }
 
-const ProjectsDetailPage: NextPage<ProjectsDetailPageProps> = ({ project }) => {
+const ProjectsDetailPage = ({ project }: ProjectsDetailPageProps) => {
   // const PAGE_TITLE = project?.title;
   // const PAGE_DESCRIPTION = project?.description;
 
@@ -64,31 +64,31 @@ const ProjectsDetailPage: NextPage<ProjectsDetailPageProps> = ({ project }) => {
 
 export default ProjectsDetailPage;
 
-export const getServerSideProps: GetServerSideProps = async ({ params }) => {
-  if (typeof params?.slug === "undefined") {
-    return {
-      redirect: {
-        destination: "/404",
-        permanent: false,
-      },
-    };
-  }
+// export const getServerSideProps: GetServerSideProps = async ({ params }) => {
+//   if (typeof params?.slug === "undefined") {
+//     return {
+//       redirect: {
+//         destination: "/404",
+//         permanent: false,
+//       },
+//     };
+//   }
 
-  const { data, status } = await axios.get(
-    `${process.env.API_URL}/project/${params?.slug}`,
-  );
+//   const { data, status } = await axios.get(
+//     `${process.env.API_URL}/project/${params?.slug}`,
+//   );
 
-  if (!data || status !== 200) {
-    return {
-      redirect: {
-        destination: "/",
-        permanent: false,
-      },
-    };
-  }
-  return {
-    props: {
-      project: JSON.parse(JSON.stringify(data)),
-    },
-  };
-};
+//   if (!data || status !== 200) {
+//     return {
+//       redirect: {
+//         destination: "/",
+//         permanent: false,
+//       },
+//     };
+//   }
+//   return {
+//     props: {
+//       project: JSON.parse(JSON.stringify(data)),
+//     },
+//   };
+// };
