@@ -24,16 +24,16 @@ interface ProjectsDetailPageProps {
 }
 
 const ProjectsDetailPage: NextPage<ProjectsDetailPageProps> = ({ project }) => {
-  const PAGE_TITLE = project?.title;
-  const PAGE_DESCRIPTION = project?.description;
+  // const PAGE_TITLE = project?.title;
+  // const PAGE_DESCRIPTION = project?.description;
 
-  const canonicalUrl = `https://www.ycseng.com/projects/${project?.slug}`;
+  // const canonicalUrl = `https://www.ycseng.com/projects/${project?.slug}`;
 
-  const { StackIcons } = useStacks();
+  // const { StackIcons } = useStacks();
 
   return (
     <>
-      <NextSeo
+      {/* <NextSeo
         title={`연철s 프로젝트 - ${project?.title}`}
         description={project?.description}
         canonical={canonicalUrl}
@@ -57,7 +57,7 @@ const ProjectsDetailPage: NextPage<ProjectsDetailPageProps> = ({ project }) => {
         <BackButton url="/projects" />
         <PageHeading title={PAGE_TITLE} description={PAGE_DESCRIPTION} />
         <ProjectPreviewDetail data={project} stackIcons={StackIcons} />
-      </Container>
+      </Container> */}
     </>
   );
 };
