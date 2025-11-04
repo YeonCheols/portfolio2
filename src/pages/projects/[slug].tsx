@@ -1,38 +1,39 @@
-import { GetServerSideProps, NextPage } from "next";
+import { GetServerSideProps } from "next";
 import { NextSeo } from "next-seo";
-// import dynamic from "next/dynamic";
+import dynamic from "next/dynamic";
 
-// import BackButton from "@/common/components/elements/BackButton";
-// import Container from "@/common/components/elements/Container";
-// import PageHeading from "@/common/components/elements/PageHeading";
-// import { useStacks } from "@/common/hooks/useStacks";
+import BackButton from "@/common/components/elements/BackButton";
+import Container from "@/common/components/elements/Container";
+import PageHeading from "@/common/components/elements/PageHeading";
+import { useStacks } from "@/common/hooks/useStacks";
 import { ProjectResponse } from "@docs/api";
+import axios from "axios";
 
 // 동적 import로 외부 패키지 컴포넌트 로드
-// const ProjectPreviewDetail = dynamic(
-//   () =>
-//     import("@yeoncheols/portfolio-core-ui").then((mod) => mod.ProjectPreview),
-//   {
-//     ssr: false,
-//     loading: () => <div>Loading...</div>,
-//   },
-// );
+const ProjectPreviewDetail = dynamic(
+  () =>
+    import("@yeoncheols/portfolio-core-ui").then((mod) => mod.ProjectPreview),
+  {
+    ssr: false,
+    loading: () => <div>Loading...</div>,
+  },
+);
 
 interface ProjectsDetailPageProps {
   project: ProjectResponse;
 }
 
 const ProjectsDetailPage = ({ project }: ProjectsDetailPageProps) => {
-  // const PAGE_TITLE = project?.title;
-  // const PAGE_DESCRIPTION = project?.description;
+  const PAGE_TITLE = project?.title;
+  const PAGE_DESCRIPTION = project?.description;
 
-  // const canonicalUrl = `https://www.ycseng.com/projects/${project?.slug}`;
+  const canonicalUrl = `https://www.ycseng.com/projects/${project?.slug}`;
 
-  // const { StackIcons } = useStacks();
+  const { StackIcons } = useStacks();
 
   return (
     <>
-      {/* <NextSeo
+      <NextSeo
         title={`연철s 프로젝트 - ${project?.title}`}
         description={project?.description}
         canonical={canonicalUrl}
@@ -56,7 +57,7 @@ const ProjectsDetailPage = ({ project }: ProjectsDetailPageProps) => {
         <BackButton url="/projects" />
         <PageHeading title={PAGE_TITLE} description={PAGE_DESCRIPTION} />
         <ProjectPreviewDetail data={project} stackIcons={StackIcons} />
-      </Container> */}
+      </Container>
     </>
   );
 };
@@ -74,8 +75,6 @@ export const getServerSideProps: GetServerSideProps = async ({ params }) => {
   }
 
   try {
-    // 동적 import를 사용하여 서버 사이드에서 안전하게 모듈 로드
-    const axios = (await import("axios")).default;
     const { data, status } = await axios.get(
       `${process.env.API_URL}/project/${params?.slug}`,
     );
@@ -94,7 +93,6 @@ export const getServerSideProps: GetServerSideProps = async ({ params }) => {
       },
     };
   } catch (error) {
-    console.error("Project fetch error:", error);
     return {
       redirect: {
         destination: "/404",
