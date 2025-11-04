@@ -2,7 +2,18 @@
 
 const nextConfig = {
   reactStrictMode: false,
-  transpilePackages: ["@yeoncheols/portfolio-core-ui"],
+  transpilePackages: [
+    "@yeoncheols/portfolio-core-ui",
+    "framer-motion",
+    "aos",
+    "react-syntax-highlighter",
+    "unified",
+    "remark",
+    "remark-gfm",
+    "remark-mdx",
+    "remark-parse",
+    "rehype-slug",
+  ],
   images: {
     remotePatterns: [
       {
