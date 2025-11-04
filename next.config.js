@@ -2,7 +2,7 @@
 
 const nextConfig = {
   reactStrictMode: false,
-  transpilePackages: ["@yeoncheols/portfolio-core-ui"],
+  // transpilePackages: ["@yeoncheols/portfolio-core-ui"],
   images: {
     remotePatterns: [
       {
@@ -26,20 +26,8 @@ const nextConfig = {
       ".mjs": [".mjs", ".mts"],
     };
 
-    // 서버 사이드에서 ES 모듈 처리 개선
-    if (isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        fs: false,
-        net: false,
-        tls: false,
-      };
-    }
-
     return config;
   },
-  // 서버 사이드 외부 패키지 설정 (Next.js 15에서 변경됨)
-  serverExternalPackages: [],
 };
 
 module.exports = nextConfig;
