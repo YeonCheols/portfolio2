@@ -2,7 +2,7 @@
 
 const nextConfig = {
   reactStrictMode: false,
-  // transpilePackages: ["@yeoncheols/portfolio-core-ui"],
+  transpilePackages: ["@yeoncheols/portfolio-core-ui"],
   images: {
     remotePatterns: [
       {
