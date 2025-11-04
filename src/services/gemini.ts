@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const GEMINI_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash";
+  "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest";
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 // 채팅 세션 관리를 위한 인터페이스
@@ -401,7 +401,7 @@ export const postGeminiChat = async (
 
     // 사용량 정보 추출
     const usageInfo = {
-      model: "gemini-1.5-flash",
+      model: "gemini-flash-latest",
       promptTokens: response?.data?.usageMetadata?.promptTokenCount || 0,
       candidatesTokenCount:
         response?.data?.usageMetadata?.candidatesTokenCount || 0,
@@ -557,7 +557,7 @@ export const postGeminiPrompt = async (
 
     // 사용량 정보 추출
     const usageInfo = {
-      model: "gemini-1.5-flash",
+      model: "gemini-flash-latest",
       promptTokens: response?.data?.usageMetadata?.promptTokenCount || 0,
       candidatesTokenCount:
         response?.data?.usageMetadata?.candidatesTokenCount || 0,
