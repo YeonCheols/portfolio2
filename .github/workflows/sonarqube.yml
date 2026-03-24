@@ -27,7 +27,7 @@ jobs:
           TOKEN_RESPONSE=$(curl -s -X POST "https://kauth.kakao.com/oauth/token" \
             -H "Content-Type: application/x-www-form-urlencoded" \
             -d "grant_type=refresh_token&client_id=${{ secrets.KAKAO_CLIENT_ID }}&client_secret=${{ secrets.KAKAO_CLIENT_SECRET }}&refresh_token=${{ secrets.KAKAO_REFRESH_TOKEN }}")
-          ACCESS_TOKEN=$(echo $TOKEN_RESPONSE | grep -o '"access_token":"[^"]*"' | cut -d'"' -f4)
+          ACCESS_TOKEN=$(echo $TOKEN_RESPONSE | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
 
           SONAR_URL="https://sonarcloud.io/project/overview?id=YeonCheols_portfolio2"
 
