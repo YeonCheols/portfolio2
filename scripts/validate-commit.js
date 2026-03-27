@@ -76,15 +76,15 @@ if (!conventionalCommitPattern.test(firstLine)) {
   process.exit(1);
 }
 
-// 제목 길이 검증 (50자 제한)
-if (firstLine.length > 50) {
-  console.error("❌ 커밋 제목이 50자를 초과합니다.");
+// 제목 길이 검증 (100자 제한)
+if (firstLine.length > 100) {
+  console.error("❌ 커밋 제목이 100자를 초과합니다.");
   console.error(`현재 길이: ${firstLine.length}자`);
   console.error(`제목: ${firstLine}`);
 
   // 시스템 알림 표시 (경고 스타일)
   showNotification(
-    `커밋 제목이 50자를 초과했습니다.\n현재: ${firstLine.length}자 (제한: 50자)`,
+    `커밋 제목이 100자를 초과했습니다.\n현재: ${firstLine.length}자 (제한: 100자)`,
   );
 
   process.exit(1);

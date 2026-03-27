@@ -29,8 +29,8 @@ module.exports = {
     "subject-case": [2, "always", "lower-case"],
     // 제목은 마침표로 끝나면 안됨
     "subject-full-stop": [2, "never", "."],
-    // 제목 최대 길이 (50자)
-    "subject-max-length": [2, "always", 50],
+    // 제목 최대 길이 (100자)
+    "subject-max-length": [2, "always", 100],
     // 본문은 선택사항이지만 있으면 줄바꿈으로 시작해야 함
     "body-leading-blank": [2, "always"],
     // 본문 최대 길이 (72자)
