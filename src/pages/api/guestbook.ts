@@ -3,7 +3,7 @@ import {
   GuestbookEntry,
   CreateGuestbookEntry,
   GuestbookResponse,
-} from "@/common/types/guestbook";
+} from "@/shared/types/guestbook";
 
 // 간단한 인메모리 저장소 (실제 프로덕션에서는 데이터베이스 사용 권장)
 let guestbookEntries: GuestbookEntry[] = [];

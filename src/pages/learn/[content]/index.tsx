@@ -2,14 +2,14 @@ import { GetStaticPaths, GetStaticProps, NextPage } from "next";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
 
-import BackButton from "@/common/components/elements/BackButton";
-import Container from "@/common/components/elements/Container";
-import Loading from "@/common/components/elements/Loading";
-import PageHeading from "@/common/components/elements/PageHeading";
-import { LEARN_CONTENTS } from "@/common/constant/learn";
-import { loadMdxFiles } from "@/common/libs/mdx";
-import { ContentProps, MdxFileContentProps } from "@/common/types/learn";
-import ContentList from "@/modules/learn/components/ContentList";
+import ContentList from "@/features/learn/ui/ContentList";
+import { LEARN_CONTENTS } from "@/shared/config/learn";
+import { loadMdxFiles } from "@/shared/lib/mdx";
+import { ContentProps, MdxFileContentProps } from "@/shared/types/learn";
+import BackButton from "@/shared/ui/BackButton";
+import Container from "@/shared/ui/Container";
+import Loading from "@/shared/ui/Loading";
+import PageHeading from "@/shared/ui/PageHeading";
 
 interface ContentPageProps {
   content: ContentProps | null;

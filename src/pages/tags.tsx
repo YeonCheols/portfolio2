@@ -1,13 +1,13 @@
+import axios from "axios";
 import { GetServerSideProps } from "next";
 import Link from "next/link";
-import { useMemo, useState } from "react";
 import { NextSeo } from "next-seo";
+import { useMemo, useState } from "react";
 
-import Container from "@/common/components/elements/Container";
-import PageHeading from "@/common/components/elements/PageHeading";
-import SectionHeading from "@/common/components/elements/SectionHeading";
-import axios from "axios";
 import { TagResponse } from "@docs/api";
+import Container from "@/shared/ui/Container";
+import PageHeading from "@/shared/ui/PageHeading";
+import SectionHeading from "@/shared/ui/SectionHeading";
 
 interface TagsPageProps {
   tags: TagResponse[];

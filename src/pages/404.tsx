@@ -1,7 +1,7 @@
 import styled from "@emotion/styled";
 import { NextPage } from "next";
 
-import Container from "@/common/components/elements/Container";
+import Container from "@/shared/ui/Container";
 
 const Custom404: NextPage = () => {
   return (

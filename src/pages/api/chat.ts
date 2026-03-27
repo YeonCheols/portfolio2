@@ -1,6 +1,6 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextApiRequest, NextApiResponse } from "next";
 
-import { postChatPrompt } from '@/services/chatgpt';
+import { postChatPrompt } from "@/features/cmdpallete/api/chatgpt";
 
 export default async function handler(
   req: NextApiRequest,

@@ -2,11 +2,11 @@ import { NextSeo } from "next-seo";
 import { useMemo } from "react";
 import useSWRInfinite from "swr/infinite";
 
-import Container from "@/common/components/elements/Container";
-import PageHeading from "@/common/components/elements/PageHeading";
-import Projects from "@/modules/projects";
 import { ProjectSearchResponse } from "@docs/api";
-import { fetcher } from "@/services/fetcher";
+import Projects from "@/features/projects";
+import { fetcher } from "@/shared/api/fetcher";
+import Container from "@/shared/ui/Container";
+import PageHeading from "@/shared/ui/PageHeading";
 
 const PAGE_TITLE = "프로젝트";
 const PAGE_DESCRIPTION =

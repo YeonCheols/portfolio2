@@ -1,11 +1,11 @@
-import { useState } from "react";
-import { NextSeo } from "next-seo";
-import Loading from "@/common/components/elements/Loading";
 import { GetServerSideProps } from "next";
+import { NextSeo } from "next-seo";
+import { useState } from "react";
 import {
   getGeminiUsageData,
   UnifiedApiResponse,
-} from "@/services/gemini-usage";
+} from "@/features/dashboard/api/gemini-usage";
+import Loading from "@/shared/ui/Loading";
 
 interface PageProps {
   initialData: UnifiedApiResponse | null;

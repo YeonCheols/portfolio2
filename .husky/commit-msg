@@ -1,5 +1,7 @@
-#!/usr/bin/env sh
-. "$(dirname -- "$0")/_/husky.sh"
+export PATH="/opt/homebrew/bin:$PATH"
+
+# Skip commit-msg hook for merge commits (e.g., from git pull)
+[ -f "$(git rev-parse --git-dir)/MERGE_HEAD" ] && exit 0
 
 # 커스텀 커밋 메시지 검증 스크립트 실행
 node scripts/validate-commit.js "$1"

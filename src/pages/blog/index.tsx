@@ -1,8 +1,8 @@
 import { NextPage } from "next";
 import { NextSeo } from "next-seo";
 
-import Container from "@/common/components/elements/Container";
-import BlogListNew from "@/modules/blog";
+import BlogListNew from "@/features/blog";
+import Container from "@/shared/ui/Container";
 
 const PAGE_TITLE = "Blog";
 

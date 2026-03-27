@@ -4,16 +4,14 @@ import dynamic from "next/dynamic";
 import { NextSeo } from "next-seo";
 import { useEffect } from "react";
 
-import BackButton from "@/common/components/elements/BackButton";
-import Container from "@/common/components/elements/Container";
-import { formatExcerpt } from "@/common/helpers";
-import { BlogDetailProps } from "@/common/types/blog";
-import BlogDetail from "@/modules/blog/components/BlogDetail";
-import { getBlogDetail } from "@/services/blog";
+import { getBlogDetail } from "@/features/blog/api/blog";
+import BlogDetail from "@/features/blog/ui/BlogDetail";
+import { formatExcerpt } from "@/shared/helpers";
+import { BlogDetailProps } from "@/shared/types/blog";
+import BackButton from "@/shared/ui/BackButton";
+import Container from "@/shared/ui/Container";
 
-const GiscusComment = dynamic(
-  () => import("@/modules/blog/components/GiscusComment"),
-);
+const GiscusComment = dynamic(() => import("@/features/blog/ui/GiscusComment"));
 
 interface BlogDetailPageProps {
   blog: {

@@ -1,14 +1,14 @@
+import axios from "axios";
+import { motion } from "framer-motion";
 import { GetServerSideProps } from "next";
 import Head from "next/head";
 import Link from "next/link";
-import axios from "axios";
 
-import Container from "@/common/components/elements/Container";
-import PageHeading from "@/common/components/elements/PageHeading";
 import { ProjectByTagResponse } from "@docs/api";
-import Loading from "@/common/components/elements/Loading";
-import { motion } from "framer-motion";
-import ProjectCard from "@/modules/projects/components/ProjectCard";
+import ProjectCard from "@/features/projects/ui/ProjectCard";
+import Container from "@/shared/ui/Container";
+import Loading from "@/shared/ui/Loading";
+import PageHeading from "@/shared/ui/PageHeading";
 
 export default function TagPage({
   projects,

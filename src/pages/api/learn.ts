@@ -1,6 +1,6 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextApiRequest, NextApiResponse } from "next";
 
-import { getMdxFileCount } from '@/common/libs/mdx';
+import { getMdxFileCount } from "@/shared/lib/mdx";
 
 export default async function handler(
   req: NextApiRequest,

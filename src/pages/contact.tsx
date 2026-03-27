@@ -1,9 +1,9 @@
 import { NextPage } from "next";
 import { NextSeo } from "next-seo";
 
-import Container from "@/common/components/elements/Container";
-import PageHeading from "@/common/components/elements/PageHeading";
-import Contact from "@/modules/contact";
+import Contact from "@/features/contact";
+import Container from "@/shared/ui/Container";
+import PageHeading from "@/shared/ui/PageHeading";
 
 const PAGE_TITLE = "Contact";
 const PAGE_DESCRIPTION =

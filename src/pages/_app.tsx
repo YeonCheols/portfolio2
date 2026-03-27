@@ -1,31 +1,30 @@
 import AOS from "aos";
-import type { AppProps } from "next/app";
 import dynamic from "next/dynamic";
 import { DefaultSeo } from "next-seo";
 import { ThemeProvider } from "next-themes";
 import { useEffect } from "react";
+import type { AppProps } from "next/app";
 
 import "tailwindcss/tailwind.css";
 import "aos/dist/aos.css";
-import "@/common/styles/globals.css";
+import "@/shared/styles/globals.css";
 
-import CommandPalette from "@/common/components/elements/CommandPalette";
-import Layout from "@/common/components/layouts";
-import SentryErrorBoundary from "@/common/components/elements/SentryErrorBoundary";
-import { CommandPaletteProvider } from "@/common/context/CommandPaletteContext";
+import Layout from "@/widgets/layout";
+import { CommandPaletteProvider } from "@/features/cmdpallete/model/CommandPaletteContext";
+import CommandPalette from "@/features/cmdpallete/ui/CommandPalette";
 import {
   firaCode,
   jakartaSans,
   onestSans,
   soraSans,
-} from "@/common/styles/fonts";
+} from "@/shared/styles/fonts";
+import SentryErrorBoundary from "@/shared/ui/SentryErrorBoundary";
 
 import defaultSEOConfig from "../../next-seo.config";
 
-const ProgressBar = dynamic(
-  () => import("src/common/components/elements/ProgressBar"),
-  { ssr: false },
-);
+const ProgressBar = dynamic(() => import("src/shared/ui/ProgressBar"), {
+  ssr: false,
+});
 
 const App = ({ Component, pageProps: { session, ...pageProps } }: AppProps) => {
   useEffect(() => {

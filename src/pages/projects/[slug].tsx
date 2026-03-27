@@ -1,13 +1,13 @@
-import { GetServerSideProps } from "next";
-import { NextSeo } from "next-seo";
-import dynamic from "next/dynamic";
-
-import BackButton from "@/common/components/elements/BackButton";
-import Container from "@/common/components/elements/Container";
-import PageHeading from "@/common/components/elements/PageHeading";
-import { useStacks } from "@/common/hooks/useStacks";
-import { ProjectResponse } from "@docs/api";
 import axios from "axios";
+import { GetServerSideProps } from "next";
+import dynamic from "next/dynamic";
+import { NextSeo } from "next-seo";
+
+import { ProjectResponse } from "@docs/api";
+import { useStacks } from "@/shared/hooks/useStacks";
+import BackButton from "@/shared/ui/BackButton";
+import Container from "@/shared/ui/Container";
+import PageHeading from "@/shared/ui/PageHeading";
 
 // 동적 import로 외부 패키지 컴포넌트 로드
 const ProjectPreviewDetail = dynamic(

@@ -2,10 +2,10 @@ import { NextPage } from "next";
 import { NextSeo } from "next-seo";
 import { useState } from "react";
 
-import Container from "@/common/components/elements/Container";
-import PageHeading from "@/common/components/elements/PageHeading";
-import GuestbookForm from "@/modules/guestbook/components/GuestbookForm";
-import GuestbookList from "@/modules/guestbook/components/GuestbookList";
+import GuestbookForm from "@/features/guestbook/ui/GuestbookForm";
+import GuestbookList from "@/features/guestbook/ui/GuestbookList";
+import Container from "@/shared/ui/Container";
+import PageHeading from "@/shared/ui/PageHeading";
 
 const PAGE_TITLE = "게스트북";
 const PAGE_DESCRIPTION = "말씀하실 내용, 제안, 질문 등 무엇이든 남겨주세요!";
