@@ -1,8 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
 // import prisma from "@/shared/lib/prisma";
-import { BlogItemProps } from "@/shared/types/blog";
 import { getBlogList } from "@/features/blog/api/blog";
+import { BlogItemProps } from "@/shared/types/blog";
 
 export default async function handler(
   req: NextApiRequest,

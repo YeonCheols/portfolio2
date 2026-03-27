@@ -6,11 +6,11 @@ import { MenuContext } from "@/widgets/layout/model/MenuContext";
 import { CommandPaletteContext } from "@/features/cmdpallete/model/CommandPaletteContext";
 import useIsMobile from "@/shared/hooks/useIsMobile";
 
+import SearchBox from "@/shared/ui/SearchBox";
+import ThemeToggleButton from "@/shared/ui/ThemeToggleButton";
 import MobileMenu from "./MobileMenu";
 import MobileMenuButton from "./MobileMenuButton";
 import ProfileHeader from "./ProfileHeader";
-import SearchBox from "@/shared/ui/SearchBox";
-import ThemeToggleButton from "@/shared/ui/ThemeToggleButton";
 
 interface ProfileProps {
   isScrolled?: boolean;

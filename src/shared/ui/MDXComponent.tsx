@@ -1,7 +1,7 @@
 import { ReactNode } from "react";
 import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import rehypeSlug from "rehype-slug";
+import remarkGfm from "remark-gfm";
 import CodeBlock from "./CodeBlock";
 
 interface MarkdownRendererProps {

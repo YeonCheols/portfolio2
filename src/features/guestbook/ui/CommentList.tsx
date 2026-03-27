@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { GuestbookComment } from "@/shared/types/guestbook";
 import { getGuestbookComments } from "@/features/guestbook/api/guestbook";
-import CommentItem from "./CommentItem";
+import { GuestbookComment } from "@/shared/types/guestbook";
 import Loading from "@/shared/ui/Loading";
+import CommentItem from "./CommentItem";
 
 interface CommentListProps {
   guestbookId: string;

@@ -2,13 +2,13 @@ import { GetStaticPaths, GetStaticProps, NextPage } from "next";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
 
-import BackButton from "@/shared/ui/BackButton";
-import Container from "@/shared/ui/Container";
+import ContentDetail from "@/widgets/learn/ui/ContentDetail";
+import ContentDetailHeader from "@/features/learn/ui/ContentDetailHeader";
 import { parseUrl } from "@/shared/helpers";
 import { loadMdxFiles } from "@/shared/lib/mdx";
 import { MdxFileContentProps } from "@/shared/types/learn";
-import ContentDetail from "@/widgets/learn/ui/ContentDetail";
-import ContentDetailHeader from "@/features/learn/ui/ContentDetailHeader";
+import BackButton from "@/shared/ui/BackButton";
+import Container from "@/shared/ui/Container";
 
 const LearnContentDetailPage: NextPage<{ data: MdxFileContentProps }> = ({
   data,

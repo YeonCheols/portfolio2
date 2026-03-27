@@ -5,9 +5,9 @@ import { useEffect, useState } from "react";
 import { SiWakatime as WakatimeIcon } from "react-icons/si";
 import useSWR from "swr";
 
+import { fetcher } from "@/shared/api/fetcher";
 import SectionHeading from "@/shared/ui/SectionHeading";
 import SectionSubHeading from "@/shared/ui/SectionSubHeading";
-import { fetcher } from "@/shared/api/fetcher";
 
 import CodingActiveList from "./CodingActiveList";
 import Overview from "./Overview";

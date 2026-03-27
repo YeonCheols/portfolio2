@@ -2,9 +2,9 @@ import Link from "next/link";
 import { BsGithub as GithubIcon } from "react-icons/bs";
 import useSWR from "swr";
 
+import { fetcher } from "@/shared/api/fetcher";
 import SectionHeading from "@/shared/ui/SectionHeading";
 import SectionSubHeading from "@/shared/ui/SectionSubHeading";
-import { fetcher } from "@/shared/api/fetcher";
 
 import Calendar from "./Calendar";
 import Overview from "./Overview";

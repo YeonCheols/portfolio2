@@ -1,12 +1,12 @@
 import clsx from "clsx";
 import Link from "next/link";
+import { useMemo } from "react";
 import { MdVerified as VerifiedIcon } from "react-icons/md";
 
-import Image from "@/shared/ui/Image";
-import { fetcher } from "@/shared/api/fetcher";
 import useSWR from "swr";
 import { AdminProfileResponse } from "@docs/api";
-import { useMemo } from "react";
+import { fetcher } from "@/shared/api/fetcher";
+import Image from "@/shared/ui/Image";
 
 interface ProfileHeaderProps {
   expandMenu: boolean;

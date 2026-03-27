@@ -1,9 +1,8 @@
+import { Tooltip as CoreTooltip } from "@yeoncheols/portfolio-core-ui";
 import {
   MdOutlineFullscreen as FullScreenIcon,
   MdOutlineFullscreenExit as ExitFullScreenIcon,
 } from "react-icons/md";
-
-import { Tooltip as CoreTooltip } from "@yeoncheols/portfolio-core-ui";
 
 interface PanelFooterProps {
   isFullScreen?: boolean;

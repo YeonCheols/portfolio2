@@ -1,8 +1,8 @@
-import React from "react";
-import { fetcher } from "@/shared/api/fetcher";
-import { TagResponse, TagSearchResponse } from "@docs/api";
 import { getIconComponent } from "@yeoncheols/portfolio-core-ui";
+import React from "react";
 import useSWR from "swr";
+import { TagResponse, TagSearchResponse } from "@docs/api";
+import { fetcher } from "@/shared/api/fetcher";
 
 export const useStacks = (iconSize: number = 20) => {
   const { data: stacksData, isLoading: isStacksLoading } =

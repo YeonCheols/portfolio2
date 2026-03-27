@@ -1,5 +1,5 @@
-import SectionHeading from "@/shared/ui/SectionHeading";
 import Skills from "@/features/about/ui/Skills";
+import SectionHeading from "@/shared/ui/SectionHeading";
 
 const SkillsSection = () => {
   return (

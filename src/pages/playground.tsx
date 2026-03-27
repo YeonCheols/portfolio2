@@ -2,8 +2,8 @@ import { NextPage } from "next";
 import { NextSeo } from "next-seo";
 import React from "react";
 
-import Container from "@/shared/ui/Container";
 import Playground from "@/features/playground";
+import Container from "@/shared/ui/Container";
 
 const PAGE_TITLE = "playground";
 

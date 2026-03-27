@@ -1,7 +1,7 @@
 import { MENU_APPS, MENU_ITEMS } from "@/shared/config/menu";
 
-import Menu from "./Menu";
 import Breakline from "@/shared/ui/Breakline";
+import Menu from "./Menu";
 
 const Navigation = () => {
   const filteredMenu = MENU_ITEMS?.filter((item) => item?.isShow);

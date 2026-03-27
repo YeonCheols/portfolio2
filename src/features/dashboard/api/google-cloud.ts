@@ -1,5 +1,5 @@
-import { google } from "googleapis";
 import axios from "axios";
+import { google } from "googleapis";
 
 // OpenSSL 오류 해결을 위한 환경변수 설정
 if (process.env.NODE_TLS_REJECT_UNAUTHORIZED === "0") {

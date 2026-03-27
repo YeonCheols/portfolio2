@@ -4,10 +4,10 @@ import { useState } from "react";
 import { BsBuildings as CompanyIcon } from "react-icons/bs";
 import { HiChevronRight } from "react-icons/hi";
 
-import Card from "@/shared/ui/Card";
-import Image from "@/shared/ui/Image";
 import cn from "@/shared/lib/cn";
 import { CareerProps } from "@/shared/types/careers";
+import Card from "@/shared/ui/Card";
+import Image from "@/shared/ui/Image";
 
 const CareerCard = ({
   position,

@@ -9,9 +9,9 @@ import {
 import { FaRegEye as ViewIcon } from "react-icons/fa";
 import { TbCalendarBolt as DateIcon } from "react-icons/tb";
 
-import Image from "@/shared/ui/Image";
 import { formatDate, formatExcerpt } from "@/shared/helpers";
 import { BlogFeaturedProps } from "@/shared/types/blog";
+import Image from "@/shared/ui/Image";
 
 const BlogFeaturedHero = ({ data }: BlogFeaturedProps) => {
   const [currentFeaturedIndex, setCurrentFeaturedIndex] = useState<number>(0);

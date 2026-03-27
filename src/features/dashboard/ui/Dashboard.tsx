@@ -1,5 +1,5 @@
-import Breakline from "@/shared/ui/Breakline";
 import { GITHUB_ACCOUNTS } from "@/shared/config/github";
+import Breakline from "@/shared/ui/Breakline";
 
 import CodingActive from "./CodingActive";
 import Contributions from "./Contributions";

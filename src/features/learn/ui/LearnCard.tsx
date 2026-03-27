@@ -5,10 +5,10 @@ import { HiOutlineArrowSmRight as ViewIcon } from "react-icons/hi";
 import { MdLibraryBooks as LessonIcon } from "react-icons/md";
 import useSWR from "swr";
 
+import { fetcher } from "@/shared/api/fetcher";
+import { ContentProps } from "@/shared/types/learn";
 import Card from "@/shared/ui/Card";
 import Image from "@/shared/ui/Image";
-import { ContentProps } from "@/shared/types/learn";
-import { fetcher } from "@/shared/api/fetcher";
 
 const LearnCard = ({
   title,

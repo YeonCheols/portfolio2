@@ -1,6 +1,6 @@
-import { TabProps } from "@/shared/types/tab";
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
+import { TabProps } from "@/shared/types/tab";
 
 interface TabsProps {
   tabs: TabProps[];

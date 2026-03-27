@@ -1,11 +1,11 @@
+import { Tooltip as CoreTooltip } from "@yeoncheols/portfolio-core-ui";
 import Link from "next/link";
 import { HiOutlineArrowSmRight as ViewIcon } from "react-icons/hi";
 
-import Card from "@/shared/ui/Card";
-import Image from "@/shared/ui/Image";
-import { Tooltip as CoreTooltip } from "@yeoncheols/portfolio-core-ui";
 import { ProjectResponse } from "docs/api";
 import { useStacks } from "@/shared/hooks/useStacks";
+import Card from "@/shared/ui/Card";
+import Image from "@/shared/ui/Image";
 
 const ProjectCard = ({
   title,

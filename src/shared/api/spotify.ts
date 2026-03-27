@@ -1,5 +1,5 @@
-import axios from "axios";
 import querystring from "querystring";
+import axios from "axios";
 
 import { PAIR_DEVICES } from "@/shared/config/devices";
 import {

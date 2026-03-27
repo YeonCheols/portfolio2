@@ -1,10 +1,10 @@
 import { useMemo } from "react";
 import useSWR from "swr";
 
+import { fetcher } from "@/shared/api/fetcher";
+import { CommentItemProps } from "@/shared/types/blog";
 import EmptyState from "@/shared/ui/EmptyState";
 import Loading from "@/shared/ui/Loading";
-import { CommentItemProps } from "@/shared/types/blog";
-import { fetcher } from "@/shared/api/fetcher";
 
 import CommentItem from "./CommentItem";
 

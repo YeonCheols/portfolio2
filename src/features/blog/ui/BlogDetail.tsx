@@ -1,10 +1,10 @@
 import useSWR from "swr";
 
-import Breakline from "@/shared/ui/Breakline";
-import MDXComponent from "@/shared/ui/MDXComponent";
+import { fetcher } from "@/shared/api/fetcher";
 import { calculateReadingTime } from "@/shared/helpers";
 import { BlogDetailProps } from "@/shared/types/blog";
-import { fetcher } from "@/shared/api/fetcher";
+import Breakline from "@/shared/ui/Breakline";
+import MDXComponent from "@/shared/ui/MDXComponent";
 
 import BlogHeader from "./BlogHeader";
 

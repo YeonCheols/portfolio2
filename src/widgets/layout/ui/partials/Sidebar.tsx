@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState } from "react";
 
-import useIsMobile from "@/shared/hooks/useIsMobile";
 import { CommandPaletteContext } from "@/features/cmdpallete/model/CommandPaletteContext";
+import useIsMobile from "@/shared/hooks/useIsMobile";
 
 import Breakline from "@/shared/ui/Breakline";
 import SearchBox from "@/shared/ui/SearchBox";

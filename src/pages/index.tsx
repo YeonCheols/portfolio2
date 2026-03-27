@@ -1,8 +1,8 @@
 import { NextPage } from "next";
 import { NextSeo } from "next-seo";
 
-import Container from "@/shared/ui/Container";
 import Home from "@/widgets/home";
+import Container from "@/shared/ui/Container";
 
 const HomePage: NextPage = () => {
   return (

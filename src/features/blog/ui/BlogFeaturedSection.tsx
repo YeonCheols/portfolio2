@@ -1,9 +1,9 @@
 import React, { useMemo } from "react";
 import useSWR from "swr";
 
-import BlogFeaturedHeroSkeleton from "@/shared/ui/BlogFeaturedHeroSkeleton";
-import { BlogItemProps } from "@/shared/types/blog";
 import { fetcher } from "@/shared/api/fetcher";
+import { BlogItemProps } from "@/shared/types/blog";
+import BlogFeaturedHeroSkeleton from "@/shared/ui/BlogFeaturedHeroSkeleton";
 
 import BlogFeaturedHero from "./BlogFeaturedHero";
 

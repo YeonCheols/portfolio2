@@ -1,8 +1,8 @@
 import { useEffect, useRef } from "react";
 
-import Image from "@/shared/ui/Image";
 import { formatDate } from "@/shared/helpers";
 import { CommentItemProps } from "@/shared/types/blog";
+import Image from "@/shared/ui/Image";
 
 const CommentItem = ({ body_html, created_at, user }: CommentItemProps) => {
   const contentRef = useRef<HTMLDivElement>(null);

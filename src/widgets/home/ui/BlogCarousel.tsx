@@ -3,10 +3,10 @@ import { useMemo, useRef } from "react";
 import { useDraggable } from "react-use-draggable-scroll";
 import useSWR from "swr";
 
-import BlogCardNewSkeleton from "@/shared/ui/BlogCardNewSkeleton";
-import { BlogItemProps } from "@/shared/types/blog";
 import BlogCardNew from "@/features/blog/ui/BlogCardNew";
 import { fetcher } from "@/shared/api/fetcher";
+import { BlogItemProps } from "@/shared/types/blog";
+import BlogCardNewSkeleton from "@/shared/ui/BlogCardNewSkeleton";
 import EmptyState from "@/shared/ui/EmptyState";
 
 const BlogCarousel = () => {

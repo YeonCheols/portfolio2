@@ -2,12 +2,12 @@ import { motion } from "framer-motion";
 import { useMemo, useRef } from "react";
 import { useDraggable } from "react-use-draggable-scroll";
 import useSWR from "swr";
-import { fetcher } from "@/shared/api/fetcher";
-import ProductCardSkeleton from "@/shared/ui/ProductCardSkeleton";
-import ProjectCard from "@/features/projects/ui/ProjectCard";
-import EmptyState from "@/shared/ui/EmptyState";
 import { ProjectResponse, ProjectSearchResponse } from "docs/api";
+import ProjectCard from "@/features/projects/ui/ProjectCard";
+import { fetcher } from "@/shared/api/fetcher";
 import cn from "@/shared/lib/cn";
+import EmptyState from "@/shared/ui/EmptyState";
+import ProductCardSkeleton from "@/shared/ui/ProductCardSkeleton";
 
 const ProjectCarousel = () => {
   const { data, error, isLoading } = useSWR<{ data: ProjectSearchResponse }>(

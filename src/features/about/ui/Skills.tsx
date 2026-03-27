@@ -1,13 +1,13 @@
 import styled from "@emotion/styled";
-import { memo, ReactNode, useMemo } from "react";
 
-import InfiniteLoopSlider from "@/shared/ui/InfiniteLoopSlider";
 import { StackIcon, StackType } from "@yeoncheols/portfolio-core-ui";
-import { fetcher } from "@/shared/api/fetcher";
+import { memo, ReactNode, useMemo } from "react";
 import useSWR from "swr";
 import { TagSearchResponse } from "@docs/api";
-import BlogCardSkeleton from "@/shared/ui/BlogCardSkeleton";
+import { fetcher } from "@/shared/api/fetcher";
 import { useStacks } from "@/shared/hooks/useStacks";
+import BlogCardSkeleton from "@/shared/ui/BlogCardSkeleton";
+import InfiniteLoopSlider from "@/shared/ui/InfiniteLoopSlider";
 
 const Tag = memo(({ icon, title }: { icon: ReactNode; title: string }) => (
   <div className="mr-3 flex w-max items-center gap-2 rounded-full border border-neutral-300 bg-neutral-50 px-5 py-2 text-[15px] shadow-sm dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-50">

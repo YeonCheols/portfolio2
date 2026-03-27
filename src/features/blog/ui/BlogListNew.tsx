@@ -4,12 +4,12 @@ import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { useDebounce } from "usehooks-ts";
 
+import { fetcher } from "@/shared/api/fetcher";
+import { BlogItemProps } from "@/shared/types/blog";
+import BlogCardNewSkeleton from "@/shared/ui/BlogCardNewSkeleton";
 import EmptyState from "@/shared/ui/EmptyState";
 import Pagination from "@/shared/ui/Pagination";
 import SearchBar from "@/shared/ui/SearchBar";
-import BlogCardNewSkeleton from "@/shared/ui/BlogCardNewSkeleton";
-import { BlogItemProps } from "@/shared/types/blog";
-import { fetcher } from "@/shared/api/fetcher";
 
 import BlogCardNew from "./BlogCardNew";
 import BlogFeaturedSection from "./BlogFeaturedSection";

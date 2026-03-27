@@ -1,11 +1,11 @@
+import { Tooltip } from "@yeoncheols/portfolio-core-ui";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { FiExternalLink as LinkIcon } from "react-icons/fi";
 
-import { SubContentMetaProps } from "@/shared/types/learn";
 import { useStacks } from "@/shared/hooks/useStacks";
-import { Tooltip } from "@yeoncheols/portfolio-core-ui";
+import { SubContentMetaProps } from "@/shared/types/learn";
 
 const ContentDetailHeader = ({
   title,

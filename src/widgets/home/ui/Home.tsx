@@ -1,8 +1,8 @@
+import Introduction from "@/features/home/ui/Introduction";
+import Services from "@/features/home/ui/Services";
 import Breakline from "@/shared/ui/Breakline";
 
 import ProjectPreview from "./ProjectPreview";
-import Introduction from "@/features/home/ui/Introduction";
-import Services from "@/features/home/ui/Services";
 import SkillsSection from "./SkillsSection";
 
 const Home = () => {

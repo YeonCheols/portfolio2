@@ -6,17 +6,17 @@ import {
   HiOutlineClock as TimelineIcon,
 } from "react-icons/hi";
 
+import { CAREERS } from "@/shared/config/careers";
+import { ActiveTabKeys } from "@/shared/types/about";
+import type { TimelineItem } from "@/shared/types/careers";
+import { TabProps } from "@/shared/types/tab";
 import { Tabs } from "@/shared/ui/Tabs";
 
 import CareerList from "./CareerList";
+import CareerTimeLine from "./CareerTimeLine";
 import EducationList from "./EducationList";
 import Resume from "./Resume";
 import Story from "./Story";
-import CareerTimeLine from "./CareerTimeLine";
-import type { TimelineItem } from "@/shared/types/careers";
-import { CAREERS } from "@/shared/config/careers";
-import { TabProps } from "@/shared/types/tab";
-import { ActiveTabKeys } from "@/shared/types/about";
 
 const TabLabel = ({ children }: { children: React.ReactNode }) => (
   <div className="flex items-center justify-center gap-1.5">{children}</div>

@@ -1,8 +1,7 @@
+import { Tooltip as CoreTooltip } from "@yeoncheols/portfolio-core-ui";
 import Link from "next/link";
 
 import { MenuItemProps } from "@/shared/types/menu";
-
-import { Tooltip as CoreTooltip } from "@yeoncheols/portfolio-core-ui";
 
 type SocialMediaProps = {
   items: MenuItemProps[];

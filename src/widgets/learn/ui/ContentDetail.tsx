@@ -2,13 +2,13 @@ import { useRouter } from "next/router";
 import { useCallback, useEffect, useState } from "react";
 import useSWR from "swr";
 
-import NavigationSection from "@/shared/ui/NavigationSection";
+import GiscusComment from "@/features/blog/ui/GiscusComment";
+import ContentBody from "@/features/learn/ui/ContentBody";
+import { fetcher } from "@/shared/api/fetcher";
 import { parseUrl } from "@/shared/helpers";
 import { SubContentMetaProps } from "@/shared/types/learn";
-import GiscusComment from "@/features/blog/ui/GiscusComment";
-import { fetcher } from "@/shared/api/fetcher";
 
-import ContentBody from "@/features/learn/ui/ContentBody";
+import NavigationSection from "@/shared/ui/NavigationSection";
 import ContentPlayground from "./ContentPlayground";
 
 interface ContentListItemProps {

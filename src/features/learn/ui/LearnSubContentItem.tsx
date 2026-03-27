@@ -1,11 +1,11 @@
+import { Tooltip as CoreTooltip } from "@yeoncheols/portfolio-core-ui";
 import Link from "next/link";
 import { BiFile as SubContentIcon } from "react-icons/bi";
 
-import Card from "@/shared/ui/Card";
-import { Tooltip as CoreTooltip } from "@yeoncheols/portfolio-core-ui";
+import { useStacks } from "@/shared/hooks/useStacks";
 import cn from "@/shared/lib/cn";
 import { SubContentProps } from "@/shared/types/learn";
-import { useStacks } from "@/shared/hooks/useStacks";
+import Card from "@/shared/ui/Card";
 
 const LearnSubContentItem = ({
   contentSlug,

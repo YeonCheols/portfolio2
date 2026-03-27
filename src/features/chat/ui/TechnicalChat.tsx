@@ -1,5 +1,5 @@
-import { useState } from "react";
 import axios from "axios";
+import { useState } from "react";
 import { MdClose as CloseIcon } from "react-icons/md";
 
 import useChatStore from "@/features/chat/model/useChatStore";

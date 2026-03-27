@@ -1,3 +1,4 @@
+import { Tooltip as CoreTooltip } from "@yeoncheols/portfolio-core-ui";
 import clsx from "clsx";
 import { motion } from "framer-motion";
 import Link from "next/link";
@@ -7,16 +8,15 @@ import { FaRegEye as ViewIcon } from "react-icons/fa";
 import { HiOutlineClock as ClockIcon } from "react-icons/hi";
 import { TbCalendarBolt as DateIcon } from "react-icons/tb";
 
-import Breakline from "@/shared/ui/Breakline";
-import Card from "@/shared/ui/Card";
-import Image from "@/shared/ui/Image";
-import { Tooltip as CoreTooltip } from "@yeoncheols/portfolio-core-ui";
 import {
   calculateReadingTime,
   formatDate,
   formatExcerpt,
 } from "@/shared/helpers";
 import { BlogItemProps } from "@/shared/types/blog";
+import Breakline from "@/shared/ui/Breakline";
+import Card from "@/shared/ui/Card";
+import Image from "@/shared/ui/Image";
 
 interface BlogCardProps extends BlogItemProps {
   isExcerpt?: boolean;

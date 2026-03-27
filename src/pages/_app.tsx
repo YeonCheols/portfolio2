@@ -1,24 +1,24 @@
 import AOS from "aos";
-import type { AppProps } from "next/app";
 import dynamic from "next/dynamic";
 import { DefaultSeo } from "next-seo";
 import { ThemeProvider } from "next-themes";
 import { useEffect } from "react";
+import type { AppProps } from "next/app";
 
 import "tailwindcss/tailwind.css";
 import "aos/dist/aos.css";
 import "@/shared/styles/globals.css";
 
-import CommandPalette from "@/features/cmdpallete/ui/CommandPalette";
 import Layout from "@/widgets/layout";
-import SentryErrorBoundary from "@/shared/ui/SentryErrorBoundary";
 import { CommandPaletteProvider } from "@/features/cmdpallete/model/CommandPaletteContext";
+import CommandPalette from "@/features/cmdpallete/ui/CommandPalette";
 import {
   firaCode,
   jakartaSans,
   onestSans,
   soraSans,
 } from "@/shared/styles/fonts";
+import SentryErrorBoundary from "@/shared/ui/SentryErrorBoundary";
 
 import defaultSEOConfig from "../../next-seo.config";
 

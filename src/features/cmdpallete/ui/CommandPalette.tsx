@@ -11,14 +11,14 @@ import {
 import { HiOutlineChat as AiIcon } from "react-icons/hi";
 import { useDebounce } from "usehooks-ts";
 
-import { EXTERNAL_LINKS, MENU_ITEMS, SOCIAL_MEDIA } from "@/shared/config/menu";
+import { sendMessage } from "@/features/cmdpallete/api/chatgpt";
 import { CommandPaletteContext } from "@/features/cmdpallete/model/CommandPaletteContext";
-import useIsMobile from "@/shared/hooks/useIsMobile";
-import { MenuItemProps } from "@/shared/types/menu";
 import AiLoading from "@/features/cmdpallete/ui/AiLoading";
 import AiResponses from "@/features/cmdpallete/ui/AiResponses";
 import QueryNotFound from "@/features/cmdpallete/ui/QueryNotFound";
-import { sendMessage } from "@/features/cmdpallete/api/chatgpt";
+import { EXTERNAL_LINKS, MENU_ITEMS, SOCIAL_MEDIA } from "@/shared/config/menu";
+import useIsMobile from "@/shared/hooks/useIsMobile";
+import { MenuItemProps } from "@/shared/types/menu";
 
 interface MenuOptionItemProps extends MenuItemProps {
   click?: () => void;

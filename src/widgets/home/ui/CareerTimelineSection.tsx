@@ -1,7 +1,7 @@
-import SectionHeading from "@/shared/ui/SectionHeading";
 import CareerTimeLine from "@/features/about/ui/CareerTimeLine";
-import type { TimelineItem } from "@/shared/types/careers";
 import { CAREERS } from "@/shared/config/careers";
+import type { TimelineItem } from "@/shared/types/careers";
+import SectionHeading from "@/shared/ui/SectionHeading";
 
 const TIMELINE_ITEMS: TimelineItem[] = CAREERS.map((c) => {
   return {

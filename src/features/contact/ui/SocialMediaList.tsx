@@ -1,7 +1,7 @@
 import clsx from "clsx";
 
-import Button from "@/shared/ui/Button";
 import { SOCIAL_MEDIA } from "@/shared/config/menu";
+import Button from "@/shared/ui/Button";
 
 const SocialMediaList = () => {
   const handleAction = (link: string) => window.open(link, "_blank");

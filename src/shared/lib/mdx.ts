@@ -1,10 +1,10 @@
 import fs from "fs";
-import matter from "gray-matter";
 import path from "path";
+import matter from "gray-matter";
 // import unified from "unified";
+import remarkGfm from "remark-gfm";
 import remarkMdx from "remark-mdx";
 import remarkParse from "remark-parse";
-import remarkGfm from "remark-gfm";
 interface MdxFileProps {
   slug: string;
   frontMatter: Record<string, unknown>;

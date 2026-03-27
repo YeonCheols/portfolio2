@@ -4,12 +4,12 @@ import dynamic from "next/dynamic";
 import { NextSeo } from "next-seo";
 import { useEffect } from "react";
 
-import BackButton from "@/shared/ui/BackButton";
-import Container from "@/shared/ui/Container";
+import { getBlogDetail } from "@/features/blog/api/blog";
+import BlogDetail from "@/features/blog/ui/BlogDetail";
 import { formatExcerpt } from "@/shared/helpers";
 import { BlogDetailProps } from "@/shared/types/blog";
-import BlogDetail from "@/features/blog/ui/BlogDetail";
-import { getBlogDetail } from "@/features/blog/api/blog";
+import BackButton from "@/shared/ui/BackButton";
+import Container from "@/shared/ui/Container";
 
 const GiscusComment = dynamic(() => import("@/features/blog/ui/GiscusComment"));
 

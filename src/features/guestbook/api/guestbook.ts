@@ -1,3 +1,4 @@
+import axios from "axios";
 import {
   GuestbookEntry,
   CreateGuestbookEntry,
@@ -6,7 +7,6 @@ import {
   CreateGuestbookComment,
   GuestbookCommentResponse,
 } from "@/shared/types/guestbook";
-import axios from "axios";
 
 export const getGuestbookEntries = async (): Promise<GuestbookEntry[]> => {
   try {

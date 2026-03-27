@@ -1,3 +1,4 @@
+import { Tooltip as CoreTooltip } from "@yeoncheols/portfolio-core-ui";
 import clsx from "clsx";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -9,12 +10,11 @@ import {
   MdVerified as VerifiedIcon,
 } from "react-icons/md";
 
-import { MENU_ITEMS } from "@/shared/config/menu";
 import { CommandPaletteContext } from "@/features/cmdpallete/model/CommandPaletteContext";
+import { MENU_ITEMS } from "@/shared/config/menu";
 
 import Image from "@/shared/ui/Image";
 import ThemeToggleButton from "@/shared/ui/ThemeToggleButton";
-import { Tooltip as CoreTooltip } from "@yeoncheols/portfolio-core-ui";
 import Profile from "../sidebar/Profile";
 
 const HeaderTop = () => {

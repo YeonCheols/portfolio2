@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { GuestbookEntry } from "@/shared/types/guestbook";
 import { getGuestbookEntries } from "@/features/guestbook/api/guestbook";
-import GuestbookItem from "./GuestbookItem";
+import { GuestbookEntry } from "@/shared/types/guestbook";
 import Loading from "@/shared/ui/Loading";
+import GuestbookItem from "./GuestbookItem";
 
 interface GuestbookListProps {
   refreshTrigger?: number;

@@ -1,10 +1,17 @@
 {
-  "extends": ["next", "@feature-sliced"],
+  "extends": [
+    "next",
+    "@feature-sliced/eslint-config/rules/import-order",
+    "@feature-sliced/eslint-config/rules/layers-slices"
+  ],
   "settings": {
     "import/resolver": {
       "typescript": {
         "project": "./tsconfig.json"
       }
     }
+  },
+  "rules": {
+    "import/no-internal-modules": "off"
   }
 }

@@ -1,11 +1,11 @@
 import { motion } from "framer-motion";
 import InfiniteScroll from "react-infinite-scroll-component";
 
+import { ProjectResponse } from "@docs/api";
 import EmptyState from "@/shared/ui/EmptyState";
 
-import ProjectCard from "./ProjectCard";
-import { ProjectResponse } from "@docs/api";
 import ProductCardSkeleton from "@/shared/ui/ProductCardSkeleton";
+import ProjectCard from "./ProjectCard";
 
 interface ProjectsComponentProps {
   projects: ProjectResponse[];
