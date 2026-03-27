@@ -6,7 +6,7 @@ import {
   HiOutlineClock as TimelineIcon,
 } from "react-icons/hi";
 
-import { Tabs } from "@/common/components/elements/Tabs";
+import { Tabs } from "@/shared/ui/Tabs";
 
 import CareerList from "./CareerList";
 import EducationList from "./EducationList";

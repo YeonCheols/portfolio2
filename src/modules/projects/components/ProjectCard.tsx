@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { HiOutlineArrowSmRight as ViewIcon } from "react-icons/hi";
 
-import Card from "@/common/components/elements/Card";
-import Image from "@/common/components/elements/Image";
+import Card from "@/shared/ui/Card";
+import Image from "@/shared/ui/Image";
 import { Tooltip as CoreTooltip } from "@yeoncheols/portfolio-core-ui";
 import { ProjectResponse } from "docs/api";
 import { useStacks } from "@/common/hooks/useStacks";

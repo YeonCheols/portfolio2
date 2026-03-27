@@ -1,10 +1,10 @@
 /* eslint-disable no-console */
-import { useState } from 'react';
+import { useState } from "react";
 
-import ModalWrapper from '@/common/components/elements/ModalWrapper';
+import ModalWrapper from "@/shared/ui/ModalWrapper";
 
-import CodePlayground from './CodePlayground';
-import PlaygroundHeader from './PlaygroundHeader';
+import CodePlayground from "./CodePlayground";
+import PlaygroundHeader from "./PlaygroundHeader";
 
 interface PlaygroundProps {
   id?: string | undefined;
@@ -17,8 +17,8 @@ const Playground = ({
   isHeading = false,
   initialCode,
 }: PlaygroundProps) => {
-  const [code, setCode] = useState<string>(initialCode ?? '');
-  const [output, setOutput] = useState<string>('');
+  const [code, setCode] = useState<string>(initialCode ?? "");
+  const [output, setOutput] = useState<string>("");
   const [isError, setError] = useState<boolean>(false);
   const [isFullScreen, setFullScreen] = useState<boolean>(false);
 
@@ -30,7 +30,7 @@ const Playground = ({
     try {
       setError(false);
 
-      let capturedConsoleOutput = '';
+      let capturedConsoleOutput = "";
       const originalConsoleLog = console.log;
 
       console.log = (message) => (capturedConsoleOutput += `${message}\n`);
@@ -38,13 +38,13 @@ const Playground = ({
       const result = new Function(code)();
       console.log = originalConsoleLog;
 
-      setOutput(capturedConsoleOutput + (result?.toString() ?? ''));
+      setOutput(capturedConsoleOutput + (result?.toString() ?? ""));
     } catch (error) {
       setError(true);
       if (error instanceof Error) {
         setOutput(error.toString());
       } else {
-        setOutput('An unknown error occurred.');
+        setOutput("An unknown error occurred.");
       }
     }
   };

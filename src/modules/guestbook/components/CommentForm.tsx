@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { createGuestbookComment } from "@/services/guestbook";
 import { CreateGuestbookComment } from "@/common/types/guestbook";
-import Button from "@/common/components/elements/Button";
+import Button from "@/shared/ui/Button";
 
 interface CommentFormProps {
   guestbookId: string;

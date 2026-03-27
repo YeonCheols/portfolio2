@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { BiFile as SubContentIcon } from "react-icons/bi";
 
-import Card from "@/common/components/elements/Card";
+import Card from "@/shared/ui/Card";
 import { Tooltip as CoreTooltip } from "@yeoncheols/portfolio-core-ui";
 import cn from "@/common/libs/cn";
 import { SubContentProps } from "@/common/types/learn";

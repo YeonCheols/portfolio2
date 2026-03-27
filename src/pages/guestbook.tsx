@@ -2,8 +2,8 @@ import { NextPage } from "next";
 import { NextSeo } from "next-seo";
 import { useState } from "react";
 
-import Container from "@/common/components/elements/Container";
-import PageHeading from "@/common/components/elements/PageHeading";
+import Container from "@/shared/ui/Container";
+import PageHeading from "@/shared/ui/PageHeading";
 import GuestbookForm from "@/modules/guestbook/components/GuestbookForm";
 import GuestbookList from "@/modules/guestbook/components/GuestbookList";
 

@@ -2,8 +2,8 @@ import { NextSeo } from "next-seo";
 import { useMemo } from "react";
 import useSWRInfinite from "swr/infinite";
 
-import Container from "@/common/components/elements/Container";
-import PageHeading from "@/common/components/elements/PageHeading";
+import Container from "@/shared/ui/Container";
+import PageHeading from "@/shared/ui/PageHeading";
 import Projects from "@/modules/projects";
 import { ProjectSearchResponse } from "@docs/api";
 import { fetcher } from "@/services/fetcher";

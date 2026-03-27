@@ -1,6 +1,6 @@
 import { BsGrid as GridIcon, BsListUl as ListIcon } from "react-icons/bs";
 
-import SectionHeading from "@/common/components/elements/SectionHeading";
+import SectionHeading from "@/shared/ui/SectionHeading";
 
 import ViewOptions from "./ViewOptions";
 

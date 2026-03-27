@@ -1,4 +1,4 @@
-import Breakline from "@/common/components/elements/Breakline";
+import Breakline from "@/shared/ui/Breakline";
 
 import BookACall from "./BookACall";
 import ContactForm from "./ContactForm";

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { LuDownload as DownloadIcon } from "react-icons/lu";
 
-import GoogleDocsEmbed from "@/common/components/elements/GoogleDocsEmbed";
+import GoogleDocsEmbed from "@/shared/ui/GoogleDocsEmbed";
 
 const Resume = () => {
   const RESUME_URL = "#";

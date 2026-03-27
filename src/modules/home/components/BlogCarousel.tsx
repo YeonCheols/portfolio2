@@ -7,7 +7,7 @@ import BlogCardNewSkeleton from "@/common/components/skeleton/BlogCardNewSkeleto
 import { BlogItemProps } from "@/common/types/blog";
 import BlogCardNew from "@/modules/blog/components/BlogCardNew";
 import { fetcher } from "@/services/fetcher";
-import EmptyState from "@/common/components/elements/EmptyState";
+import EmptyState from "@/shared/ui/EmptyState";
 
 const BlogCarousel = () => {
   const { data, error, isLoading } = useSWR(
@@ -16,7 +16,7 @@ const BlogCarousel = () => {
     {
       revalidateOnFocus: false,
       refreshInterval: 0,
-    }
+    },
   );
 
   const blogData: BlogItemProps[] = useMemo(() => {

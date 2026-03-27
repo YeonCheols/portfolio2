@@ -5,7 +5,7 @@ import useSWR from "swr";
 import { fetcher } from "@/services/fetcher";
 import ProductCardSkeleton from "@/common/components/skeleton/ProductCardSkeleton";
 import ProjectCard from "@/modules/projects/components/ProjectCard";
-import EmptyState from "@/common/components/elements/EmptyState";
+import EmptyState from "@/shared/ui/EmptyState";
 import { ProjectResponse, ProjectSearchResponse } from "docs/api";
 import cn from "@/common/libs/cn";
 

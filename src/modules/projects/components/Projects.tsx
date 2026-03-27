@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import InfiniteScroll from "react-infinite-scroll-component";
 
-import EmptyState from "@/common/components/elements/EmptyState";
+import EmptyState from "@/shared/ui/EmptyState";
 
 import ProjectCard from "./ProjectCard";
 import { ProjectResponse } from "@docs/api";

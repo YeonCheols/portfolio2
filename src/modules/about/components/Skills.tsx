@@ -1,7 +1,7 @@
 import styled from "@emotion/styled";
 import { memo, ReactNode, useMemo } from "react";
 
-import InfiniteLoopSlider from "@/common/components/elements/InfiniteLoopSlider";
+import InfiniteLoopSlider from "@/shared/ui/InfiniteLoopSlider";
 import { StackIcon, StackType } from "@yeoncheols/portfolio-core-ui";
 import { fetcher } from "@/services/fetcher";
 import useSWR from "swr";

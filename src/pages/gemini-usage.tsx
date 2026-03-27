@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NextSeo } from "next-seo";
-import Loading from "@/common/components/elements/Loading";
+import Loading from "@/shared/ui/Loading";
 import { GetServerSideProps } from "next";
 import {
   getGeminiUsageData,

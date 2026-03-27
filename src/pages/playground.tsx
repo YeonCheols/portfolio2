@@ -2,7 +2,7 @@ import { NextPage } from "next";
 import { NextSeo } from "next-seo";
 import React from "react";
 
-import Container from "@/common/components/elements/Container";
+import Container from "@/shared/ui/Container";
 import Playground from "@/modules/playground";
 
 const PAGE_TITLE = "playground";

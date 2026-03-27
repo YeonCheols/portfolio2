@@ -3,9 +3,9 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { NextSeo } from "next-seo";
 
-import Container from "@/common/components/elements/Container";
-import PageHeading from "@/common/components/elements/PageHeading";
-import SectionHeading from "@/common/components/elements/SectionHeading";
+import Container from "@/shared/ui/Container";
+import PageHeading from "@/shared/ui/PageHeading";
+import SectionHeading from "@/shared/ui/SectionHeading";
 import axios from "axios";
 import { TagResponse } from "@docs/api";
 

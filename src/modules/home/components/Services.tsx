@@ -1,9 +1,9 @@
 import Router from "next/router";
 import { BiRocket as RocketIcon } from "react-icons/bi";
 
-import Button from "@/common/components/elements/Button";
-import Card from "@/common/components/elements/Card";
-import SectionHeading from "@/common/components/elements/SectionHeading";
+import Button from "@/shared/ui/Button";
+import Card from "@/shared/ui/Card";
+import SectionHeading from "@/shared/ui/SectionHeading";
 
 const Services = () => {
   return (

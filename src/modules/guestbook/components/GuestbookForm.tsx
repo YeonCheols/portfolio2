@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { createGuestbookEntry } from "@/services/guestbook";
 import { CreateGuestbookEntry } from "@/common/types/guestbook";
-import Button from "@/common/components/elements/Button";
+import Button from "@/shared/ui/Button";
 
 interface GuestbookFormProps {
   onSuccess?: () => void;

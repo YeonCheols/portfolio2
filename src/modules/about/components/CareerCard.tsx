@@ -4,8 +4,8 @@ import { useState } from "react";
 import { BsBuildings as CompanyIcon } from "react-icons/bs";
 import { HiChevronRight } from "react-icons/hi";
 
-import Card from "@/common/components/elements/Card";
-import Image from "@/common/components/elements/Image";
+import Card from "@/shared/ui/Card";
+import Image from "@/shared/ui/Image";
 import cn from "@/common/libs/cn";
 import { CareerProps } from "@/common/types/careers";
 

@@ -1,4 +1,4 @@
-import Breakline from "@/common/components/elements/Breakline";
+import Breakline from "@/shared/ui/Breakline";
 
 import ProjectPreview from "./ProjectPreview";
 import Introduction from "./Introduction";

@@ -9,9 +9,9 @@ import "tailwindcss/tailwind.css";
 import "aos/dist/aos.css";
 import "@/common/styles/globals.css";
 
-import CommandPalette from "@/common/components/elements/CommandPalette";
+import CommandPalette from "@/features/cmdpallete/ui/CommandPalette";
 import Layout from "@/common/components/layouts";
-import SentryErrorBoundary from "@/common/components/elements/SentryErrorBoundary";
+import SentryErrorBoundary from "@/shared/ui/SentryErrorBoundary";
 import { CommandPaletteProvider } from "@/common/context/CommandPaletteContext";
 import {
   firaCode,
@@ -22,10 +22,9 @@ import {
 
 import defaultSEOConfig from "../../next-seo.config";
 
-const ProgressBar = dynamic(
-  () => import("src/common/components/elements/ProgressBar"),
-  { ssr: false },
-);
+const ProgressBar = dynamic(() => import("src/shared/ui/ProgressBar"), {
+  ssr: false,
+});
 
 const App = ({ Component, pageProps: { session, ...pageProps } }: AppProps) => {
   useEffect(() => {

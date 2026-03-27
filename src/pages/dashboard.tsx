@@ -2,8 +2,8 @@ import { GetStaticProps, NextPage } from "next";
 import { NextSeo } from "next-seo";
 import { SWRConfig } from "swr";
 
-import Container from "@/common/components/elements/Container";
-import PageHeading from "@/common/components/elements/PageHeading";
+import Container from "@/shared/ui/Container";
+import PageHeading from "@/shared/ui/PageHeading";
 import Dashboard from "@/modules/dashboard";
 import { getGithubUser } from "@/services/github";
 

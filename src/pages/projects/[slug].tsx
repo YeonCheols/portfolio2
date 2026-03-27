@@ -2,9 +2,9 @@ import { GetServerSideProps } from "next";
 import { NextSeo } from "next-seo";
 import dynamic from "next/dynamic";
 
-import BackButton from "@/common/components/elements/BackButton";
-import Container from "@/common/components/elements/Container";
-import PageHeading from "@/common/components/elements/PageHeading";
+import BackButton from "@/shared/ui/BackButton";
+import Container from "@/shared/ui/Container";
+import PageHeading from "@/shared/ui/PageHeading";
 import { useStacks } from "@/common/hooks/useStacks";
 import { ProjectResponse } from "@docs/api";
 import axios from "axios";

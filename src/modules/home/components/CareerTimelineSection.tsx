@@ -1,4 +1,4 @@
-import SectionHeading from "@/common/components/elements/SectionHeading";
+import SectionHeading from "@/shared/ui/SectionHeading";
 import CareerTimeLine from "@/modules/about/components/CareerTimeLine";
 import type { TimelineItem } from "@/common/types/careers";
 import { CAREERS } from "@/common/constant/careers";

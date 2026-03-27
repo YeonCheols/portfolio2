@@ -1,4 +1,4 @@
-import Breakline from "@/common/components/elements/Breakline";
+import Breakline from "@/shared/ui/Breakline";
 import { GITHUB_ACCOUNTS } from "@/common/constant/github";
 
 import CodingActive from "./CodingActive";
@@ -18,7 +18,7 @@ const Dashboard = () => {
               type={account?.type}
               endpoint={account?.endpoint}
             />
-          )
+          ),
         )}
       </div>
     </>

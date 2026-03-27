@@ -1,4 +1,4 @@
-import SectionHeading from "@/common/components/elements/SectionHeading";
+import SectionHeading from "@/shared/ui/SectionHeading";
 import Skills from "@/modules/about/components/Skills";
 
 const SkillsSection = () => {

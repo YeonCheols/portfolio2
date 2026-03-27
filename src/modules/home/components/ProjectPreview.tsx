@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { BsArrowRightShort as ViewAllIcon } from "react-icons/bs";
 
-import SectionHeading from "@/common/components/elements/SectionHeading";
-import SectionSubHeading from "@/common/components/elements/SectionSubHeading";
+import SectionHeading from "@/shared/ui/SectionHeading";
+import SectionSubHeading from "@/shared/ui/SectionSubHeading";
 
 import ProjectCarousel from "./ProjectCarousel";
 

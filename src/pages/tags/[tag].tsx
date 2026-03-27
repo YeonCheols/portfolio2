@@ -3,10 +3,10 @@ import Head from "next/head";
 import Link from "next/link";
 import axios from "axios";
 
-import Container from "@/common/components/elements/Container";
-import PageHeading from "@/common/components/elements/PageHeading";
+import Container from "@/shared/ui/Container";
+import PageHeading from "@/shared/ui/PageHeading";
 import { ProjectByTagResponse } from "@docs/api";
-import Loading from "@/common/components/elements/Loading";
+import Loading from "@/shared/ui/Loading";
 import { motion } from "framer-motion";
 import ProjectCard from "@/modules/projects/components/ProjectCard";
 
