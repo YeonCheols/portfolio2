@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 
-// import prisma from '@/common/libs/prisma';
+// import prisma from '@/shared/lib/prisma';
 
 interface ResponseData {
   views: number;
@@ -8,7 +8,7 @@ interface ResponseData {
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse
+  res: NextApiResponse,
 ) {
   const { slug } = req.query;
 

@@ -8,7 +8,7 @@ import PageHeading from "@/shared/ui/PageHeading";
 import { ProjectByTagResponse } from "@docs/api";
 import Loading from "@/shared/ui/Loading";
 import { motion } from "framer-motion";
-import ProjectCard from "@/modules/projects/components/ProjectCard";
+import ProjectCard from "@/features/projects/ui/ProjectCard";
 
 export default function TagPage({
   projects,

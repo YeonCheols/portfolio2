@@ -4,11 +4,11 @@ import { NextSeo } from "next-seo";
 
 import BackButton from "@/shared/ui/BackButton";
 import Container from "@/shared/ui/Container";
-import { parseUrl } from "@/common/helpers";
-import { loadMdxFiles } from "@/common/libs/mdx";
-import { MdxFileContentProps } from "@/common/types/learn";
-import ContentDetail from "@/modules/learn/components/ContentDetail";
-import ContentDetailHeader from "@/modules/learn/components/ContentDetailHeader";
+import { parseUrl } from "@/shared/helpers";
+import { loadMdxFiles } from "@/shared/lib/mdx";
+import { MdxFileContentProps } from "@/shared/types/learn";
+import ContentDetail from "@/widgets/learn/ui/ContentDetail";
+import ContentDetailHeader from "@/features/learn/ui/ContentDetailHeader";
 
 const LearnContentDetailPage: NextPage<{ data: MdxFileContentProps }> = ({
   data,

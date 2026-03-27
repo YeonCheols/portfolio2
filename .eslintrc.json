@@ -1,3 +1,105 @@
 {
-  "extends": "next"
+  "extends": "next",
+  "plugins": ["import"],
+  "settings": {
+    "import/resolver": {
+      "typescript": {
+        "project": "./tsconfig.json"
+      }
+    }
+  },
+  "rules": {
+    "import/no-restricted-paths": [
+      "error",
+      {
+        "zones": [
+          {
+            "target": "./src/shared",
+            "from": ["./src/features", "./src/widgets", "./src/pages"],
+            "message": "[FSD] shared 레이어는 상위 레이어(features/widgets/pages)를 import할 수 없습니다."
+          },
+          {
+            "target": "./src/features",
+            "from": ["./src/widgets", "./src/pages"],
+            "message": "[FSD] features 레이어는 상위 레이어(widgets/pages)를 import할 수 없습니다."
+          },
+          {
+            "target": "./src/widgets",
+            "from": ["./src/pages"],
+            "message": "[FSD] widgets 레이어는 pages 레이어를 import할 수 없습니다."
+          },
+          {
+            "target": "./src/features/about",
+            "from": ["./src/features/!(about)"],
+            "message": "[FSD] features/about은 다른 feature slice를 import할 수 없습니다."
+          },
+          {
+            "target": "./src/features/blog",
+            "from": ["./src/features/!(blog)"],
+            "message": "[FSD] features/blog은 다른 feature slice를 import할 수 없습니다."
+          },
+          {
+            "target": "./src/features/chat",
+            "from": ["./src/features/!(chat)"],
+            "message": "[FSD] features/chat은 다른 feature slice를 import할 수 없습니다."
+          },
+          {
+            "target": "./src/features/cmdpallete",
+            "from": ["./src/features/!(cmdpallete)"],
+            "message": "[FSD] features/cmdpallete은 다른 feature slice를 import할 수 없습니다."
+          },
+          {
+            "target": "./src/features/contact",
+            "from": ["./src/features/!(contact)"],
+            "message": "[FSD] features/contact은 다른 feature slice를 import할 수 없습니다."
+          },
+          {
+            "target": "./src/features/dashboard",
+            "from": ["./src/features/!(dashboard)"],
+            "message": "[FSD] features/dashboard은 다른 feature slice를 import할 수 없습니다."
+          },
+          {
+            "target": "./src/features/guestbook",
+            "from": ["./src/features/!(guestbook)"],
+            "message": "[FSD] features/guestbook은 다른 feature slice를 import할 수 없습니다."
+          },
+          {
+            "target": "./src/features/home",
+            "from": ["./src/features/!(home)"],
+            "message": "[FSD] features/home은 다른 feature slice를 import할 수 없습니다."
+          },
+          {
+            "target": "./src/features/learn",
+            "from": ["./src/features/!(learn)"],
+            "message": "[FSD] features/learn은 다른 feature slice를 import할 수 없습니다."
+          },
+          {
+            "target": "./src/features/playground",
+            "from": ["./src/features/!(playground)"],
+            "message": "[FSD] features/playground은 다른 feature slice를 import할 수 없습니다."
+          },
+          {
+            "target": "./src/features/projects",
+            "from": ["./src/features/!(projects)"],
+            "message": "[FSD] features/projects은 다른 feature slice를 import할 수 없습니다."
+          },
+          {
+            "target": "./src/widgets/home",
+            "from": ["./src/widgets/!(home)"],
+            "message": "[FSD] widgets/home은 다른 widget slice를 import할 수 없습니다."
+          },
+          {
+            "target": "./src/widgets/learn",
+            "from": ["./src/widgets/!(learn)"],
+            "message": "[FSD] widgets/learn은 다른 widget slice를 import할 수 없습니다."
+          },
+          {
+            "target": "./src/widgets/layout",
+            "from": ["./src/widgets/!(layout)"],
+            "message": "[FSD] widgets/layout은 다른 widget slice를 import할 수 없습니다."
+          }
+        ]
+      }
+    ]
+  }
 }

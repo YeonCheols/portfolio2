@@ -6,10 +6,10 @@ import BackButton from "@/shared/ui/BackButton";
 import Container from "@/shared/ui/Container";
 import Loading from "@/shared/ui/Loading";
 import PageHeading from "@/shared/ui/PageHeading";
-import { LEARN_CONTENTS } from "@/common/constant/learn";
-import { loadMdxFiles } from "@/common/libs/mdx";
-import { ContentProps, MdxFileContentProps } from "@/common/types/learn";
-import ContentList from "@/modules/learn/components/ContentList";
+import { LEARN_CONTENTS } from "@/shared/config/learn";
+import { loadMdxFiles } from "@/shared/lib/mdx";
+import { ContentProps, MdxFileContentProps } from "@/shared/types/learn";
+import ContentList from "@/features/learn/ui/ContentList";
 
 interface ContentPageProps {
   content: ContentProps | null;

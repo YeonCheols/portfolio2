@@ -2,7 +2,7 @@ import { Popover, Transition } from "@headlessui/react";
 import Image from "next/image";
 import { Fragment } from "react";
 
-import { NowPlayingProps } from "@/common/types/spotify";
+import { NowPlayingProps } from "@/shared/types/spotify";
 
 interface PlayerPopoverProps {
   isShow: boolean;

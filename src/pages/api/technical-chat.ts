@@ -1,6 +1,9 @@
 import { NextApiRequest, NextApiResponse } from "next";
 
-import { sendTechnicalMessage, sendMessageToSession } from "@/services/gemini";
+import {
+  sendTechnicalMessage,
+  sendMessageToSession,
+} from "@/features/chat/api/gemini";
 
 export default async function handler(
   req: NextApiRequest,

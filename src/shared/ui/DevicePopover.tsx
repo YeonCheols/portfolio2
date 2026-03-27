@@ -2,8 +2,8 @@ import { Popover, Transition } from "@headlessui/react";
 import { Fragment } from "react";
 import { BsCpu as DeviceIcon, BsDot as DotIcon } from "react-icons/bs";
 
-import { PAIR_DEVICES } from "@/common/constant/devices";
-import { DeviceProps } from "@/common/types/spotify";
+import { PAIR_DEVICES } from "@/shared/config/devices";
+import { DeviceProps } from "@/shared/types/spotify";
 
 import AnimatedBars from "./AnimatedBars";
 

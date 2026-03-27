@@ -5,7 +5,7 @@ import {
   setUser,
   setTag,
   handleApiError,
-} from "@/common/libs/sentry";
+} from "@/shared/lib/sentry";
 
 const SentryExample = () => {
   const handleTestError = () => {

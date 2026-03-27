@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 import BackButton from "@/shared/ui/BackButton";
 import Container from "@/shared/ui/Container";
 import PageHeading from "@/shared/ui/PageHeading";
-import { useStacks } from "@/common/hooks/useStacks";
+import { useStacks } from "@/shared/hooks/useStacks";
 import { ProjectResponse } from "@docs/api";
 import axios from "axios";
 

@@ -4,8 +4,8 @@ import { SWRConfig } from "swr";
 
 import Container from "@/shared/ui/Container";
 import PageHeading from "@/shared/ui/PageHeading";
-import Dashboard from "@/modules/dashboard";
-import { getGithubUser } from "@/services/github";
+import Dashboard from "@/features/dashboard";
+import { getGithubUser } from "@/shared/api/github";
 
 interface DashboardPageProps {
   fallback: {

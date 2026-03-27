@@ -6,14 +6,12 @@ import { useEffect } from "react";
 
 import BackButton from "@/shared/ui/BackButton";
 import Container from "@/shared/ui/Container";
-import { formatExcerpt } from "@/common/helpers";
-import { BlogDetailProps } from "@/common/types/blog";
-import BlogDetail from "@/modules/blog/components/BlogDetail";
-import { getBlogDetail } from "@/services/blog";
+import { formatExcerpt } from "@/shared/helpers";
+import { BlogDetailProps } from "@/shared/types/blog";
+import BlogDetail from "@/features/blog/ui/BlogDetail";
+import { getBlogDetail } from "@/features/blog/api/blog";
 
-const GiscusComment = dynamic(
-  () => import("@/modules/blog/components/GiscusComment"),
-);
+const GiscusComment = dynamic(() => import("@/features/blog/ui/GiscusComment"));
 
 interface BlogDetailPageProps {
   blog: {

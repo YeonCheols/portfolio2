@@ -1,6 +1,6 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextApiRequest, NextApiResponse } from "next";
 
-import { loadMdxFiles } from '@/common/libs/mdx';
+import { loadMdxFiles } from "@/shared/lib/mdx";
 
 export default async function handler(
   req: NextApiRequest,
@@ -11,9 +11,9 @@ export default async function handler(
 
   const data = contentList.map((item) => ({
     id: item?.frontMatter?.id,
-    parent_slug: category || '',
-    slug: item.slug || '',
-    title: item.frontMatter.title || '',
+    parent_slug: category || "",
+    slug: item.slug || "",
+    title: item.frontMatter.title || "",
   }));
 
   const response = { data };

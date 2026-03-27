@@ -1,4 +1,4 @@
-import { TabProps } from "@/common/types/tab";
+import { TabProps } from "@/shared/types/tab";
 import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 

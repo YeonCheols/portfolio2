@@ -3,8 +3,8 @@ import { NextSeo } from "next-seo";
 
 import Container from "@/shared/ui/Container";
 import PageHeading from "@/shared/ui/PageHeading";
-import About from "@/modules/about";
-import { ActiveTabKeys } from "@/common/types/about";
+import About from "@/features/about";
+import { ActiveTabKeys } from "@/shared/types/about";
 
 const PAGE_TITLE = "about";
 const PAGE_DESCRIPTION = "경력사항에 대한 내용을 확인할 수 있습니다.";

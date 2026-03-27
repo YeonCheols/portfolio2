@@ -3,8 +3,8 @@ import { NextSeo } from "next-seo";
 
 import Container from "@/shared/ui/Container";
 import PageHeading from "@/shared/ui/PageHeading";
-import { LEARN_CONTENTS } from "@/common/constant/learn";
-import LearnModule from "@/modules/learn";
+import { LEARN_CONTENTS } from "@/shared/config/learn";
+import LearnModule from "@/features/learn";
 
 const PAGE_TITLE = "learn";
 const PAGE_DESCRIPTION = `It's not a course, it's my personal learning notes. But if you are interested, let's learn together.`;

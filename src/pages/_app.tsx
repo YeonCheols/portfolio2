@@ -7,18 +7,18 @@ import { useEffect } from "react";
 
 import "tailwindcss/tailwind.css";
 import "aos/dist/aos.css";
-import "@/common/styles/globals.css";
+import "@/shared/styles/globals.css";
 
 import CommandPalette from "@/features/cmdpallete/ui/CommandPalette";
-import Layout from "@/common/components/layouts";
+import Layout from "@/widgets/layout";
 import SentryErrorBoundary from "@/shared/ui/SentryErrorBoundary";
-import { CommandPaletteProvider } from "@/common/context/CommandPaletteContext";
+import { CommandPaletteProvider } from "@/features/cmdpallete/model/CommandPaletteContext";
 import {
   firaCode,
   jakartaSans,
   onestSans,
   soraSans,
-} from "@/common/styles/fonts";
+} from "@/shared/styles/fonts";
 
 import defaultSEOConfig from "../../next-seo.config";
 

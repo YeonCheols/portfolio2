@@ -4,9 +4,9 @@ import useSWRInfinite from "swr/infinite";
 
 import Container from "@/shared/ui/Container";
 import PageHeading from "@/shared/ui/PageHeading";
-import Projects from "@/modules/projects";
+import Projects from "@/features/projects";
 import { ProjectSearchResponse } from "@docs/api";
-import { fetcher } from "@/services/fetcher";
+import { fetcher } from "@/shared/api/fetcher";
 
 const PAGE_TITLE = "프로젝트";
 const PAGE_DESCRIPTION =

@@ -1,6 +1,6 @@
-import { NextApiRequest, NextApiResponse } from 'next';
+import { NextApiRequest, NextApiResponse } from "next";
 
-import { getNowPlaying } from '@/services/spotify';
+import { getNowPlaying } from "@/shared/api/spotify";
 
 export default async function handler(
   req: NextApiRequest,
@@ -9,8 +9,8 @@ export default async function handler(
   const response = await getNowPlaying();
 
   res.setHeader(
-    'Cache-Control',
-    'public, s-maxage=60, stale-while-revalidate=30',
+    "Cache-Control",
+    "public, s-maxage=60, stale-while-revalidate=30",
   );
 
   return res.status(200).json(response?.data);

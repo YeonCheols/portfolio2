@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { MenuItemProps } from "@/common/types/menu";
+import { MenuItemProps } from "@/shared/types/menu";
 
 import { Tooltip as CoreTooltip } from "@yeoncheols/portfolio-core-ui";
 

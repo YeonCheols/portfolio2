@@ -5,7 +5,7 @@ import { GetServerSideProps } from "next";
 import {
   getGeminiUsageData,
   UnifiedApiResponse,
-} from "@/services/gemini-usage";
+} from "@/features/dashboard/api/gemini-usage";
 
 interface PageProps {
   initialData: UnifiedApiResponse | null;

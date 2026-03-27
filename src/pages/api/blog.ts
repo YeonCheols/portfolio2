@@ -1,17 +1,17 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-// import prisma from "@/common/libs/prisma";
-import { BlogItemProps } from "@/common/types/blog";
-import { getBlogList } from "@/services/blog";
+// import prisma from "@/shared/lib/prisma";
+import { BlogItemProps } from "@/shared/types/blog";
+import { getBlogList } from "@/features/blog/api/blog";
 
 export default async function handler(
   req: NextApiRequest,
-  res: NextApiResponse
+  res: NextApiResponse,
 ): Promise<void> {
   try {
     res.setHeader(
       "Cache-Control",
-      "public, s-maxage=60, stale-while-revalidate=30"
+      "public, s-maxage=60, stale-while-revalidate=30",
     );
 
     const { page, per_page, categories, search } = req.query;
@@ -38,7 +38,7 @@ export default async function handler(
           ...blogItem,
           total_views_count: 0,
         };
-      })
+      }),
     );
 
     const responses = {
