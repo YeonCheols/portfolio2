@@ -1,4 +1,7 @@
 #!/bin/sh
 . "$(dirname "$0")/_/husky.sh"
 
+# Skip pre-commit hook for merge commits (e.g., from git pull)
+[ -f "$(git rev-parse --git-dir)/MERGE_HEAD" ] && exit 0
+
 pnpm lint-staged
