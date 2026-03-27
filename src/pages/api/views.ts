@@ -1,7 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
 
-// import prisma from '@/shared/lib/prisma';
-
 interface ResponseData {
   views: number;
 }
@@ -14,13 +12,6 @@ export default async function handler(
 
   if (req.method === "GET") {
     try {
-      // const contentMeta = await prisma.contentmeta.findUnique({
-      //   where: { slug: slug as string },
-      //   select: { views: true },
-      // });
-
-      // const contentViewsCount = contentMeta?.views ?? 0;
-
       const response: ResponseData = {
         views: 0,
       };
@@ -31,16 +22,6 @@ export default async function handler(
     }
   } else if (req.method === "POST") {
     try {
-      // const contentMeta = await prisma.contentmeta.update({
-      //   where: { slug: slug as string },
-      //   data: {
-      //     views: {
-      //       increment: 1,
-      //     },
-      //   },
-      //   select: { views: true },
-      // });
-      // return res.json(contentMeta);
     } catch (error) {
       return res.status(500).json({ error: "Failed to update views count" });
     }

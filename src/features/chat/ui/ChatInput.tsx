@@ -26,7 +26,6 @@ const ChatInput = ({
       await onSendMessage(message);
       setMessage("");
     } catch (error) {
-      // console.error('Error sending message:', error);
     } finally {
       setIsSending(false);
       setTimeout(() => {
