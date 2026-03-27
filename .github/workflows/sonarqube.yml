@@ -1,0 +1,45 @@
+name: SonarQube analysis
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    types: [opened, synchronize, reopened]
+jobs:
+  sonarqube:
+    name: SonarQube
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+
+      - name: SonarQube Scan
+        id: sonar_scan
+        uses: SonarSource/sonarqube-scan-action@v6
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+      - name: Send KakaoTalk Notification
+        if: always()
+        run: |
+          # refresh_token으로 새 access_token 발급
+          TOKEN_RESPONSE=$(curl -s -X POST "https://kauth.kakao.com/oauth/token" \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -d "grant_type=refresh_token&client_id=${{ secrets.KAKAO_CLIENT_ID }}&client_secret=${{ secrets.KAKAO_CLIENT_SECRET }}&refresh_token=${{ secrets.KAKAO_REFRESH_TOKEN }}")
+          ACCESS_TOKEN=$(echo $TOKEN_RESPONSE | python3 -c "import sys,json; print(json.load(sys.stdin)['access_token'])")
+
+          SONAR_URL="https://sonarcloud.io/project/overview?id=YeonCheols_portfolio2"
+
+          if [ "${{ job.status }}" = "success" ]; then
+            STATUS="✅ SonarQube 분석 완료"
+          else
+            STATUS="❌ SonarQube 분석 실패"
+          fi
+
+          MESSAGE="${STATUS}\n\n📦 저장소: ${{ github.repository }}\n🌿 브랜치: ${{ github.ref_name }}\n💬 커밋: ${{ github.event.head_commit.message }}\n👤 작성자: ${{ github.actor }}\n\n🔗 결과 보기: ${SONAR_URL}"
+
+          curl -s -X POST "https://kapi.kakao.com/v2/api/talk/memo/default/send" \
+            -H "Authorization: Bearer ${ACCESS_TOKEN}" \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            --data-urlencode "template_object={\"object_type\":\"text\",\"text\":\"${MESSAGE}\",\"link\":{\"web_url\":\"${SONAR_URL}\",\"mobile_web_url\":\"${SONAR_URL}\"}}"
