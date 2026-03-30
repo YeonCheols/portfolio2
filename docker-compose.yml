@@ -1,0 +1,25 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      args:
+        GITHUB_NPM_TOKEN: ${GITHUB_NPM_TOKEN}
+    container_name: portfolio2-dev
+    ports:
+      - "3001:3001"
+    volumes:
+      # 소스 코드 핫 리로드
+      - .:/app
+      # node_modules는 컨테이너 내부 것을 사용 (호스트 덮어쓰기 방지)
+      - /app/node_modules
+      - /app/.next
+      # HTTPS 인증서 마운트 (읽기 전용)
+      - ./cert:/app/cert:ro
+    env_file:
+      - .env.local
+    environment:
+      - NODE_ENV=development
+      - NEXT_TELEMETRY_DISABLED=1
+      - WATCHPACK_POLLING=true
+    restart: unless-stopped

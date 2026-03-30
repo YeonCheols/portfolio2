@@ -1,0 +1,17 @@
+FROM node:20-alpine
+
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+WORKDIR /app
+
+COPY package.json pnpm-lock.yaml* .npmrc ./
+
+# GitHub Packages 인증 토큰 주입 (이미지에 남지 않도록 ARG 사용)
+ARG GITHUB_NPM_TOKEN
+ENV GITHUB_NPM_TOKEN=$GITHUB_NPM_TOKEN
+
+RUN pnpm install
+
+EXPOSE 3001
+
+CMD ["pnpm", "dev:https"]
