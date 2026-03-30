@@ -70,8 +70,8 @@ const ChatList = ({
         className="space-y-5 overflow-y-auto py-4"
         style={{ height: chatListHeight }}
       >
-        {messages?.map((chat, index) => (
-          <ChatItem key={index} onDelete={onDeleteMessage} {...chat} />
+        {messages?.map((chat) => (
+          <ChatItem key={chat.id} onDelete={onDeleteMessage} {...chat} />
         ))}
       </div>
     </div>

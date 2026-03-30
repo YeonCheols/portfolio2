@@ -36,7 +36,7 @@ const Pagination: React.FC<PaginationProps> = ({
 
     return pageNumbers.map((page, index) => (
       <button
-        key={index}
+        key={`${page}-${index}`}
         onClick={() =>
           onPageChange(typeof page === "number" ? page : currentPage)
         }
