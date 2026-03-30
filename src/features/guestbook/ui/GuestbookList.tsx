@@ -29,7 +29,25 @@ const GuestbookList: React.FC<GuestbookListProps> = ({
   };
 
   useEffect(() => {
-    fetchEntries();
+    let isMounted = true;
+
+    const load = async () => {
+      try {
+        setLoading(true);
+        setError("");
+        const data = await getGuestbookEntries();
+        if (isMounted) setEntries(data);
+      } catch (err) {
+        if (isMounted) setError("방명록을 불러오는 중 오류가 발생했습니다.");
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      isMounted = false;
+    };
   }, [refreshTrigger]);
 
   if (loading) {

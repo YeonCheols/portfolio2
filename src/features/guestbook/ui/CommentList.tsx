@@ -31,7 +31,25 @@ const CommentList: React.FC<CommentListProps> = ({
   };
 
   useEffect(() => {
-    fetchComments();
+    let isMounted = true;
+
+    const load = async () => {
+      try {
+        setLoading(true);
+        setError("");
+        const data = await getGuestbookComments(guestbookId);
+        if (isMounted) setComments(data);
+      } catch (err) {
+        if (isMounted) setError("댓글을 불러오는 중 오류가 발생했습니다.");
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      isMounted = false;
+    };
   }, [guestbookId, refreshTrigger]);
 
   if (loading) {
