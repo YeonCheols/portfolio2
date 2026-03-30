@@ -34,9 +34,9 @@ const BlogCarousel = () => {
       ));
     }
 
-    return blogData.map((item, index) => (
+    return blogData.map((item) => (
       <motion.div
-        key={index}
+        key={item.id}
         initial={{ opacity: 0, x: 100 }}
         animate={{ opacity: 1, x: 0 }}
         exit={{ opacity: 0, x: -100 }}

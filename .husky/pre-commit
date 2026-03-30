@@ -2,3 +2,9 @@
 [ -f "$(git rev-parse --git-dir)/MERGE_HEAD" ] && exit 0
 
 pnpm lint-staged
+
+pnpm exec tsc --noEmit
+if [ $? -ne 0 ]; then
+  echo "TypeScript 타입 오류가 있습니다. 커밋이 취소됩니다."
+  exit 1
+fi

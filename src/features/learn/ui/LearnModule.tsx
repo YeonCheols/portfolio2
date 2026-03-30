@@ -13,7 +13,7 @@ const LearnModule = ({ contents }: LearnModuleProps) => {
     <div className="grid gap-5 pt-2 sm:grid-cols-2">
       {contents?.map((content, index) => (
         <motion.div
-          key={index}
+          key={content.id}
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.3, delay: index * 0.1 }}
