@@ -9,14 +9,15 @@ description: FSD(Feature-Sliced Design) 구조 개편 지침. 파일 이동, 레
 
 ---
 
-## 현재 디렉터리 구조 (마이그레이션 중)
+## 현재 디렉터리 구조
 
 ```
 src/
-  app/          # (예정) 앱 진입점, Provider, 전역 설정
   pages/        # Next.js 페이지 라우트 (thin layer — 컴포지션만)
-  modules/      # → features/ 로 이전 대상 (feature별 UI + 로직)
-  shared/       # 공유 유틸리티 (이미 부분 마이그레이션 완료)
+  widgets/      # 복합 UI 블록 (home/, layout/, learn/)
+  features/     # 기능 슬라이스 11개 (about, blog, chat, cmdpallete, contact,
+                #   dashboard, guestbook, home, learn, playground, projects)
+  shared/       # 공유 유틸리티
     api/
     config/
     helpers/
@@ -25,9 +26,7 @@ src/
     styles/
     types/
     ui/         # 범용 UI 컴포넌트 (디자인 시스템)
-  common/       # → shared/ 로 이전 대상 (구 유틸리티 모음)
   contents/     # MDX 등 정적 콘텐츠
-  services/     # → shared/api/ 또는 entities/ 로 이전 대상
 ```
 
 ---
@@ -44,12 +43,11 @@ app → pages → widgets → features → entities → shared
 
 | 레이어 | 역할 | 현재 대응 디렉터리 |
 |--------|------|--------------------|
-| `shared` | 범용 유틸, UI 킷, 타입 | `shared/`, `common/` |
-| `entities` | 비즈니스 엔티티 (모델, API 스키마) | `services/` 일부 |
-| `features` | 사용자 인터랙션, 액션 단위 기능 | `modules/` |
-| `widgets` | 복합 UI 블록 (features + entities 조합) | - |
+| `shared` | 범용 유틸, UI 킷, 타입 | `shared/` |
+| `entities` | 비즈니스 엔티티 (모델, API 스키마) | (현재 미사용) |
+| `features` | 사용자 인터랙션, 액션 단위 기능 | `features/` |
+| `widgets` | 복합 UI 블록 (features + entities 조합) | `widgets/` |
 | `pages` | 라우트 진입점 (컴포지션만) | `pages/` |
-| `app` | Provider, 전역 설정, 앱 부트스트랩 | - |
 
 ---
 
@@ -97,13 +95,11 @@ features/blog/
 
 ---
 
-## 마이그레이션 우선순위
+## 향후 개선 과제
 
-1. `common/components/elements/*` → `shared/ui/`
-2. `common/{hooks,helpers,types,libs}/*` → `shared/{hooks,helpers,types,lib}/`
-3. `modules/{feature}/*` → `features/{feature}/`
-4. `services/*.ts` → `shared/api/` (범용) 또는 `entities/{domain}/api/` (도메인별)
-5. `common/layouts/`, `common/sidebar/` → `widgets/layout/` (신규 생성)
+- `entities/` 레이어 도입 — API 응답 타입·비즈니스 모델을 features에서 분리
+- `app/` 레이어 도입 — `pages/_app.tsx`의 Provider·전역 설정 분리
+- `src/contents/`를 FSD 외부(루트 레벨) 또는 `shared/assets/`로 위치 명확화
 
 ---
 
@@ -112,7 +108,7 @@ features/blog/
 - `features/` 내 슬라이스가 다른 슬라이스를 직접 import하는 것
 - `shared/`에 특정 feature 종속 코드를 넣는 것
 - `pages/`에 비즈니스 로직을 직접 작성하는 것
-- `common/`에 새 파일 추가 (마이그레이션 대상이므로 신규 코드는 반드시 FSD 레이어에)
+- `common/`, `modules/`, `services/` 폴더 재생성 (이미 정리 완료)
 
 ---
 
