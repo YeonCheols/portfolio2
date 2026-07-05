@@ -9,7 +9,6 @@ export { default as CodeBlock } from "./CodeBlock";
 export { default as Container } from "./Container";
 export { default as DevicePopover } from "./DevicePopover";
 export { default as EmptyState } from "./EmptyState";
-export { default as GoogleDocsEmbed } from "./GoogleDocsEmbed";
 export { default as Image } from "./Image";
 export { default as ImageCarousel } from "./ImageCarousel";
 export { default as InfiniteLoopSlider } from "./InfiniteLoopSlider";
