@@ -8,12 +8,13 @@ export const CAREERS: CareerProps[] = [
     location: "교대역 인근",
     type: "정규직",
     start_date: "2022-10",
-    end_date: "2025-09",
+    end_date: "2026-04",
     industry: "채용 서비스",
     link: "https://m.albamon.com/",
     responsibilities: [
       "초기에는 알바몬 MSA 프로젝트 구축을 A-Z 까지 진행 하였으며, 개인 서비스의 전반적인 개발 업무를 담당 하였습니다.",
       "프로젝트 오픈 이후에는 웹프론트엔드 개발자로 알바몬 전체 프로젝트의 개발과 운영 업무를 담당 하였습니다.",
+      "잡코리아 비즈센터에서 지원자 도메인 전반을 담당 하였습니다.",
     ],
   },
   {
@@ -43,6 +44,7 @@ export const CAREERS: CareerProps[] = [
     link: "https://www.fujifilm.co.kr/",
     responsibilities: [
       "한국후지필름 웹 사이트 개발 및 인프라 운영 업무를 담당 했었습니다.",
+      "결제 시스템, 주문 관리, 어드민, 배송 관리 등 웹 사이트 전반적인 개발을 담당 했었습니다.",
       "웹 사이트 개발은 풀스택으로 어드민, 웹 전체를 아우르는 개발을 담당 했었습니다.",
     ],
   },

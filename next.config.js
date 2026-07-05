@@ -15,6 +15,7 @@ const nextConfig = {
     "rehype-slug",
   ],
   images: {
+    qualities: [75, 100],
     remotePatterns: [
       {
         protocol: "https",

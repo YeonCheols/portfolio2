@@ -132,29 +132,41 @@ const GITHUB_USER_QUERY = `query($username: String!) {
 }`;
 
 export const fetchGithubData = async (username: string, token: string) => {
-  const response = await axios.post(
-    GITHUB_USER_ENDPOINT,
-    {
-      query: GITHUB_USER_QUERY,
-      variables: {
-        username: username,
+  try {
+    const response = await axios.post(
+      GITHUB_USER_ENDPOINT,
+      {
+        query: GITHUB_USER_QUERY,
+        variables: {
+          username: username,
+        },
       },
-    },
-    {
-      headers: {
-        Authorization: `bearer ${token}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        validateStatus: (status) => status < 500,
       },
-    },
-  );
+    );
 
-  const status: number = response.status;
-  const responseJson = response.data;
+    const status = response.status;
+    const responseJson = response.data;
 
-  if (status > 400) {
-    return { status, data: {} };
+    if (status >= 400 || responseJson.errors?.length) {
+      const message =
+        responseJson.errors?.[0]?.message ??
+        responseJson.message ??
+        `GitHub API responded with ${status}`;
+
+      console.warn(`GitHub API ${status}: ${message}`);
+      return { status: status >= 400 ? status : 401, data: null };
+    }
+
+    return { status, data: responseJson.data?.user ?? null };
+  } catch (error) {
+    console.warn("GitHub API 호출 실패:", error);
+    return { status: 503, data: null };
   }
-
-  return { status, data: responseJson.data.user };
 };
 
 export const getGithubUser = async (type: string) => {
@@ -168,7 +180,9 @@ export const getGithubUser = async (type: string) => {
 
   const { username, token } = account;
   if (!token || !username) {
-    throw new Error("Invalid user info");
+    throw new Error(
+      "GitHub credentials not configured. Set GITHUB_ACCESS_TOKEN (or NEXT_PUBLIC_GITHUB_ACCESS_TOKEN) and NEXT_PUBLIC_GITHUB_USER_NAME in .env.local",
+    );
   }
 
   return await fetchGithubData(username, token);
