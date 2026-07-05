@@ -16,7 +16,16 @@ export default async function handler(
     type = queryParams.type[0];
   }
 
-  const response = await getGithubUser(type);
+  try {
+    const response = await getGithubUser(type);
 
-  return res.status(response.status).json(response.data);
+    if (response.status >= 400) {
+      return res.status(503).json(null);
+    }
+
+    return res.status(response.status).json(response.data);
+  } catch (error) {
+    console.warn("GitHub API 호출 실패:", error);
+    return res.status(503).json(null);
+  }
 }
