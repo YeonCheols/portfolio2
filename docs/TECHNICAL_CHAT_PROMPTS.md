@@ -215,7 +215,7 @@ const generatePrompt = (
     userLevel?: "beginner" | "intermediate" | "advanced";
     techStack?: string[];
     previousMessages?: Message[];
-  }
+  },
 ) => {
   let prompt = baseSystemPrompt;
 

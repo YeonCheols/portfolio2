@@ -1,0 +1,67 @@
+name: Merge gate
+
+on:
+  pull_request:
+    branches:
+      - master
+      - dev
+    types: [opened, synchronize, reopened, ready_for_review]
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: read
+
+jobs:
+  review-gate:
+    name: review-gate
+    if: >-
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 차단 리뷰 확인
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          PR_FROM_EVENT: ${{ github.event.pull_request.number || github.event.issue.number }}
+          SHA_FROM_EVENT: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          # shellcheck source=../../.agents/skills/review/scripts/review-gate.sh
+          source .agents/skills/review/scripts/review-gate.sh
+
+          pr="$PR_FROM_EVENT"
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            sha="$SHA_FROM_EVENT"
+          else
+            sha="$(gh api "repos/${REPO}/pulls/${pr}" --jq .head.sha)"
+          fi
+
+          body="$(gh api "repos/${REPO}/issues/${pr}/comments" --paginate \
+            --jq '[.[] | select(.body | startswith("<!-- ai-review:"))] | last | .body // ""')"
+          conclusion="$(review_gate_conclusion "$body")"
+          if [ "$conclusion" = "failure" ]; then
+            summary="최신 리뷰에 차단 항목이 있어 머지할 수 없습니다."
+          else
+            summary="최신 리뷰에 차단 항목이 없습니다."
+          fi
+
+          gh api "repos/${REPO}/check-runs" \
+            -f name="review-gate" \
+            -f head_sha="$sha" \
+            -f status="completed" \
+            -f conclusion="$conclusion" \
+            -f output[title]="리뷰 차단 확인" \
+            -f output[summary]="$summary" >/dev/null
+
+          if [ "$conclusion" = "failure" ]; then
+            echo "::error::${summary}"
+            exit 1
+          fi

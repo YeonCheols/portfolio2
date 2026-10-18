@@ -1,21 +1,8 @@
 ---
+description: PR 생성은 pr 스킬 절차를 따른다
 alwaysApply: true
 ---
 
-## Pull Request 생성
+# Pull Request
 
-### 단계
-
-1. 이슈 링크가 있는지 확인합니다. 없다면, "연관된 이슈 링크가 있나요?"라고 물어봅니다.
-2. 다른 지시가 없다면 `master`을 병합 브랜치로 가정합니다.
-3. `git diff origin/master...HEAD | cat`을 실행하여 변경 사항을 확인합니다.
-4. 초안 PR을 생성합니다:
-
----
-
-git push origin HEAD && \
-echo -e "초안 PR {{changes}}\n\n관련: {{issue_link}}" | \
-gh pr create --draft --title "업데이트 {{feature}}" --body-file - && \
-gh pr view --web
-
----
+PR 생성·머지는 `.agents/skills/pr/SKILL.md` 절차만 사용합니다. 초안용 고정 셸 스크립트로 PR을 만들지 않습니다.

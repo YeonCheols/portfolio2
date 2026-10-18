@@ -11,6 +11,7 @@ description: FSD feature 슬라이스를 스캐폴딩합니다. ui/model/api 구
 ### 1. 입력 수집
 
 `` 에 feature 이름이 있으면 사용, 없으면 사용자에게 질문:
+
 - **feature 이름** (kebab-case, 예: `blog`, `user-profile`)
 - **필요한 세그먼트** — 아래 중 해당하는 것 선택 (기본: ui만)
   - `ui` — UI 컴포넌트 (항상 포함)
@@ -28,12 +29,14 @@ description: FSD feature 슬라이스를 스캐폴딩합니다. ui/model/api 구
 #### 항상 생성
 
 **`src/features/<name>/index.ts`**
+
 ```ts
 // Public API — 외부에서는 반드시 이 파일을 통해서만 접근
 export { default } from "./ui/<ComponentName>";
 ```
 
 **`src/features/<name>/ui/<ComponentName>.tsx`**
+
 ```tsx
 const <ComponentName> = () => {
   return <div></div>;
@@ -47,6 +50,7 @@ export default <ComponentName>;
 사용자에게 확인: **Zustand store** vs **React Context** 중 선택
 
 **Zustand (store)**: `src/features/<name>/model/use<Name>Store.ts`
+
 ```ts
 import { create } from "zustand";
 
@@ -62,6 +66,7 @@ export default use<Name>Store;
 ```
 
 **React Context**: `src/features/<name>/model/<Name>Context.tsx`
+
 ```tsx
 import { createContext, useContext, useState } from "react";
 
@@ -89,6 +94,7 @@ export const use<Name>Context = () => {
 #### `api` 선택 시
 
 **`src/features/<name>/api/<name>.ts`**
+
 ```ts
 import fetcher from "@/shared/api/fetcher";
 
@@ -101,6 +107,7 @@ export const get<Name> = async () => {
 ### 4. 결과 출력
 
 생성된 파일 목록을 출력하고, 다음 단계를 안내합니다:
+
 - `index.ts`에 추가 export 필요 여부
 - 페이지에서 import하는 방법 (`import <Name> from "@/features/<name>"`)
 - 타입 정의가 필요한 경우 `src/shared/types/<name>.ts` 생성 안내

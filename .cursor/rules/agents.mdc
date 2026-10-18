@@ -1,0 +1,20 @@
+---
+description: 모든 작업 전에 저장소 공통 에이전트 지침(AGENTS.md)과 스킬을 따르도록 안내
+alwaysApply: true
+---
+
+# 에이전트 지침 진입점
+
+이 저장소의 지침 원본은 루트의 `AGENTS.md`입니다. 작업을 시작하기 전에 반드시 `AGENTS.md` 전체를 읽고 따릅니다.
+
+필수 스킬 (`.agents/skills/<name>/SKILL.md`, 작업 전에 해당 파일을 읽고 절차를 그대로 따름):
+
+- 코드 수정 → `tdd` (관련 테스트 추가/수정 필수)
+- 커밋 → `commit` (코드 변경은 커밋 직전 `review` staged, 🔴 있으면 중단)
+- PR 생성 → `pr` (담당자는 `gh` 활성 계정, 생성 후 `review` branch 결과를 PR 댓글로)
+- 검증 → `qa`
+- 코드 리뷰 기준 → `review` (댓글은 TEMPLATE.md만, 근거 문장은 ~습니다. PR 자동 실행은 꺼 둠)
+- 이슈 생성 → `issue` (본문은 `.github/ISSUE_TEMPLATE.md`. 예상, 변경범위, 코드, 1급 시민, 불변조건은 목록. 문장은 ~습니다 또는 ~ㅂ니다. ~다로 끝내지 않음)
+- 머지 → CI 체크와 `review-gate`가 성공하고 🔴가 없을 때만. 실패를 알고 있어도 머지하지 않음
+
+이 파일과 `AGENTS.md`가 다르면 `AGENTS.md`를 따릅니다.

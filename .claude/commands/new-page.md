@@ -11,6 +11,7 @@ Next.js 페이지(`src/pages/`)는 thin layer로 유지하고, 실제 UI는 `src
 ### 1. 입력 수집
 
 `` 에 페이지 이름이 있으면 사용, 없으면 사용자에게 질문:
+
 - **페이지 경로** (예: `about`, `projects/[slug]`, `blog/index`)
 - **데이터 페칭 방식**:
   - `SSG` — getStaticProps (빌드 시 생성, 기본값)
@@ -26,6 +27,7 @@ Next.js 페이지(`src/pages/`)는 thin layer로 유지하고, 실제 UI는 `src
 #### 페이지 파일 — `src/pages/<path>.tsx`
 
 **SSG 예시**:
+
 ```tsx
 import type { GetStaticProps, NextPage } from "next";
 import { NextSeo } from "next-seo";
@@ -58,6 +60,7 @@ export default <PageName>Page;
 ```
 
 **CSR 예시** (데이터 페칭 없음):
+
 ```tsx
 import type { NextPage } from "next";
 import { NextSeo } from "next-seo";
@@ -86,6 +89,7 @@ export default <PageName>Page;
 ### 4. 결과 출력
 
 생성된 파일 목록과 다음 안내:
+
 - 라우트 경로 (`/<path>`)
 - feature에서 props 타입 정의 방법
 - 필요 시 동적 라우트(`getStaticPaths`) 추가 방법
