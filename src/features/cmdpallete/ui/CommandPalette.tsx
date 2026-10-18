@@ -11,7 +11,7 @@ import {
 import { HiOutlineChat as AiIcon } from "react-icons/hi";
 import { useDebounce } from "usehooks-ts";
 
-import { sendMessage } from "@/features/cmdpallete/api/chatgpt";
+import { sendMessage } from "@/features/cmdpallete/api/sendMessage";
 import { CommandPaletteContext } from "@/features/cmdpallete/model/CommandPaletteContext";
 import AiLoading from "@/features/cmdpallete/ui/AiLoading";
 import AiResponses from "@/features/cmdpallete/ui/AiResponses";

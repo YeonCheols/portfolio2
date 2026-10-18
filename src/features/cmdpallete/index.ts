@@ -3,4 +3,4 @@ export {
   CommandPaletteContext,
   CommandPaletteProvider,
 } from "./model/CommandPaletteContext";
-export { postChatPrompt, sendMessage } from "./api/chatgpt";
+export { sendMessage } from "./api/sendMessage";

@@ -57,3 +57,39 @@ describe("getALLTimeSinceToday", () => {
     });
   });
 });
+
+describe("wakatime credentials", () => {
+  const originalPublicKey = process.env.NEXT_PUBLIC_WAKATIME_API_KEY;
+  const originalKey = process.env.WAKATIME_API_KEY;
+
+  afterAll(() => {
+    if (originalPublicKey === undefined) {
+      delete process.env.NEXT_PUBLIC_WAKATIME_API_KEY;
+    } else {
+      process.env.NEXT_PUBLIC_WAKATIME_API_KEY = originalPublicKey;
+    }
+    if (originalKey === undefined) {
+      delete process.env.WAKATIME_API_KEY;
+    } else {
+      process.env.WAKATIME_API_KEY = originalKey;
+    }
+  });
+
+  it("WAKATIME_API_KEY로 Authorization 헤더를 만든다", async () => {
+    jest.resetModules();
+    process.env.WAKATIME_API_KEY = "waka-key";
+    delete process.env.NEXT_PUBLIC_WAKATIME_API_KEY;
+
+    const axiosModule = await import("axios");
+    const { getReadStats } = await import("@/shared/api/wakatime");
+    const get = axiosModule.default.get as jest.Mock;
+    get.mockResolvedValue({ status: 401, data: {} });
+
+    await getReadStats();
+
+    expect(get).toHaveBeenCalledWith(
+      "https://wakatime.com/api/v1/users/current/stats/last_7_days",
+      { headers: { Authorization: "Basic waka-key" } },
+    );
+  });
+});

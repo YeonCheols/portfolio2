@@ -9,7 +9,6 @@ jest.mock("@/shared/config/github", () => ({
       type: "personal",
       is_active: true,
       username: "yeoncheols",
-      token: "token",
     },
   ],
 }));
