@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 
-import handler from "./comments";
+import handler from "@/pages/api/guestbook/[id]/comments";
 
 const createResponse = () => {
   const res = {
