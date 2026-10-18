@@ -65,3 +65,52 @@ jobs:
             echo "::error::${summary}"
             exit 1
           fi
+
+  integration-gate:
+    name: integration-gate
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 통합 테스트 완료 확인
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          # shellcheck source=../scripts/integration-gate.sh
+          source .github/scripts/integration-gate.sh
+
+          mapped="pending"
+          for _ in $(seq 1 80); do
+            raw="$(gh api "repos/${REPO}/commits/${SHA}/check-runs?per_page=100" \
+              --jq '[.check_runs[] | select(.name == "Integration")] | last | .conclusion // empty')"
+            mapped="$(integration_gate_conclusion "$raw")"
+            if [ "$mapped" != "pending" ]; then
+              break
+            fi
+            sleep 15
+          done
+
+          if [ "$mapped" = "success" ]; then
+            summary="통합 테스트가 성공했습니다."
+          else
+            mapped="failure"
+            summary="통합 테스트가 성공하지 않아 머지할 수 없습니다."
+          fi
+
+          gh api "repos/${REPO}/check-runs" \
+            -f name="integration-gate" \
+            -f head_sha="$SHA" \
+            -f status="completed" \
+            -f conclusion="$mapped" \
+            -f output[title]="통합 테스트 확인" \
+            -f output[summary]="$summary" >/dev/null
+
+          if [ "$mapped" = "failure" ]; then
+            echo "::error::${summary}"
+            exit 1
+          fi

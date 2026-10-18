@@ -17,4 +17,23 @@ describe("playwright.config", () => {
     expect(config.webServer.command).toContain("pnpm start");
     expect(config.webServer.reuseExistingServer).toBe(!process.env.CI);
   });
+
+  it("CI에서는 html 리포트를 남긴다", () => {
+    const previous = process.env.CI;
+    process.env.CI = "true";
+    jest.resetModules();
+
+    const config = require("./playwright.config").default as {
+      reporter: unknown;
+    };
+
+    expect(JSON.stringify(config.reporter)).toContain("html");
+
+    if (previous === undefined) {
+      delete process.env.CI;
+    } else {
+      process.env.CI = previous;
+    }
+    jest.resetModules();
+  });
 });

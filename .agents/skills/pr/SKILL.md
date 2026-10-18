@@ -115,7 +115,7 @@ gh pr comment <번호> --body-file /tmp/review-<번호>.md
 
 ## 머지 (요청 시) — CI 성공과 차단 리뷰 없음이 모두 필요
 
-`master` ruleset은 `Lint, Typecheck, Test`와 `review-gate`가 성공해야 머지를 허용한다. 하나라도 실패하거나 빠지면 머지하지 않는다. 사용자가 실패를 알고 머지를 요청해도 예외로 머지하지 않는다.
+`master` ruleset은 `Lint, Typecheck, Test`, `Integration`, `review-gate`, `integration-gate`가 성공해야 머지를 허용한다. 하나라도 실패하거나 빠지면 머지하지 않는다. 사용자가 실패를 알고 머지를 요청해도 예외로 머지하지 않는다.
 
 ```bash
 gh pr checks <번호> --watch --fail-fast
