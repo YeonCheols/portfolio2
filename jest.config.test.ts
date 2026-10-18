@@ -39,4 +39,28 @@ describe("jest.config", () => {
       expect.stringContaining("react-markdown"),
     ]);
   });
+
+  it("통합 테스트 디렉터리는 Jest가 수집하지 않는다", async () => {
+    jest.resetModules();
+    const nextJest = jest.fn(
+      () => (customConfig: Record<string, unknown>) => async () => ({
+        ...customConfig,
+        testPathIgnorePatterns: ["/node_modules/"],
+      }),
+    );
+    jest.doMock("next/jest", () => nextJest);
+
+    let createConfig = (): Promise<{
+      testPathIgnorePatterns: string[];
+    }> => Promise.reject(new Error("설정을 불러오지 못했습니다."));
+    jest.isolateModules(() => {
+      createConfig = require("./jest.config");
+    });
+
+    const config = await createConfig();
+
+    expect(config.testPathIgnorePatterns).toEqual(
+      expect.arrayContaining(["<rootDir>/tests/integration/"]),
+    );
+  });
 });

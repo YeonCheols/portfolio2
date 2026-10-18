@@ -11,9 +11,9 @@
 - 코드 리뷰 기준은 `review` 스킬. 댓글은 `.agents/skills/review/TEMPLATE.md`만 채우고 발견마다 TDD 근거를 적는다. PR 자동 실행은 꺼 두고 `/review` 댓글로만 실행한다
 - 이슈 생성 시 `issue` 스킬: 본문은 `.github/ISSUE_TEMPLATE.md`만 채운다. 예상, 변경범위, 코드, 1급 시민, 불변조건, TDD 기준 테스트 조건은 목록이다. 상태는 저장소 GitHub Project의 Status만 쓰고 값은 `ToDo`, `In Progress`, `Review`, `Done`이다. 새 이슈는 `ToDo`다. 라벨로 상태를 만들지 않는다. 제목과 본문 문장은 `~습니다` 또는 `~ㅂ니다`로 끝낸다. `~다`로 끝내지 않는다
 - 근거를 남기는 문장은 `~습니다`로 끝낸다. 패키지 매니저는 pnpm
-- CI가 실패했거나 최신 리뷰에 🔴가 있으면 머지하지 않는다
+- `Lint, Typecheck, Test`, `Integration`, `review-gate`, `integration-gate`가 실패했거나 최신 리뷰에 🔴가 있으면 머지하지 않는다
 - `master` 기준 작업 전에는 `git fetch origin`으로 `origin/master` 최신을 받는다
 - 개발 서버는 자동으로 실행하지 않는다
-- Fast는 기본으로 켜지 않는다. 필요한 파일만 읽고, 테스트는 바꾼 경로부터 실행한다. 작업이 끝나면 목표 대비 토큰 사용(Fast 여부, 읽은 범위, 테스트 범위, 브라우저·서브에이전트)을 보고한다. 대시보드 숫자는 추정하지 않는다
+- Fast는 기본으로 켜지 않는다. 필요한 파일만 읽고, 테스트는 바꾼 경로부터 실행한다. 작업이 끝나면 `목표: 15,000토큰`처럼 예산만 적는다. 소비와 확인 불가는 쓰지 않는다
 
 이 파일과 `AGENTS.md`가 다르면 `AGENTS.md`를 따릅니다.

@@ -64,6 +64,19 @@ describe("useStacks", () => {
     expect(mockedFetcher).toHaveBeenCalledWith("/api/stacks");
   });
 
+  it("스택 응답에 data 배열이 없으면 빈 아이콘 목록을 반환한다", async () => {
+    mockedFetcher.mockResolvedValue({
+      status: false,
+      error: "API_URL is not configured",
+    });
+    const { result } = renderHook(() => useStacks(), { wrapper });
+
+    await waitFor(() => {
+      expect(result.current.isStacksLoading).toBe(false);
+    });
+    expect(result.current.StackIcons).toEqual({});
+  });
+
   it("스택이 없으면 빈 아이콘 목록을 반환한다", async () => {
     mockedFetcher.mockResolvedValue({
       data: [],

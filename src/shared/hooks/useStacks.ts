@@ -12,22 +12,23 @@ export const useStacks = (iconSize: number = 20) => {
       dedupingInterval: 60000,
     });
 
-  const StackIcons: Record<string, JSX.Element> =
-    stacksData?.data.reduce(
-      (acc: Record<string, JSX.Element>, item: TagResponse) => {
-        const IconComponent = getIconComponent(item.icon);
-        if (!IconComponent) {
-          return acc;
-        }
-        acc[item.name] = React.createElement(IconComponent, {
-          size: iconSize,
-          className: `${item.color}`,
-          title: item.name,
-        });
+  const rawStackItems = stacksData?.data;
+  const stackItems = Array.isArray(rawStackItems) ? rawStackItems : [];
+  const StackIcons: Record<string, JSX.Element> = stackItems.reduce(
+    (acc: Record<string, JSX.Element>, item: TagResponse) => {
+      const IconComponent = getIconComponent(item.icon);
+      if (!IconComponent) {
         return acc;
-      },
-      {},
-    ) ?? {};
+      }
+      acc[item.name] = React.createElement(IconComponent, {
+        size: iconSize,
+        className: `${item.color}`,
+        title: item.name,
+      });
+      return acc;
+    },
+    {},
+  );
 
   return {
     stacksData,
