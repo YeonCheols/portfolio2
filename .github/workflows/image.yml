@@ -1,0 +1,33 @@
+name: Image
+
+on:
+  pull_request:
+    branches:
+      - master
+      - dev
+
+concurrency:
+  group: image-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: 이미지 빌드
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: false
+          build-args: |
+            GITHUB_NPM_TOKEN=${{ secrets.NPM_TOKEN }}
