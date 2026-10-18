@@ -53,7 +53,7 @@ jobs:
       - name: 단위 테스트 + 커버리지
         shell: bash
         run: |
-          pnpm test:ci -- --coverage --passWithNoTests --coverageReporters=text --coverageReporters=lcov | tee coverage-report.txt
+          pnpm exec jest --ci --coverage --passWithNoTests --coverageReporters=text --coverageReporters=lcov | tee coverage-report.txt
           {
             echo "## 테스트 커버리지"
             echo '```'
