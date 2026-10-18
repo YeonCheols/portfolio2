@@ -9,7 +9,7 @@
 - 패키지 매니저: **pnpm** (npm/yarn 사용 금지)
 - 아키텍처: Feature-Sliced Design. 레이어 의존은 `pages → widgets → features → entities → shared` 단방향
 - 배포: Vercel. `master` 푸시 시 `.github/workflows/release-tag.yml`이 태그/릴리스를 만든다
-- CI: `master`/`dev` 대상 PR마다 `.github/workflows/ci.yml`이 `lint`, `format:check`, `type-check`, `test:ci`를 실행한다. 의존성 설치에는 `GITHUB_NPM_TOKEN` secret(`read:packages`)이 필요하다. `master` ruleset은 체크 `Lint, Typecheck, Test`와 `review-gate`가 성공해야 머지를 허용한다. CI가 실패하거나 최신 리뷰에 🔴가 있으면 머지하지 않는다
+- CI: `master`/`dev` 대상 PR마다 `.github/workflows/ci.yml`이 `lint`, `format:check`, `type-check`, `test:ci`를 실행한다. 의존성 설치에는 `NPM_TOKEN` secret(`read:packages`)이 필요하다. 워크플로는 이 값을 `.npmrc`가 읽는 `GITHUB_NPM_TOKEN` 환경 변수로 넘긴다. `master` ruleset은 체크 `Lint, Typecheck, Test`와 `review-gate`가 성공해야 머지를 허용한다. CI가 실패하거나 최신 리뷰에 🔴가 있으면 머지하지 않는다
 - AI 리뷰: `.github/workflows/ai-review.yml`은 PR 댓글 `/review`로만 실행한다. PR 생성·푸시 자동 실행은 꺼 두었다 (`CURSOR_API_KEY` secret 필요, 체크는 실패시키지 않음)
 - 응답 언어: 사용자에게는 **한국어**로 답변한다. 근거를 남기는 문장(리뷰의 이유·제안·테스트 근거, QA 발견, 테스트를 생략하거나 예외로 둔 이유, 머지를 막는 이유)은 `~습니다` 또는 `~ㅂ니다`로 끝낸다. 코드, 식별자, 커밋 제목처럼 문장이 아닌 표기는 제외한다
 
