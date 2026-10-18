@@ -41,6 +41,7 @@ src/
 | 포맷 검사   | `pnpm format:check`                                   |
 | 타입 검사   | `pnpm type-check`                                     |
 | 단위 테스트 | `pnpm test` / `pnpm test -- <경로>`                   |
+| 통합 테스트 | `pnpm test:integration`                               |
 | 테스트 감시 | `pnpm test:watch`                                     |
 
 개발 서버는 에이전트가 자동으로 띄우지 않습니다.
