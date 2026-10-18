@@ -41,13 +41,13 @@ app → pages → widgets → features → entities → shared
 - **같은 레이어 간 cross-import 금지** (shared 제외)
 - **하위 레이어가 상위 레이어를 import 하면 위반**
 
-| 레이어 | 역할 | 현재 대응 디렉터리 |
-|--------|------|--------------------|
-| `shared` | 범용 유틸, UI 킷, 타입 | `shared/` |
-| `entities` | 비즈니스 엔티티 (모델, API 스키마) | (현재 미사용) |
-| `features` | 사용자 인터랙션, 액션 단위 기능 | `features/` |
-| `widgets` | 복합 UI 블록 (features + entities 조합) | `widgets/` |
-| `pages` | 라우트 진입점 (컴포지션만) | `pages/` |
+| 레이어     | 역할                                    | 현재 대응 디렉터리 |
+| ---------- | --------------------------------------- | ------------------ |
+| `shared`   | 범용 유틸, UI 킷, 타입                  | `shared/`          |
+| `entities` | 비즈니스 엔티티 (모델, API 스키마)      | (현재 미사용)      |
+| `features` | 사용자 인터랙션, 액션 단위 기능         | `features/`        |
+| `widgets`  | 복합 UI 블록 (features + entities 조합) | `widgets/`         |
+| `pages`    | 라우트 진입점 (컴포지션만)              | `pages/`           |
 
 ---
 
@@ -72,23 +72,28 @@ features/blog/
 ## 분류 기준
 
 ### `shared/ui/` 에 넣는 것
+
 - 특정 비즈니스 로직이 없는 순수 UI 컴포넌트
 - Button, Card, Loading, Image, Breakline, EmptyState 등
 - 현재: `common/components/elements/`, `shared/ui/` → 여기로 통합
 
 ### `shared/` 에 넣는 것
+
 - 프로젝트 전반에서 쓰는 hooks, helpers, types, config, lib
 - 현재: `common/hooks/`, `common/helpers/`, `common/types/` → `shared/`로 이전
 
 ### `features/` 에 넣는 것
+
 - 페이지별 독립 기능 단위 (blog, guestbook, dashboard 등)
 - 현재: `modules/{feature}/` → `features/{feature}/`로 이전
 
 ### `entities/` 에 넣는 것
+
 - API 응답 타입, 비즈니스 모델, 데이터 스키마
 - 현재: `services/*.ts` API 함수들의 타입/모델 분리 후 이전
 
 ### `pages/` 유지 기준
+
 - Next.js 라우팅 파일만 유지
 - 실제 UI는 `features/` 또는 `widgets/`에서 import
 - pages 파일 내 로직 최소화 (레이아웃 + 데이터 패싱만)

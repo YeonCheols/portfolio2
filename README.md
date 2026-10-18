@@ -37,7 +37,7 @@
 
 ### Backend & Database
 
-- nestjs (별도 프로젝트) 
+- nestjs (별도 프로젝트)
 - supabase database
 
 ### 개발 Tools
@@ -234,14 +234,15 @@ macOS 환경에서 커밋 메시지가 올바르지 않을 때 직관적인 경�
 
 > **참고**: 시스템 알림은 macOS 환경에서만 작동하며, 터미널 환경에서는 자동으로 비활성화됩니다.
 
-### sentry 
+### sentry
 
 - api, 자바스크립트 런타임 오류 로그 수집
 
 ### backup 브랜치 생성
 
-- master branch  push 시 현재날짜 기준으로 자동 백업 브랜치 생성
+- master branch push 시 현재날짜 기준으로 자동 백업 브랜치 생성
 - 날짜는 현재시간 기준으로 YYMMDDSS 로 생성
+
 ### 라이선스
 
 - MIT License

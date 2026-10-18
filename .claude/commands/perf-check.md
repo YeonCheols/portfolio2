@@ -4,8 +4,8 @@ description: React/Next.js 성능 최적화 이슈를 탐지하고 수정합니�
 
 # Perf Check — 성능 최적화 검사 및 수정
 
-`` 에 파일 경로가 있으면 해당 파일만 검사.
-없으면 `src/` 전체를 대상으로 검사합니다.
+``에 파일 경로가 있으면 해당 파일만 검사.
+없으면`src/` 전체를 대상으로 검사합니다.
 
 ---
 
@@ -18,16 +18,20 @@ description: React/Next.js 성능 최적화 이슈를 탐지하고 수정합니�
 다음 패턴을 Grep으로 탐지합니다:
 
 1. **인라인 객체/배열/함수** — JSX props에 매 렌더마다 새 참조가 생성되는 패턴
+
    ```
    value={{ ... }}   style={{ ... }}   onClick={() => ...}
    ```
+
    → `useMemo`, `useCallback`으로 메모이제이션 필요 여부 판단
 
 2. **memo 미적용 컴포넌트** — props 변경 없이 부모 리렌더로 따라 렌더되는 순수 컴포넌트
+
    - `export default function` / `export const` 컴포넌트 중 `React.memo` 미적용
    - 단, 항상 변하는 데이터를 받는 컴포넌트는 제외
 
 3. **useEffect 의존성 배열 이슈**
+
    - `[]` 빈 의존성이지만 내부에서 외부 변수 참조 → stale closure 위험
    - 의존성에 매 렌더마다 새 객체/함수 참조 포함 → 무한 루프 위험
 
@@ -37,12 +41,14 @@ description: React/Next.js 성능 최적화 이슈를 탐지하고 수정합니�
 ### B. 번들 크기 최적화
 
 1. **라이브러리 전체 import** — tree-shaking 미적용 패턴
+
    ```ts
-   import _ from 'lodash'           // → import { debounce } from 'lodash'
-   import * as Icons from 'react-icons/fa'
+   import _ from "lodash"; // → import { debounce } from 'lodash'
+   import * as Icons from "react-icons/fa";
    ```
 
 2. **무거운 컴포넌트 정적 import** — 초기 번들에 포함될 필요 없는 컴포넌트
+
    - Monaco Editor, Chart 라이브러리, Syntax Highlighter 등
    - `next/dynamic` 또는 `React.lazy` 적용 여부 확인
 
@@ -51,6 +57,7 @@ description: React/Next.js 성능 최적화 이슈를 탐지하고 수정합니�
 ### C. Next.js Image 최적화
 
 `<img` 태그 직접 사용 여부 Grep:
+
 - `src/` 내 `<img ` 패턴 탐지 → `next/image`의 `<Image>` 컴포넌트로 교체 대상
 - `<Image>` 사용 시 `width`, `height` 또는 `fill` 누락 여부 확인
 - `priority` prop 미적용 LCP 이미지 (페이지 상단 첫 번째 이미지) 확인
@@ -72,6 +79,7 @@ description: React/Next.js 성능 최적화 이슈를 탐지하고 수정합니�
 ### F. React Key 최적화
 
 리스트 렌더링에서:
+
 - `key={index}` 사용 패턴 → 항목 재정렬 시 불필요한 DOM 재생성
 - key 값으로 안정적 고유 ID 대신 임시 값 사용
 
@@ -111,36 +119,42 @@ description: React/Next.js 성능 최적화 이슈를 탐지하고 수정합니�
 ### 수정 가이드
 
 #### `next/dynamic` 적용
+
 ```tsx
 // before
-import MonacoEditor from '@monaco-editor/react';
+import MonacoEditor from "@monaco-editor/react";
 
 // after
-import dynamic from 'next/dynamic';
-const MonacoEditor = dynamic(() => import('@monaco-editor/react'), { ssr: false });
+import dynamic from "next/dynamic";
+const MonacoEditor = dynamic(() => import("@monaco-editor/react"), {
+  ssr: false,
+});
 ```
 
 #### `useCallback` 적용
+
 ```tsx
 // before
-<Button onClick={() => handleClick(id)} />
+<Button onClick={() => handleClick(id)} />;
 
 // after
 const handleClick_ = useCallback(() => handleClick(id), [id]);
-<Button onClick={handleClick_} />
+<Button onClick={handleClick_} />;
 ```
 
 #### `useMemo` 적용
+
 ```tsx
 // before
-<Component config={{ theme: 'dark', size: 'lg' }} />
+<Component config={{ theme: "dark", size: "lg" }} />;
 
 // after
-const config = useMemo(() => ({ theme: 'dark', size: 'lg' }), []);
-<Component config={config} />
+const config = useMemo(() => ({ theme: "dark", size: "lg" }), []);
+<Component config={config} />;
 ```
 
 #### `React.memo` 적용
+
 ```tsx
 // before
 const Card = ({ title, desc }: Props) => { ... };
@@ -152,12 +166,17 @@ export default Card;
 ```
 
 #### key 값 교체
+
 ```tsx
 // before
-{items.map((item, index) => <Item key={index} {...item} />)}
+{
+  items.map((item, index) => <Item key={index} {...item} />);
+}
 
 // after
-{items.map((item) => <Item key={item.id} {...item} />)}
+{
+  items.map((item) => <Item key={item.id} {...item} />);
+}
 ```
 
 수정 후 `tsc --noEmit`으로 타입 오류 없는지 확인합니다.

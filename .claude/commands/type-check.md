@@ -20,13 +20,13 @@ pnpm exec tsc --noEmit 2>&1
 
 오류를 아래 카테고리로 분류합니다:
 
-| 카테고리 | 예시 | 자동 수정 가능 |
-|---------|------|--------------|
-| **타입 불일치** | `string`에 `number` 할당 | 수동 확인 필요 |
-| **누락된 프로퍼티** | `Property X does not exist` | 타입 정의 추가 |
-| **`undefined` 미처리** | `Object is possibly undefined` | Optional chaining 추가 |
-| **모듈 못 찾음** | `Cannot find module` | import 경로 수정 |
-| **암묵적 any** | `Parameter X implicitly has any type` | 타입 명시 |
+| 카테고리               | 예시                                  | 자동 수정 가능         |
+| ---------------------- | ------------------------------------- | ---------------------- |
+| **타입 불일치**        | `string`에 `number` 할당              | 수동 확인 필요         |
+| **누락된 프로퍼티**    | `Property X does not exist`           | 타입 정의 추가         |
+| **`undefined` 미처리** | `Object is possibly undefined`        | Optional chaining 추가 |
+| **모듈 못 찾음**       | `Cannot find module`                  | import 경로 수정       |
+| **암묵적 any**         | `Parameter X implicitly has any type` | 타입 명시              |
 
 ### 3. 오류 보고
 
@@ -47,6 +47,7 @@ pnpm exec tsc --noEmit 2>&1
 ### 4. 자동 수정 (확인 후)
 
 사용자 승인 후:
+
 - `?.` optional chaining 추가
 - 누락된 타입 annotation 추가
 - import 경로 수정
