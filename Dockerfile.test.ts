@@ -30,6 +30,11 @@ describe("Dockerfile", () => {
     expect(dockerfile).toContain(".npmrc");
   });
 
+  it("CI와 같이 pnpm 9를 쓴다", () => {
+    expect(dockerfile).toContain("pnpm@9");
+    expect(dockerfile).not.toContain("pnpm@latest");
+  });
+
   it("NEXT_PUBLIC_ 토큰 ARG를 두지 않는다", () => {
     expect(dockerfile).not.toContain("NEXT_PUBLIC_GITHUB_ACCESS_TOKEN");
     expect(dockerfile).not.toContain("NEXT_PUBLIC_WAKATIME_API_KEY");

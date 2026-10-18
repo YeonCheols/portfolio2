@@ -1,6 +1,6 @@
 # ─── Stage 1: deps ────────────────────────────────────────────────────────────
 FROM node:20-alpine AS deps
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@9 --activate
 
 WORKDIR /app
 
@@ -11,7 +11,7 @@ RUN pnpm install --frozen-lockfile
 
 # ─── Stage 2: builder ─────────────────────────────────────────────────────────
 FROM node:20-alpine AS builder
-RUN corepack enable && corepack prepare pnpm@latest --activate
+RUN corepack enable && corepack prepare pnpm@9 --activate
 
 WORKDIR /app
 
