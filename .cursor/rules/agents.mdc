@@ -16,6 +16,6 @@ alwaysApply: true
 - 코드 리뷰 기준 → `review` (댓글은 TEMPLATE.md만, 근거 문장은 ~습니다. PR 자동 실행은 꺼 둠)
 - 이슈 생성 → `issue` (본문은 `.github/ISSUE_TEMPLATE.md`. 상태는 Project Status의 ToDo, In Progress, Review, Done. 라벨로 상태를 만들지 않음. 문장은 ~습니다 또는 ~ㅂ니다. ~다로 끝내지 않음)
 - 머지 → CI 체크와 `review-gate`가 성공하고 🔴가 없을 때만. 실패를 알고 있어도 머지하지 않음
-- 토큰 → Fast는 기본 끔. 필요한 범위만 읽고 테스트한다. 작업 끝에 목표 대비 사용을 보고한다
+- 토큰 → Fast는 기본 끔. 필요한 범위만 읽고 테스트한다. 작업 끝에는 `목표: 15,000토큰`처럼 예산만 적는다
 
 이 파일과 `AGENTS.md`가 다르면 `AGENTS.md`를 따릅니다.
