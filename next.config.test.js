@@ -35,6 +35,10 @@ describe("next.config", () => {
     expect(result.watchOptions).toBeUndefined();
   });
 
+  it("프로덕션 출력은 standalone이다", () => {
+    expect(nextConfig.output).toBe("standalone");
+  });
+
   it("로컬 출처와 https 원격 이미지를 허용한다", () => {
     expect(nextConfig.reactStrictMode).toBe(false);
     expect(nextConfig.allowedDevOrigins).toEqual(["local.ycseng.com"]);

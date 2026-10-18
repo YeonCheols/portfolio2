@@ -1,6 +1,7 @@
 // const { withSentryConfig } = require("@sentry/nextjs");
 
 const nextConfig = {
+  output: "standalone",
   reactStrictMode: false,
   allowedDevOrigins: ["local.ycseng.com"],
   transpilePackages: [
