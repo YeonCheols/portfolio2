@@ -2,6 +2,7 @@
 
 const nextConfig = {
   reactStrictMode: false,
+  allowedDevOrigins: ["local.ycseng.com"],
   transpilePackages: [
     "@yeoncheols/portfolio-core-ui",
     "framer-motion",
