@@ -1,12 +1,36 @@
 import axios from "axios";
 
-import { postChatPrompt, sendMessage } from "@/features/cmdpallete/api/chatgpt";
+import { postChatPrompt } from "@/features/cmdpallete/api/chatgpt";
 
 jest.mock("axios");
 
 const mockedPost = axios.post as jest.MockedFunction<typeof axios.post>;
 
 describe("postChatPrompt", () => {
+  it("OPENAI_API_KEY로 Authorization 헤더를 만든다", async () => {
+    jest.resetModules();
+    process.env.OPENAI_API_KEY = "openai-key";
+
+    const axiosModule = await import("axios");
+    const { postChatPrompt } = await import(
+      "@/features/cmdpallete/api/chatgpt"
+    );
+    const post = axiosModule.default.post as jest.Mock;
+    post.mockResolvedValue({ status: 200, data: { choices: [] } });
+
+    await postChatPrompt("안녕");
+
+    expect(post).toHaveBeenCalledWith(
+      "https://api.openai.com/v1/completions",
+      expect.objectContaining({ prompt: "안녕. answer briefly" }),
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          Authorization: "Bearer openai-key",
+        }),
+      }),
+    );
+  });
+
   it("성공하면 응답 데이터를 반환한다", async () => {
     mockedPost.mockResolvedValue({ status: 200, data: { choices: [] } });
 
@@ -27,20 +51,5 @@ describe("postChatPrompt", () => {
       status: 401,
       message: "Unauthorized",
     });
-  });
-});
-
-describe("sendMessage", () => {
-  it("응답의 reply를 반환한다", async () => {
-    mockedPost.mockResolvedValue({ data: { reply: "답변" } });
-
-    await expect(sendMessage("질문")).resolves.toBe("답변");
-    expect(mockedPost).toHaveBeenCalledWith("/api/chat", { prompt: "질문" });
-  });
-
-  it("호출이 실패하면 빈 문자열을 반환한다", async () => {
-    mockedPost.mockRejectedValue(new Error("network"));
-
-    await expect(sendMessage("질문")).resolves.toBe("");
   });
 });

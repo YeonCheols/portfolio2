@@ -178,10 +178,11 @@ export const getGithubUser = async (type: string) => {
     throw new Error("Invalid user type");
   }
 
-  const { username, token } = account;
+  const { username } = account;
+  const token = process.env.GITHUB_ACCESS_TOKEN;
   if (!token || !username) {
     throw new Error(
-      "GitHub credentials not configured. Set GITHUB_ACCESS_TOKEN (or NEXT_PUBLIC_GITHUB_ACCESS_TOKEN) and NEXT_PUBLIC_GITHUB_USER_NAME in .env.local",
+      "GitHub credentials not configured. Set GITHUB_ACCESS_TOKEN and NEXT_PUBLIC_GITHUB_USER_NAME in .env.local",
     );
   }
 

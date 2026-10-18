@@ -30,7 +30,7 @@ jest.mock("next-themes", () => ({
   useTheme: () => ({ resolvedTheme: "dark", setTheme: jest.fn() }),
 }));
 jest.mock("@/shared/hooks/useIsMobile", () => () => false);
-jest.mock("@/features/cmdpallete/api/chatgpt", () => ({
+jest.mock("@/features/cmdpallete/api/sendMessage", () => ({
   sendMessage: jest.fn(),
 }));
 

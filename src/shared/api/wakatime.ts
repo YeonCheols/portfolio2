@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const API_KEY = process.env.NEXT_PUBLIC_WAKATIME_API_KEY;
+const API_KEY = process.env.WAKATIME_API_KEY;
 
 const STATS_ENDPOINT = "https://wakatime.com/api/v1/users/current/stats";
 const ALL_TIME_SINCE_TODAY =
