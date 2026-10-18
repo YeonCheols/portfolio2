@@ -91,7 +91,7 @@ src/
 4. **코드 리뷰 기준 → `review` 스킬**
    - 로컬 리뷰와 CI `/review`(`.github/workflows/ai-review.yml`)는 모두 `review` 스킬의 관점·심각도를 따르고, 댓글 본문은 `.agents/skills/review/TEMPLATE.md`만 채운다. 발견마다 TDD 근거가 있어야 한다. 리뷰 기준은 이 스킬에서만 수정한다
 5. **이슈 생성 → `issue` 스킬 필수**
-   - 모든 이슈는 `issue` 스킬과 `.github/ISSUE_TEMPLATE.md`로만 만든다
+   - 모든 이슈는 `issue` 스킬과 `.github/ISSUE_TEMPLATE.md`로만 만든다. 상태는 저장소 GitHub Project의 Status이고 값은 `ToDo`, `In Progress`, `Review`, `Done`만 쓴다. 새 이슈는 `ToDo`다. 라벨로 상태를 만들지 않는다
    - 예상, 변경범위, 코드, 1급 시민, 불변조건, TDD 기준 테스트 조건은 목록이다. 테스트 조건을 빼거나 뒤로 미루지 않는다
    - 제목과 본문 문장은 `~습니다` 또는 `~ㅂ니다`로 끝낸다. `~다`로 끝내지 않는다
 

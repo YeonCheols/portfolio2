@@ -14,7 +14,7 @@ alwaysApply: true
 - PR 생성 → `pr` (담당자는 `gh` 활성 계정, 생성 후 `review` branch 결과를 PR 댓글로)
 - 검증 → `qa`
 - 코드 리뷰 기준 → `review` (댓글은 TEMPLATE.md만, 근거 문장은 ~습니다. PR 자동 실행은 꺼 둠)
-- 이슈 생성 → `issue` (본문은 `.github/ISSUE_TEMPLATE.md`. 예상, 변경범위, 코드, 1급 시민, 불변조건은 목록. 문장은 ~습니다 또는 ~ㅂ니다. ~다로 끝내지 않음)
+- 이슈 생성 → `issue` (본문은 `.github/ISSUE_TEMPLATE.md`. 상태는 Project Status의 ToDo, In Progress, Review, Done. 라벨로 상태를 만들지 않음. 문장은 ~습니다 또는 ~ㅂ니다. ~다로 끝내지 않음)
 - 머지 → CI 체크와 `review-gate`가 성공하고 🔴가 없을 때만. 실패를 알고 있어도 머지하지 않음
 
 이 파일과 `AGENTS.md`가 다르면 `AGENTS.md`를 따릅니다.
