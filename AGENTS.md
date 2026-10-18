@@ -91,8 +91,8 @@ src/
 4. **코드 리뷰 기준 → `review` 스킬**
    - 로컬 리뷰와 CI `/review`(`.github/workflows/ai-review.yml`)는 모두 `review` 스킬의 관점·심각도를 따르고, 댓글 본문은 `.agents/skills/review/TEMPLATE.md`만 채운다. 발견마다 TDD 근거가 있어야 한다. 리뷰 기준은 이 스킬에서만 수정한다
 5. **이슈 생성 → `issue` 스킬 필수**
-   - 모든 이슈는 `issue` 스킬의 절차와 본문 형식으로만 만든다
-   - 본문에는 배경, 예상, 변경범위, TDD 기준 테스트 조건이 있어야 한다. 이 네 항목은 1급 시민이며, 테스트 조건을 빼거나 뒤로 미루지 않는다
+   - 모든 이슈는 `issue` 스킬과 `.github/ISSUE_TEMPLATE.md`로만 만든다
+   - 예상, 변경범위, 코드, 1급 시민, 불변조건, TDD 기준 테스트 조건은 목록이다. 테스트 조건을 빼거나 뒤로 미루지 않는다
    - 제목과 본문 문장은 `~습니다` 또는 `~ㅂ니다`로 끝낸다. `~다`로 끝내지 않는다
 
 ### 스킬 목록
@@ -105,7 +105,7 @@ src/
 | `qa`     | `.agents/skills/qa/SKILL.md`     | 작업 완료 전 검증, 커밋/PR 직전, "QA 해줘" 요청 시                             |
 | `review` | `.agents/skills/review/SKILL.md` | **커밋 직전(staged), PR 생성 직후(branch), CI `/review`**, "리뷰 해줘" 요청 시 |
 | `usage`  | `.agents/skills/usage/SKILL.md`  | "사용량", "남은 한도" 확인 요청 시                                             |
-| `issue`  | `.agents/skills/issue/SKILL.md`  | **이슈를 만들 때 항상**. 제목·본문은 `~습니다`로 끝낸다                        |
+| `issue`  | `.agents/skills/issue/SKILL.md`  | **이슈를 만들 때 항상**. 본문은 `.github/ISSUE_TEMPLATE.md`                    |
 
 일반적인 작업 흐름: `tdd` → `qa` → `commit`(→ `review` staged) → `pr`(→ `review` branch 댓글) → CI(`ci`) → `Lint, Typecheck, Test`와 `review-gate`가 모두 성공한 뒤에만 머지. CI 리뷰는 PR 댓글 `/review`로만 실행한다. CI 실패나 🔴가 남아 있으면 머지하지 않는다.
 
