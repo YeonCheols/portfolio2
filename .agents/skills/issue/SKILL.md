@@ -18,10 +18,20 @@ disable-model-invocation: true
 - [ ] 5. 1급 시민 규칙을 확인한다. 예상의 동작이 1급 시민 목록과 테스트 조건에 없으면 만들지 않는다
 - [ ] 6. 제목과 본문이 아래 문체 규칙을 지키는지 확인한다
 - [ ] 7. gh issue create --repo <owner/repo> --assignee <login> --title --body
-- [ ] 8. 이슈 URL만 보고한다
+- [ ] 8. 저장소 프로젝트 Status를 고른다. 새 이슈는 `ToDo`다
+- [ ] 9. 이슈 URL만 보고한다
 ```
 
 저장소는 현재 git remote의 GitHub 저장소다. 이미 같은 작업의 열린 이슈가 있으면 새로 만들지 않고 그 URL을 알린다.
+
+## 상태
+
+상태 값은 저장소 GitHub Project의 Status 필드만 쓴다. 라벨로 상태를 만들지 않는다. 값은 `ToDo`, `In Progress`, `Review`, `Done`만 쓴다.
+
+- 아직 시작하지 않았으면 `ToDo`
+- 작업을 시작했으면 `In Progress`
+- 리뷰로 넘겼으면 `Review`
+- 끝났으면 `Done`
 
 ## 1급 시민
 
