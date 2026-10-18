@@ -9,7 +9,8 @@
 - PR 생성 시 `pr` 스킬: `.github/pull_request_template.md` 형식, 담당자는 `gh` 활성 계정, 생성 후 `review` 스킬(branch) 결과를 PR 댓글로 작성
 - 검증은 `qa` 스킬: `pnpm lint`, `pnpm format:check`, `pnpm type-check`, `pnpm test`. PR CI는 `.github/workflows/ci.yml`
 - 코드 리뷰 기준은 `review` 스킬. 댓글은 `.agents/skills/review/TEMPLATE.md`만 채우고 발견마다 TDD 근거를 적는다. PR 자동 실행은 꺼 두고 `/review` 댓글로만 실행한다
-- 응답은 한국어이고 문장은 표준 문장체인 `습니다`/`ㅂ니다`로 끝낸다. 패키지 매니저는 pnpm
+- 근거를 남기는 문장은 `~습니다`로 끝낸다. 패키지 매니저는 pnpm
+- CI가 실패했거나 최신 리뷰에 🔴가 있으면 머지하지 않는다
 - `master` 기준 작업 전에는 `git fetch origin`으로 `origin/master` 최신을 받는다
 - 개발 서버는 자동으로 실행하지 않는다
 

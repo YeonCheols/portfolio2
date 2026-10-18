@@ -13,6 +13,7 @@ alwaysApply: true
 - 커밋 → `commit` (코드 변경은 커밋 직전 `review` staged, 🔴 있으면 중단)
 - PR 생성 → `pr` (담당자는 `gh` 활성 계정, 생성 후 `review` branch 결과를 PR 댓글로)
 - 검증 → `qa`
-- 코드 리뷰 기준 → `review` (댓글은 TEMPLATE.md만, 발견마다 TDD 근거. PR 자동 실행은 꺼 둠)
+- 코드 리뷰 기준 → `review` (댓글은 TEMPLATE.md만, 근거 문장은 ~습니다. PR 자동 실행은 꺼 둠)
+- 머지 → CI 체크와 `review-gate`가 성공하고 🔴가 없을 때만. 실패를 알고 있어도 머지하지 않음
 
 이 파일과 `AGENTS.md`가 다르면 `AGENTS.md`를 따릅니다.

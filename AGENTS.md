@@ -9,9 +9,9 @@
 - 패키지 매니저: **pnpm** (npm/yarn 사용 금지)
 - 아키텍처: Feature-Sliced Design. 레이어 의존은 `pages → widgets → features → entities → shared` 단방향
 - 배포: Vercel. `master` 푸시 시 `.github/workflows/release-tag.yml`이 태그/릴리스를 만든다
-- CI: `master`/`dev` 대상 PR마다 `.github/workflows/ci.yml`이 `lint`, `format:check`, `type-check`, `test:ci`를 실행한다. 의존성 설치에는 `GITHUB_NPM_TOKEN` secret(`read:packages`)이 필요하다. 비공개 Free 플랜이라 브랜치 보호로 머지를 막을 수 없으므로, PR 머지 전 CI 통과 확인은 `pr` 스킬 절차로 강제한다
+- CI: `master`/`dev` 대상 PR마다 `.github/workflows/ci.yml`이 `lint`, `format:check`, `type-check`, `test:ci`를 실행한다. 의존성 설치에는 `GITHUB_NPM_TOKEN` secret(`read:packages`)이 필요하다. `master` ruleset은 체크 `Lint, Typecheck, Test`와 `review-gate`가 성공해야 머지를 허용한다. CI가 실패하거나 최신 리뷰에 🔴가 있으면 머지하지 않는다
 - AI 리뷰: `.github/workflows/ai-review.yml`은 PR 댓글 `/review`로만 실행한다. PR 생성·푸시 자동 실행은 꺼 두었다 (`CURSOR_API_KEY` secret 필요, 체크는 실패시키지 않음)
-- 응답 언어: 사용자에게는 **한국어**로 답변한다. 한국어 문장은 표준 문장체인 `습니다`/`ㅂ니다`로 끝낸다. 코드, 식별자, 커밋 제목처럼 문장이 아닌 표기는 제외한다
+- 응답 언어: 사용자에게는 **한국어**로 답변한다. 근거를 남기는 문장(리뷰의 이유·제안·테스트 근거, QA 발견, 테스트를 생략하거나 예외로 둔 이유, 머지를 막는 이유)은 `~습니다` 또는 `~ㅂ니다`로 끝낸다. 코드, 식별자, 커밋 제목처럼 문장이 아닌 표기는 제외한다
 
 ## 디렉토리 구조
 
@@ -80,14 +80,14 @@ src/
    - `src/`의 코드(기능 추가, 버그 수정, 리팩터링)를 수정할 때는 항상 `tdd` 스킬로 진행한다
    - 실패하는 테스트를 먼저 작성하고 실패를 확인한 뒤에 구현 코드를 수정한다
    - 코드를 수정하면 관련 파일의 테스트 코드도 반드시 추가하거나 수정한다
-   - 문서(`*.md`), MDX 본문, 설정만 바꾸는 경우는 예외지만, 그 판단 근거를 사용자에게 알린다
+   - 문서(`*.md`), MDX 본문, 설정만 바꾸는 경우는 예외지만, 그 판단 근거를 `~습니다`로 사용자에게 알린다
 2. **커밋 → `commit` 스킬 필수**
    - 모든 커밋은 `commit` 스킬의 절차로만 수행한다
    - 코드 변경 커밋은 직전에 `review` 스킬(staged)을 실행하고, 🔴 항목이 있으면 커밋하지 않고 보고한다
 3. **PR 생성 → `pr` 스킬 필수**
    - 모든 PR은 `pr` 스킬의 절차와 `.github/pull_request_template.md` 형식으로만 생성한다
    - PR 담당자(assignee)는 반드시 현재 `gh`에 로그인된 활성 GitHub 계정으로 지정한다
-   - PR 생성 후 `review` 스킬(branch) 결과를 PR 댓글로 남긴다. 최신 리뷰에 🔴 항목이 남아 있으면 머지하지 않는다
+   - PR 생성 후 `review` 스킬(branch) 결과를 PR 댓글로 남긴다. CI가 실패했거나 최신 리뷰에 🔴가 있으면 머지하지 않는다. 사용자가 알고 있어도 예외로 머지하지 않는다
 4. **코드 리뷰 기준 → `review` 스킬**
    - 로컬 리뷰와 CI `/review`(`.github/workflows/ai-review.yml`)는 모두 `review` 스킬의 관점·심각도를 따르고, 댓글 본문은 `.agents/skills/review/TEMPLATE.md`만 채운다. 발견마다 TDD 근거가 있어야 한다. 리뷰 기준은 이 스킬에서만 수정한다
 
@@ -102,7 +102,7 @@ src/
 | `review` | `.agents/skills/review/SKILL.md` | **커밋 직전(staged), PR 생성 직후(branch), CI `/review`**, "리뷰 해줘" 요청 시 |
 | `usage`  | `.agents/skills/usage/SKILL.md`  | "사용량", "남은 한도" 확인 요청 시                                             |
 
-일반적인 작업 흐름: `tdd` → `qa` → `commit`(→ `review` staged) → `pr`(→ `review` branch 댓글) → CI(`ci`) → 체크 통과·🔴 해소 확인 후 머지. CI 리뷰는 PR 댓글 `/review`로만 실행한다.
+일반적인 작업 흐름: `tdd` → `qa` → `commit`(→ `review` staged) → `pr`(→ `review` branch 댓글) → CI(`ci`) → `Lint, Typecheck, Test`와 `review-gate`가 모두 성공한 뒤에만 머지. CI 리뷰는 PR 댓글 `/review`로만 실행한다. CI 실패나 🔴가 남아 있으면 머지하지 않는다.
 
 새 스킬 추가 방법:
 

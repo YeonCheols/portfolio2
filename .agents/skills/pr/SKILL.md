@@ -113,23 +113,18 @@ gh pr comment <번호> --body-file /tmp/review-<번호>.md
 - CI(`ai-review` 워크플로)는 PR 생성·푸시로 자동 실행되지 않는다. PR에 `/review` 댓글을 달면 같은 스킬로 리뷰 댓글을 남긴다 (`gh pr comment <번호> --body "/review"`)
 - 로컬 리뷰와 CI 리뷰의 🔴 항목은 모두 머지 전 확인 대상이다
 
-## 머지 (요청 시) — CI 통과 필수
+## 머지 (요청 시) — CI 성공과 차단 리뷰 없음이 모두 필요
 
-비공개 Free 플랜이라 브랜치 보호로 CI 실패 PR의 머지를 막을 수 없다. 머지 전에 **반드시** 모든 체크가 통과했는지 직접 확인한다.
+`master` ruleset은 `Lint, Typecheck, Test`와 `review-gate`가 성공해야 머지를 허용한다. 하나라도 실패하거나 빠지면 머지하지 않는다. 사용자가 실패를 알고 머지를 요청해도 예외로 머지하지 않는다.
 
 ```bash
 gh pr checks <번호> --watch --fail-fast
+gh pr view <번호> --json comments --jq '[.comments[] | select(.body | test("ai-review:"))] | last | .body' | grep "🔴"
 gh pr merge <번호> --merge
 ```
 
-- 체크가 실패·취소되었거나 아직 실행되지 않았으면 머지하지 않고 실패한 체크와 원인을 사용자에게 보고한다
-- 리뷰 댓글(`ai-review:local`, `ai-review:ci`)의 **가장 최근 것**에 해결되지 않은 🔴 항목이 있으면 머지하지 않고 보고한다. AI 리뷰는 댓글만 남기고 체크를 실패시키지 않으므로, 이 확인은 체크 통과와 별개로 반드시 수행한다
-
-```bash
-gh pr view <번호> --json comments --jq '[.comments[] | select(.body | test("ai-review:"))] | last | .body' | grep "🔴"
-```
-
-- 사용자가 실패를 알고도 머지를 명시적으로 요청한 경우에만 예외로 하고, 그 사실을 보고에 남긴다
+- `gh pr checks`가 실패하면 머지 명령을 실행하지 않고, 실패한 체크와 이유를 `~습니다`로 보고한다
+- 최신 `ai-review:local` 또는 `ai-review:ci` 댓글에 🔴가 있으면 `review-gate`가 실패한다. 머지 명령을 실행하지 않는다
 - `master` 머지는 배포로 이어질 수 있으므로, 머지 후 Vercel 배포 상태를 확인해 보고한다
 
 ## 보고

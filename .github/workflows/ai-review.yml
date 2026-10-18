@@ -140,3 +140,7 @@ jobs:
             gh pr comment "$PR_NUMBER" --repo "$REPO" --body-file /tmp/comment.md
           fi
           cat /tmp/review.md >> "$GITHUB_STEP_SUMMARY"
+          if grep -q "🔴" /tmp/review.md; then
+            echo "::error::최신 리뷰에 차단 항목이 있어 체크를 실패시킵니다"
+            exit 1
+          fi
