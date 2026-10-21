@@ -1,4 +1,4 @@
-import "./jest.setup";
+import "../../jest.setup";
 
 describe("jest.setup", () => {
   it("ResizeObserver를 빈 구현으로 둔다", () => {

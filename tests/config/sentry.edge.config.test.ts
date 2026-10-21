@@ -9,7 +9,7 @@ jest.mock("@sentry/nextjs", () => ({
 const load = async () => {
   process.env.SENTRY_DSN = "https://example.ingest.sentry.io/1";
   jest.resetModules();
-  await import("./sentry.edge.config");
+  await import("../../sentry.edge.config");
 
   return mockInit.mock.calls.at(-1)?.[0] as {
     dsn?: string;
@@ -19,14 +19,13 @@ const load = async () => {
 };
 
 describe("sentry.edge.config", () => {
-  const originalDsn = process.env.SENTRY_DSN;
-
   beforeEach(() => {
+    jest.replaceProperty(process, "env", { ...process.env });
     mockInit.mockClear();
   });
 
   afterEach(() => {
-    process.env.SENTRY_DSN = originalDsn;
+    jest.restoreAllMocks();
   });
 
   it("환경 변수 DSN으로 트레이스만 켜고 디버그는 끈다", async () => {

@@ -15,7 +15,7 @@ jest.mock("next/server", () => ({
   },
 }));
 
-import { middleware } from "./middleware";
+import { middleware } from "../../middleware";
 
 describe("middleware", () => {
   it("요청을 통과시키면서 CORS 헤더를 붙인다", () => {

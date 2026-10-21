@@ -105,7 +105,10 @@ jobs:
           리뷰 대상 diff는 /tmp/pr.diff 파일이다. 맥락 확인을 위해 저장소 파일을 읽어도 되지만 어떤 파일도 수정하거나 명령을 실행하지 마라.
           이번 실행 모델은 ${model} 이다. TEMPLATE.md의 '확인한 범위'에 적어라.
           ${note}
-          출력은 TEMPLATE.md를 채운 마크다운만, 한국어로 작성하라. 템플릿에 없는 문장이나 섹션은 쓰지 마라. 테스트 근거가 없는 발견은 빼라."
+          출력은 TEMPLATE.md를 채운 마크다운만, 한국어로 작성하라. 템플릿에 없는 문장이나 섹션은 쓰지 마라.
+          발견마다 코드·계약 근거와 기존 또는 필요한 회귀 테스트를 적어라. 테스트 부재로 확인된 결함을 제외하지 마라.
+          제공되지 않은 이슈·댓글·실행 결과는 미확인으로 기록하라. 중요한 미확인 경계나 잘린 diff가 있으면 검증 보류로 보고하라.
+          판정 선택지와 작성 안내는 제거하라. 차단이 없는 결과 본문에는 차단 아이콘을 남기지 마라."
           if agent -p --mode ask --trust --model "$model" --output-format text "$prompt" > /tmp/review.md 2> /tmp/agent.err && [ -s /tmp/review.md ]; then
             echo "review bytes: $(wc -c < /tmp/review.md)"
           else

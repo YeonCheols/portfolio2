@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-const workflowPath = path.join(__dirname, ".github/workflows/deploy.yml");
+const workflowPath = path.join(__dirname, "../../.github/workflows/deploy.yml");
 
 describe("deploy workflow", () => {
   it("master 푸시에서 이미지를 빌드한다", () => {

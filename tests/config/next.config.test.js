@@ -1,4 +1,4 @@
-const nextConfig = require("./next.config");
+const nextConfig = require("../../next.config");
 
 describe("next.config", () => {
   const webpackConfig = () => ({ resolve: {} });

@@ -1,4 +1,4 @@
-const config = require("./commitlint.config");
+const config = require("../../commitlint.config");
 
 describe("commitlint.config", () => {
   it("커밋 타입과 제목 길이 규칙을 둔다", () => {
