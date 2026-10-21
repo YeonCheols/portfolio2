@@ -1,0 +1,1303 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resumeAsset id="resume-seong-yeoncheol" schemaVersion="0.2.0" xml:lang="ko-KR" status="draft" publicationStatus="internal-only" visibility="private">
+  <metadata>
+    <title>성연철 이력서 원소 데이터</title>
+    <sourceDocument id="source-career-pdf" path="public/download/성연철_경력기술서.pdf" pageCount="12" visibility="public-source" sha256="90faa363bc40f82fea43f9d98040ce716071643917fb058381163dcdd52d52ad">
+      <title>성연철 경력기술서</title>
+      <page id="source-page-1" number="1"/>
+      <page id="source-page-2" number="2"/>
+      <page id="source-page-3" number="3"/>
+      <page id="source-page-4" number="4"/>
+      <page id="source-page-5" number="5"/>
+      <page id="source-page-6" number="6"/>
+      <page id="source-page-7" number="7"/>
+      <page id="source-page-8" number="8"/>
+      <page id="source-page-9" number="9"/>
+      <page id="source-page-10" number="10"/>
+      <page id="source-page-11" number="11"/>
+      <page id="source-page-12" number="12"/>
+    </sourceDocument>
+    <sourceDocument id="source-personal-resume-pdf" fileName="20261021_Resume.PDF" storage="external-local" pageCount="7" visibility="private-source" sha256="671fd664c0f853a43a3e9a670fd4bff1f9291e3a46d138aee35dbdd05d761b4e">
+      <title>20261021_Resume.PDF</title>
+      <documentUpdatedAt sourceRefs="source-resume-page-7">2026-10-21</documentUpdatedAt>
+      <page id="source-resume-page-1" number="1"/>
+      <page id="source-resume-page-2" number="2"/>
+      <page id="source-resume-page-3" number="3"/>
+      <page id="source-resume-page-4" number="4"/>
+      <page id="source-resume-page-5" number="5"/>
+      <page id="source-resume-page-6" number="6"/>
+      <page id="source-resume-page-7" number="7"/>
+    </sourceDocument>
+    <extractionPolicy>
+      <note>PDF의 목차, 페이지 번호와 반복 머리말은 콘텐츠 원소에서 제외했습니다.</note>
+      <note>본문은 원문 표현을 유지하고 PDF 줄바꿈과 글자 분리만 연결했습니다. 식별자와 분류용 제목은 원소 관리를 위해 부여했습니다.</note>
+      <note>기재된 성과는 source-reported이며 외부 근거로 검증한 사실을 뜻하지 않습니다.</note>
+      <note>빈값은 원본에서 확인하지 못한 값입니다. 프로젝트 수행기간을 회사 재직기간으로 사용하지 않습니다.</note>
+      <note>sourceRefs는 원본 PDF 페이지를, projectRef와 contributionRef 및 workItemRef는 관련 원소를 참조합니다.</note>
+      <note>publicationStatus는 검토 메타데이터이며 실제 접근 제어나 공개 기능을 구현하지 않습니다.</note>
+      <note>전체 XML은 연락처를 포함하는 내부 관리용 원본이며 외부 화면이나 다운로드에 연결하지 않습니다. 공개용 산출물은 별도 필드 선택과 공개 정책을 적용해야 합니다.</note>
+      <note>외부 로컬 PDF는 원본 파일명과 해시 및 페이지 참조로 식별하고 프로젝트의 공개 경로에는 복사하지 않았습니다.</note>
+      <note>periodVariant는 문서별 이전 기재값을 보존하며 superseded는 현재 기준값이 아닙니다. responsibilityVariant는 검토할 원본별 역할 표현입니다.</note>
+      <note>원소의 업무 수행기간은 성과 측정기간과 다릅니다. 경력 연차와 나이는 문서 작성 시점의 기재값이며 현재 값으로 자동 재계산하지 않습니다.</note>
+    </extractionPolicy>
+  </metadata>
+  <profile id="profile-seong-yeoncheol" sourceRefs="source-page-1 source-resume-page-1" visibility="private">
+    <name>성연철</name>
+    <headline sourceRefs="source-resume-page-1" status="source-reported">재사용 가능한 컴포넌트 설계와 개발 생산성 향상에 관심이 많은 5년차프론트엔드 개발자입니다</headline>
+    <email sourceRefs="source-resume-page-1" visibility="private">s8282909@naver.com</email>
+    <phone sourceRefs="source-resume-page-1" visibility="private">010-6307-7215</phone>
+    <gender sourceRefs="source-resume-page-1" visibility="private">남</gender>
+    <birthYear precision="year" sourceRefs="source-resume-page-1" visibility="private">1996</birthYear>
+    <reportedAge unit="year" asOf="2026-10-21" sourceRefs="source-resume-page-1" visibility="private">30</reportedAge>
+    <address sourceRefs="source-resume-page-1" visibility="private">경기 안양시 만안구 안양동</address>
+    <photo status="not-extracted" sourceRefs="source-resume-page-1" visibility="private"/>
+    <careerSummary status="source-reported" sourceRefs="source-resume-page-1">
+      <reportedYears unit="year">6</reportedYears>
+      <reportedMonths unit="month">4</reportedMonths>
+      <reportedText>총 6년 4개월</reportedText>
+    </careerSummary>
+  </profile>
+  <educationHistory>
+    <education id="education-gimpo-college" sourceRefs="source-resume-page-1" status="source-reported" visibility="private">
+      <institution>김포대학교</institution>
+      <level>대학(2,3년)</level>
+      <department>네트워크관리학과</department>
+      <period precision="month" status="source-reported">
+        <start>2015-02</start>
+        <end>2018-03</end>
+      </period>
+      <completion>졸업</completion>
+      <grade>
+        <value>3.0</value>
+        <scale>4.5</scale>
+      </grade>
+    </education>
+    <education id="education-youngshin-high-school" sourceRefs="source-resume-page-1" status="source-reported" visibility="private">
+      <institution>영신고등학교</institution>
+      <level>고등학교</level>
+      <period precision="year" status="partially-known">
+        <start status="missing"/>
+        <end>2015</end>
+      </period>
+      <completion>졸업</completion>
+    </education>
+  </educationHistory>
+  <employmentHistory>
+    <employment id="employment-worksphere" sourceRefs="source-resume-page-1 source-resume-page-4" status="source-reported">
+      <organization>웍스피어 유한책임회사</organization>
+      <department>알바몬개발팀</department>
+      <position>매니저</position>
+      <period precision="month" status="source-reported">
+        <start>2022-10</start>
+        <end>2026-04</end>
+      </period>
+      <reportedDuration>3년 7개월</reportedDuration>
+      <employmentStatus>퇴사</employmentStatus>
+      <jobCategories>
+        <category>반응형웹</category>
+        <category>인터페이스</category>
+        <category>GUI</category>
+      </jobCategories>
+    </employment>
+    <employment id="employment-happyshopping" sourceRefs="source-resume-page-4" status="source-reported">
+      <organization>행복쇼핑</organization>
+      <department>DATA LAB</department>
+      <position>사원 팀원</position>
+      <period precision="month" status="source-reported">
+        <start>2021-11</start>
+        <end>2022-05</end>
+      </period>
+      <reportedDuration>7개월</reportedDuration>
+      <summary>DataLab 부서에서 개발자로 가격비교 플랫폼 유지보수/프로젝트 개발을 담당 하였습니다.</summary>
+      <responsibility>퍼블리싱(CSS)/프론트엔드 개발을 같이 담당 하였습니다.</responsibility>
+      <jobCategories>
+        <category>웹프로그래머</category>
+        <category>프론트엔드</category>
+      </jobCategories>
+      <technologyRefs sourceRefs="source-resume-page-4">
+        <use ref="tech-react"/>
+        <use ref="tech-typescript"/>
+        <use ref="tech-redux-saga"/>
+        <use ref="tech-react-mobx"/>
+        <use ref="tech-styled-components"/>
+        <use ref="tech-ant-design"/>
+        <use ref="tech-docker"/>
+        <use ref="tech-gcp"/>
+        <use ref="tech-nodejs"/>
+        <use ref="tech-github"/>
+        <use ref="tech-teams"/>
+        <use ref="tech-monday"/>
+        <use ref="tech-vscode"/>
+        <use ref="tech-notion"/>
+        <use ref="tech-firebase-functions"/>
+      </technologyRefs>
+    </employment>
+    <employment id="employment-fujifilm" sourceRefs="source-resume-page-4" status="source-reported">
+      <organization>한국후지필름</organization>
+      <department>IT지원담당</department>
+      <position>사원</position>
+      <period precision="month" status="source-reported">
+        <start>2019-03</start>
+        <end>2021-04</end>
+      </period>
+      <reportedDuration>2년 2개월</reportedDuration>
+      <summary>IT지원담당 부서에서 웹 개발자로 전반적인 커머스 쇼핑몰 운영 및 웹 개발 업무를 담당하였습니다.</summary>
+      <jobCategories>
+        <category>웹개발자</category>
+        <category>이커머스</category>
+      </jobCategories>
+      <technologyRefs sourceRefs="source-resume-page-4">
+        <use ref="tech-javascript"/>
+        <use ref="tech-css"/>
+        <use ref="tech-jquery"/>
+        <use ref="tech-ajax"/>
+        <use ref="tech-asp"/>
+        <use ref="tech-mssql"/>
+      </technologyRefs>
+    </employment>
+  </employmentHistory>
+  <summaries>
+    <summary id="summary-service-experience" sourceRefs="source-page-2">
+      <text>B2C(알바몬)·B2B(잡코리아 BizCenter) 서비스에서 핵심 도메인을 End-to-End로 설계·개발·운영했습니다.</text>
+    </summary>
+    <summary id="summary-data-architecture" sourceRefs="source-page-2">
+      <text>복잡한 화면 상태/데이터 흐름을 구조화(FSD+DDP, Context 분리, Domain Service) 하여 유지보수성과 성능을 개선했습니다.</text>
+    </summary>
+    <summary id="summary-quality" sourceRefs="source-page-2">
+      <text>운영/정책 변경이 잦은 영역에서 예외 케이스·검증 로직을 체계화하고, 품질(테스트 케이스코드 작성, 타입스크립트 사용)로 회귀 리스크를 줄였습니다.</text>
+    </summary>
+  </summaries>
+  <competencies>
+    <competency id="competency-architecture" sourceRefs="source-page-2">
+      <title>프론트 아키텍처</title>
+      <text>FSD/레이어링, 도메인 모델링, 공통화(컴포넌트/훅/유틸)</text>
+    </competency>
+    <competency id="competency-state-data" sourceRefs="source-page-2">
+      <title>상태/데이터</title>
+      <text>React Query, TanStack Query 캐시 전략, 복잡 상태 Context 분리, 낙관적 업데이트</text>
+    </competency>
+    <competency id="competency-quality" sourceRefs="source-page-2">
+      <title>품질/운영</title>
+      <text>Vitest 테스트, ESLint/Prettier/Typecheck 파이프라인, Sentry, OTEL 모니터링</text>
+    </competency>
+    <competency id="competency-collaboration" sourceRefs="source-page-2">
+      <title>협업</title>
+      <text>Jira 백로그·우선순위 관리, Slack 중심 의사결정/히스토리 공유, 문서화(Notion)</text>
+    </competency>
+  </competencies>
+  <technologies>
+    <technology id="tech-react" category="frontend" sourceRefs="source-page-5 source-page-11 source-resume-page-1">
+      <name>React</name>
+      <alias>ReactJS</alias>
+    </technology>
+    <technology id="tech-nextjs" category="frontend" sourceRefs="source-page-5 source-page-11 source-resume-page-1">
+      <name>Next.js</name>
+    </technology>
+    <technology id="tech-typescript" category="language" sourceRefs="source-page-2 source-page-11 source-resume-page-1">
+      <name>TypeScript</name>
+    </technology>
+    <technology id="tech-tanstack-query" category="state-data" sourceRefs="source-page-2 source-page-5 source-page-11">
+      <name>TanStack Query</name>
+      <alias>React Query</alias>
+    </technology>
+    <technology id="tech-react-hook-form" category="state-data" sourceRefs="source-page-11">
+      <name>React Hook Form</name>
+    </technology>
+    <technology id="tech-zustand" category="state-data" sourceRefs="source-page-11">
+      <name>Zustand</name>
+    </technology>
+    <technology id="tech-tailwind" category="styling" sourceRefs="source-page-5">
+      <name>Tailwind CSS</name>
+    </technology>
+    <technology id="tech-vanilla-extract" category="styling" sourceRefs="source-page-5">
+      <name>vanilla-extract</name>
+    </technology>
+    <technology id="tech-jds-theme" category="ui-library" sourceRefs="source-page-5">
+      <name>jds/theme</name>
+    </technology>
+    <technology id="tech-scss" category="styling" sourceRefs="source-page-11">
+      <name>SCSS</name>
+    </technology>
+    <technology id="tech-mui" category="ui-library" sourceRefs="source-page-10">
+      <name>Mui</name>
+    </technology>
+    <technology id="tech-vitest" category="testing" sourceRefs="source-page-2 source-page-4 source-page-5">
+      <name>Vitest</name>
+    </technology>
+    <technology id="tech-eslint" category="quality" sourceRefs="source-page-2 source-page-5 source-page-10">
+      <name>ESLint</name>
+    </technology>
+    <technology id="tech-prettier" category="quality" sourceRefs="source-page-2 source-page-5">
+      <name>Prettier</name>
+    </technology>
+    <technology id="tech-sentry" category="monitoring" sourceRefs="source-page-2 source-page-5 source-page-11">
+      <name>Sentry</name>
+    </technology>
+    <technology id="tech-otel" category="monitoring" sourceRefs="source-page-2">
+      <name>OTEL</name>
+    </technology>
+    <technology id="tech-datadog-rum" category="monitoring" sourceRefs="source-page-11">
+      <name>Datadog RUM</name>
+    </technology>
+    <technology id="tech-aws" category="infrastructure" sourceRefs="source-page-5 source-page-11 source-resume-page-1">
+      <name>AWS</name>
+    </technology>
+    <technology id="tech-jenkins" category="ci-cd" sourceRefs="source-page-5 source-page-11">
+      <name>Jenkins</name>
+    </technology>
+    <technology id="tech-argocd" category="ci-cd" sourceRefs="source-page-5 source-page-11">
+      <name>Argo CD</name>
+    </technology>
+    <technology id="tech-gitlab" category="ci-cd" sourceRefs="source-page-5 source-page-11">
+      <name>GitLab</name>
+    </technology>
+    <technology id="tech-nx" category="build" sourceRefs="source-page-10 source-page-11">
+      <name>Nx</name>
+    </technology>
+    <technology id="tech-swagger" category="api" sourceRefs="source-page-10 source-page-11">
+      <name>Swagger</name>
+    </technology>
+    <technology id="tech-nexus" category="package-registry" sourceRefs="source-page-3 source-page-6">
+      <name>Nexus</name>
+    </technology>
+    <technology id="tech-pnpm" category="package-manager" sourceRefs="source-page-3">
+      <name>pnpm</name>
+    </technology>
+    <technology id="tech-yarn" category="package-manager" sourceRefs="source-page-3 source-page-11">
+      <name>Yarn</name>
+    </technology>
+    <technology id="tech-jira" category="collaboration" sourceRefs="source-page-2 source-page-3 source-page-5">
+      <name>Jira</name>
+    </technology>
+    <technology id="tech-slack" category="collaboration" sourceRefs="source-page-2 source-page-3 source-page-5">
+      <name>Slack</name>
+    </technology>
+    <technology id="tech-notion" category="collaboration" sourceRefs="source-page-2 source-page-5">
+      <name>Notion</name>
+    </technology>
+    <technology id="tech-cursor" category="ai-tool" sourceRefs="source-page-2">
+      <name>cursor</name>
+    </technology>
+    <technology id="tech-claude" category="ai-tool" sourceRefs="source-page-2">
+      <name>Claude</name>
+    </technology>
+    <technology id="tech-gemini" category="ai-tool" sourceRefs="source-page-2">
+      <name>Gemini</name>
+    </technology>
+    <technology id="tech-javascript" category="language" sourceRefs="source-resume-page-1 source-resume-page-4">
+      <name>JavaScript</name>
+      <alias>Javascript</alias>
+      <alias>JAVASCRIPT</alias>
+    </technology>
+    <technology id="tech-sql" category="language" sourceRefs="source-resume-page-1">
+      <name>SQL</name>
+    </technology>
+    <technology id="tech-asp" category="backend" sourceRefs="source-resume-page-1 source-resume-page-4">
+      <name>ASP</name>
+    </technology>
+    <technology id="tech-css" category="styling" sourceRefs="source-resume-page-1 source-resume-page-4">
+      <name>CSS</name>
+      <alias>CSS3</alias>
+    </technology>
+    <technology id="tech-mssql" category="database" sourceRefs="source-resume-page-1 source-resume-page-4">
+      <name>MSSQL</name>
+    </technology>
+    <technology id="tech-nodejs" category="backend" sourceRefs="source-resume-page-1 source-resume-page-4">
+      <name>Node.js</name>
+      <alias>Node Js</alias>
+    </technology>
+    <technology id="tech-vuejs" category="frontend" sourceRefs="source-resume-page-1">
+      <name>Vue.js</name>
+    </technology>
+    <technology id="tech-webpack" category="build" sourceRefs="source-resume-page-1">
+      <name>Webpack</name>
+    </technology>
+    <technology id="tech-html" category="markup" sourceRefs="source-resume-page-1 source-resume-page-5">
+      <name>HTML</name>
+    </technology>
+    <technology id="tech-aspnet" category="backend" sourceRefs="source-resume-page-1 source-resume-page-3">
+      <name>ASP.NET</name>
+    </technology>
+    <technology id="tech-rest-api" category="api" sourceRefs="source-resume-page-1">
+      <name>RestAPI</name>
+    </technology>
+    <technology id="tech-docker" category="infrastructure" sourceRefs="source-resume-page-1 source-resume-page-4">
+      <name>Docker</name>
+    </technology>
+    <technology id="tech-redux-saga" category="state-data" sourceRefs="source-resume-page-4">
+      <name>Redux-Saga</name>
+    </technology>
+    <technology id="tech-react-mobx" category="state-data" sourceRefs="source-resume-page-4">
+      <name>React-Mobx</name>
+    </technology>
+    <technology id="tech-styled-components" category="styling" sourceRefs="source-resume-page-4">
+      <name>Styled-components</name>
+    </technology>
+    <technology id="tech-ant-design" category="ui-library" sourceRefs="source-resume-page-4">
+      <name>Ant Design</name>
+    </technology>
+    <technology id="tech-gcp" category="infrastructure" sourceRefs="source-resume-page-4">
+      <name>Google Cloud Platform</name>
+    </technology>
+    <technology id="tech-github" category="development-tool" sourceRefs="source-resume-page-4">
+      <name>GitHub</name>
+    </technology>
+    <technology id="tech-teams" category="collaboration" sourceRefs="source-resume-page-4">
+      <name>Teams</name>
+    </technology>
+    <technology id="tech-monday" category="collaboration" sourceRefs="source-resume-page-4">
+      <name>Monday</name>
+    </technology>
+    <technology id="tech-vscode" category="development-tool" sourceRefs="source-resume-page-4">
+      <name>VsCode</name>
+    </technology>
+    <technology id="tech-jquery" category="frontend" sourceRefs="source-resume-page-4">
+      <name>Jquery</name>
+    </technology>
+    <technology id="tech-ajax" category="api" sourceRefs="source-resume-page-1 source-resume-page-4">
+      <name>Ajax</name>
+      <alias>AJAX</alias>
+    </technology>
+    <technology id="tech-firebase-functions" category="infrastructure" sourceRefs="source-resume-page-4">
+      <name>firebase functions</name>
+    </technology>
+  </technologies>
+  <declaredSkills sourceRefs="source-resume-page-1">
+    <declaredSkill id="declared-tech-ajax" technologyRef="tech-ajax">
+      <sourceLabel>Ajax</sourceLabel>
+    </declaredSkill>
+    <declaredSkill id="declared-tech-sql" technologyRef="tech-sql">
+      <sourceLabel>SQL</sourceLabel>
+    </declaredSkill>
+    <declaredSkill id="declared-tech-asp" technologyRef="tech-asp">
+      <sourceLabel>ASP</sourceLabel>
+    </declaredSkill>
+    <declaredSkill id="declared-tech-css" technologyRef="tech-css">
+      <sourceLabel>CSS</sourceLabel>
+      <sourceLabel>CSS3</sourceLabel>
+    </declaredSkill>
+    <declaredSkill id="declared-tech-javascript" technologyRef="tech-javascript">
+      <sourceLabel>Javascript</sourceLabel>
+    </declaredSkill>
+    <declaredSkill id="declared-tech-mssql" technologyRef="tech-mssql">
+      <sourceLabel>MSSQL</sourceLabel>
+    </declaredSkill>
+    <declaredSkill id="declared-tech-typescript" technologyRef="tech-typescript">
+      <sourceLabel>TypeScript</sourceLabel>
+    </declaredSkill>
+    <declaredSkill id="declared-tech-react" technologyRef="tech-react">
+      <sourceLabel>ReactJS</sourceLabel>
+      <sourceLabel>React</sourceLabel>
+    </declaredSkill>
+    <declaredSkill id="declared-tech-nextjs" technologyRef="tech-nextjs">
+      <sourceLabel>Next.js</sourceLabel>
+    </declaredSkill>
+    <declaredSkill id="declared-tech-nodejs" technologyRef="tech-nodejs">
+      <sourceLabel>Node.js</sourceLabel>
+    </declaredSkill>
+    <declaredSkill id="declared-tech-vuejs" technologyRef="tech-vuejs">
+      <sourceLabel>Vue.js</sourceLabel>
+    </declaredSkill>
+    <declaredSkill id="declared-tech-webpack" technologyRef="tech-webpack">
+      <sourceLabel>Webpack</sourceLabel>
+    </declaredSkill>
+    <declaredSkill id="declared-tech-html" technologyRef="tech-html">
+      <sourceLabel>HTML</sourceLabel>
+    </declaredSkill>
+    <declaredSkill id="declared-tech-aspnet" technologyRef="tech-aspnet">
+      <sourceLabel>ASP.NET</sourceLabel>
+    </declaredSkill>
+    <declaredSkill id="declared-tech-aws" technologyRef="tech-aws">
+      <sourceLabel>AWS</sourceLabel>
+    </declaredSkill>
+    <declaredSkill id="declared-tech-rest-api" technologyRef="tech-rest-api">
+      <sourceLabel>RestAPI</sourceLabel>
+    </declaredSkill>
+    <declaredSkill id="declared-tech-docker" technologyRef="tech-docker">
+      <sourceLabel>Docker</sourceLabel>
+    </declaredSkill>
+  </declaredSkills>
+  <workingPractices>
+    <practice id="practice-jira-sprints" technologyRef="tech-jira" sourceRefs="source-page-2">
+      <text>Jira : 스프린트 단위로 업무 진행</text>
+    </practice>
+    <practice id="practice-slack-communication" technologyRef="tech-slack" sourceRefs="source-page-2">
+      <text>Slack : 타부서 커뮤니케이션</text>
+    </practice>
+    <practice id="practice-notion-documentation" technologyRef="tech-notion" sourceRefs="source-page-2">
+      <text>Notion : 일정관리, 데이터 문서화</text>
+    </practice>
+    <practice id="practice-development-tools" technologyRefs="tech-cursor tech-claude" sourceRefs="source-page-2" status="needs-review">
+      <text>Dev : cursor, caludeCode</text>
+    </practice>
+    <practice id="practice-goal-squads" sourceRefs="source-page-3">
+      <text>TF 내에서 목적(Goal) 단위로 스쿼드를 구성해 실행과 의사결정을 빠르게 진행</text>
+    </practice>
+    <practice id="practice-work-tracking" technologyRef="tech-jira" sourceRefs="source-page-3">
+      <text>업무 요청은 Jira로 접수하여 우선순위/범위를 정리하고 진행 상태를 투명하게 트래킹</text>
+    </practice>
+    <practice id="practice-iterative-delivery" sourceRefs="source-page-3">
+      <text>대형 과제는 애자일 스프린트로 목표와 범위를 반복 점검하며 점진적 개선</text>
+    </practice>
+    <practice id="practice-decision-history" technologyRef="tech-slack" sourceRefs="source-page-3">
+      <text>커뮤니케이션은 Slack 중심, 결정 사항과 진행 히스토리를 문서/메시지로 남겨 협업 비용을 절감</text>
+    </practice>
+  </workingPractices>
+  <projects>
+    <project id="project-jobkorea-bizcenter" sourceRefs="source-page-4 source-page-5 source-resume-page-1 source-resume-page-2" status="source-reported" employmentRef="employment-worksphere">
+      <title>잡코리아 비즈센터 구축</title>
+      <period status="missing">
+        <start/>
+        <end/>
+      </period>
+      <team>
+        <memberCount discipline="frontend" unit="person">6</memberCount>
+      </team>
+      <role>지원자 관리(ATS) 및 지원자 관련 전반 프로세스 개발</role>
+      <responsibility sourceRefs="source-page-4">지원자 관련 페이지 전반을 리딩하고, 디자이너/기획자와 협업하여 요구사항을 구체화 및 구현</responsibility>
+      <summary>지원자 관리(ATS) 및 채용 성과 리포트 기능을 구축하고, 복잡한 UI/상태를 구조화해 유지보수성과 성능을 함께 개선</summary>
+      <link kind="technical-document">https://www.ycseng.com/projects/jobkorea-bizcenter</link>
+      <technologyRefs>
+        <use ref="tech-react" version="18"/>
+        <use ref="tech-nextjs"/>
+        <use ref="tech-tanstack-query"/>
+        <use ref="tech-jds-theme"/>
+        <use ref="tech-tailwind" version="3"/>
+        <use ref="tech-vanilla-extract"/>
+        <use ref="tech-vitest"/>
+        <use ref="tech-eslint"/>
+        <use ref="tech-prettier"/>
+        <use ref="tech-sentry"/>
+        <use ref="tech-aws"/>
+        <use ref="tech-jenkins"/>
+        <use ref="tech-argocd"/>
+        <use ref="tech-gitlab"/>
+        <use ref="tech-notion"/>
+        <use ref="tech-slack"/>
+        <use ref="tech-jira"/>
+      </technologyRefs>
+      <responsibilityVariant id="bizcenter-resume-responsibility" sourceRefs="source-resume-page-1" status="needs-review">지원자 관련 페이지 전반을 구축하고, 디자이너/기획자와 협업하여 요구사항을 구체화 및 구현</responsibilityVariant>
+    </project>
+    <project id="project-albamon-operations" sourceRefs="source-page-5 source-page-6 source-page-7 source-resume-page-2" status="source-reported" employmentRef="employment-worksphere">
+      <title>알바몬 서비스 (PC/M) 운영</title>
+      <period precision="month" status="user-confirmed" sourceRefs="source-resume-page-2">
+        <start>2023-10</start>
+        <end>2026-02</end>
+      </period>
+      <team status="missing"/>
+      <role status="missing"/>
+      <domains>
+        <domain>마이페이지</domain>
+        <domain>이력서(작성/등록, 수정, 상세 입력)</domain>
+        <domain>포트폴리오(등록/관리)</domain>
+        <domain>지원현황(조회/관리)</domain>
+        <domain>인재관리(리스트, 상세)</domain>
+        <domain>이벤트/프로모션 페이지 개발 (PC/M/ADMIN)</domain>
+      </domains>
+      <periodVariant id="project-albamon-operations-career-period" sourceRefs="source-page-6" precision="month" status="superseded">
+        <start>2023-11</start>
+        <end>2026-02</end>
+      </periodVariant>
+      <alias sourceRefs="source-resume-page-2">알바몬 MSA 운영</alias>
+    </project>
+    <project id="project-albamon-msa" sourceRefs="source-page-8 source-page-9 source-page-10 source-page-11 source-resume-page-3 source-resume-page-4" status="source-reported" employmentRef="employment-worksphere">
+      <title>알바몬 MSA(PC/M) 구축</title>
+      <period precision="month" status="user-confirmed" sourceRefs="source-resume-page-3">
+        <start>2022-10</start>
+        <end>2023-10</end>
+      </period>
+      <team sourceRefs="source-resume-page-4">
+        <memberCount discipline="frontend" unit="person">4</memberCount>
+      </team>
+      <role>개인파트 소속 FE 개발자 담당자로 (마이페이지/이력서/포트폴리오/지원) 비즈니스 도메인을 설계·개발을 담당</role>
+      <summary>ASP.NET 기반 레거시 프로젝트를 React/Next.js 기반 프론트엔드로 전환 및 고도화</summary>
+      <technologyRefs status="needs-review">
+        <use ref="tech-nextjs" version="12.2.2"/>
+        <use ref="tech-typescript"/>
+        <use ref="tech-react"/>
+        <use ref="tech-nx" version="13.8.3"/>
+        <use ref="tech-scss"/>
+        <use ref="tech-tanstack-query" version="5"/>
+        <use ref="tech-react-hook-form" version="7"/>
+        <use ref="tech-zustand" version="5"/>
+        <use ref="tech-yarn"/>
+        <use ref="tech-sentry"/>
+        <use ref="tech-datadog-rum"/>
+        <use ref="tech-aws"/>
+        <use ref="tech-jenkins"/>
+        <use ref="tech-argocd"/>
+        <use ref="tech-gitlab"/>
+        <use ref="tech-mui"/>
+        <use ref="tech-swagger"/>
+      </technologyRefs>
+      <periodVariant id="project-albamon-msa-career-period" sourceRefs="source-page-8" precision="month" status="superseded">
+        <start>2022-10</start>
+        <end>2023-08</end>
+      </periodVariant>
+      <responsibility sourceRefs="source-resume-page-4">개인 서비스에 이력서, 지원, 인재, 도메인 담당, 외주 코드 품질관리, 알바몬 이벤트 페이지 제작</responsibility>
+      <link kind="service-desktop" sourceRefs="source-resume-page-3">https://www.albamon.com/</link>
+      <link kind="service-mobile" sourceRefs="source-resume-page-3">https://m.albamon.com/</link>
+    </project>
+    <project id="project-fujifilm-commerce" sourceRefs="source-page-11 source-page-12 source-resume-page-4" status="source-reported" employmentRef="employment-fujifilm">
+      <title>한국후지필름 쇼핑물 운영</title>
+      <period precision="month" status="source-reported">
+        <start>2019-03</start>
+        <end>2021-04</end>
+      </period>
+      <team status="missing"/>
+      <role>IT지원담당 부서에서 웹 개발자로 전반적인 커머스 쇼핑몰 운영 및 서버운영, 웹 개발 업무를 전반적으로 담당하였습니다.</role>
+    </project>
+    <project id="project-happyshopping-platform" employmentRef="employment-happyshopping" sourceRefs="source-resume-page-4" status="source-reported">
+      <title>가격비교 플랫폼 유지보수 및 프로젝트 개발</title>
+      <period status="missing">
+        <start/>
+        <end/>
+      </period>
+      <summary>가격비교 플랫폼 사이트 신규 프로젝트 개발, 백오피스 관리자 회원관리, 결제내역, 데이터 시각화(차트) 등 개발</summary>
+      <periodNote>별도 프로젝트 수행기간은 기재되지 않았으며 회사 재직기간을 대신 사용하지 않습니다.</periodNote>
+    </project>
+  </projects>
+  <contributions>
+    <contribution id="contribution-ai-guidelines" sourceRefs="source-page-2 source-page-3">
+      <title>AI 가이드라인 수립 및 도구 최적화</title>
+      <period status="missing">
+        <start/>
+        <end/>
+      </period>
+    </contribution>
+    <contribution id="contribution-pr-automation" sourceRefs="source-page-3">
+      <title>GitHub PR(Pull Request) 자동화 및 요약 스킬 개발</title>
+      <period status="missing">
+        <start/>
+        <end/>
+      </period>
+    </contribution>
+    <contribution id="contribution-code-summary" sourceRefs="source-page-3">
+      <title>코드 요약 자동화 도입</title>
+      <period status="missing">
+        <start/>
+        <end/>
+      </period>
+    </contribution>
+    <contribution id="contribution-shared-libraries" sourceRefs="source-page-3">
+      <title>사내 공용 유틸/라이브러리 제작</title>
+      <period status="missing">
+        <start/>
+        <end/>
+      </period>
+    </contribution>
+    <contribution id="contribution-tech-blog" sourceRefs="source-page-3 source-resume-page-4">
+      <title>잡코리아(웍스피어) 1기 기술 블로그 운영진 (역할 기반)</title>
+      <period status="missing">
+        <start/>
+        <end/>
+      </period>
+    </contribution>
+  </contributions>
+  <initiatives>
+    <initiative id="initiative-resume-reboot" projectRef="project-albamon-operations" sourceRefs="source-resume-page-2 source-resume-page-3" status="source-reported">
+      <title>리부트데이 이력서 개편</title>
+      <period precision="month" status="source-reported">
+        <start>2025-11</start>
+        <end>2026-01</end>
+      </period>
+    </initiative>
+    <initiative id="initiative-amz" projectRef="project-albamon-operations" sourceRefs="source-resume-page-3" status="source-reported">
+      <title>알바몬제트(AMZ) 상품화</title>
+      <period precision="month" status="source-reported">
+        <start>2025-05</start>
+        <end>2025-09</end>
+      </period>
+    </initiative>
+    <initiative id="initiative-deeplink" projectRef="project-albamon-operations" sourceRefs="source-resume-page-3" status="source-reported">
+      <title>딥링크 개편</title>
+      <period precision="month" status="source-reported">
+        <start>2024-12</start>
+        <end>2025-03</end>
+      </period>
+    </initiative>
+    <initiative id="initiative-talent-ui" projectRef="project-albamon-operations" sourceRefs="source-resume-page-3" status="source-reported">
+      <title>인재정보 영역 개선</title>
+      <period precision="month" status="source-reported">
+        <start>2024-07</start>
+        <end>2024-09</end>
+      </period>
+    </initiative>
+    <initiative id="initiative-company-auth" projectRef="project-albamon-operations" sourceRefs="source-resume-page-3" status="source-reported">
+      <title>기업 인증 고도화</title>
+      <period precision="month" status="source-reported">
+        <start>2024-04</start>
+        <end>2024-06</end>
+      </period>
+    </initiative>
+    <initiative id="initiative-applicant-notification" projectRef="project-albamon-operations" sourceRefs="source-resume-page-3" status="source-reported">
+      <title>온라인 지원자 실시간 알림톡 발송 플로우 추가</title>
+      <period precision="month" status="source-reported">
+        <start>2024-02</start>
+        <end>2024-03</end>
+      </period>
+    </initiative>
+    <initiative id="initiative-resume-skills" projectRef="project-albamon-operations" sourceRefs="source-resume-page-3" status="source-reported">
+      <title>이력서 스킬 항목 도입</title>
+      <period precision="month" status="source-reported">
+        <start>2023-09</start>
+        <end>2023-11</end>
+      </period>
+    </initiative>
+  </initiatives>
+  <workItems>
+    <workItem id="work-bizcenter-layering" projectRef="project-jobkorea-bizcenter" sourceRefs="source-page-4" kind="architecture">
+      <title>UI·도메인·데이터 계층 분리</title>
+      <text>FSD + DDP 혼합 구조로 UI/도메인/데이터 계층 분리</text>
+      <text>views/features/entities/core-data 계층 분리로 책임 경계 명확화</text>
+    </workItem>
+    <workItem id="work-bizcenter-data-access" projectRef="project-jobkorea-bizcenter" sourceRefs="source-page-4 source-page-5" kind="architecture">
+      <title>데이터 계층 안정화(DDP)</title>
+      <text>Repository + Mapper + Domain Service 패턴으로 API 스키마 변경 영향 최소화</text>
+      <text>Repository → Mapper → Domain Service → Hook/UI 흐름으로 데이터 접근 단일화</text>
+      <text>DTO와 화면 모델 분리로 스키마 변경 시 영향 범위 축소</text>
+    </workItem>
+    <workItem id="work-bizcenter-ui-model" projectRef="project-jobkorea-bizcenter" sourceRefs="source-page-4" kind="architecture">
+      <title>UI 전용 모델 변환</title>
+      <text>Domain Service에서 API 응답을 UI 전용 모델로 변환하여 재사용성과 유지보수성 확보</text>
+    </workItem>
+    <workItem id="work-bizcenter-state-contexts" projectRef="project-jobkorea-bizcenter" sourceRefs="source-page-4 source-page-5" kind="state-management">
+      <title>화면 상태 컨텍스트 분리</title>
+      <text>동일 데이터 소스를 뷰별로 재사용할 수 있도록 화면 상태를 4개 Context(Selection/Kanban/Table/Actions)로 분리</text>
+    </workItem>
+    <workItem id="work-bizcenter-applicant-views" projectRef="project-jobkorea-bizcenter" sourceRefs="source-page-5" kind="feature">
+      <title>지원자 관리 화면 구성</title>
+      <text>칸반/테이블 2개 뷰를 동시에 운영하는 목록 화면에서 검색·필터·정렬·페이지네이션·상세 모달 등 구현</text>
+    </workItem>
+    <workItem id="work-bizcenter-query-consistency" projectRef="project-jobkorea-bizcenter" technologyRef="tech-tanstack-query" sourceRefs="source-page-4 source-page-5" kind="state-management">
+      <title>목록·상세 데이터 정합성</title>
+      <text>TanStack Query 기반 캐시 무효화/동기화 전략 설계로 목록-상세 데이터 정합성 개선</text>
+      <text>상태 반영 지연을 줄이기 위해 일부 액션은 쿼리 동기화 및 캐싱 처리 적용</text>
+    </workItem>
+    <workItem id="work-bizcenter-empty-error-states" projectRef="project-jobkorea-bizcenter" sourceRefs="source-page-5" kind="validation">
+      <title>빈 상태와 예외 구분</title>
+      <text>빈 상태(검색 결과 없음, 공고 자체 지원자 없음)와 예외(잘못된 공고 ID)를 분리 처리해 운영 안정성 강화</text>
+    </workItem>
+    <workItem id="work-bizcenter-applicant-actions" projectRef="project-jobkorea-bizcenter" sourceRefs="source-page-5" kind="feature">
+      <title>지원자 액션 플로우 고도화</title>
+      <text>스크랩, 삭제, 면접 제안, 일괄 액션 등 운영 기능을 일관된 패턴으로 구현</text>
+    </workItem>
+    <workItem id="work-bizcenter-dynamic-import" projectRef="project-jobkorea-bizcenter" sourceRefs="source-page-4 source-page-5" kind="performance">
+      <title>무거운 컴포넌트 분리</title>
+      <text>무거운 컴포넌트를 dynamic import로 분리해 초기 로딩속도 향상</text>
+    </workItem>
+    <workItem id="work-bizcenter-tests" projectRef="project-jobkorea-bizcenter" technologyRef="tech-vitest" sourceRefs="source-page-4 source-page-5" kind="quality">
+      <title>훅·도메인 테스트</title>
+      <text>Vitest 기반 훅/도메인 테스트로 회귀 안정성 강화</text>
+    </workItem>
+    <workItem id="work-bizcenter-quality-pipeline" projectRef="project-jobkorea-bizcenter" technologyRefs="tech-eslint tech-prettier" sourceRefs="source-page-5" kind="quality">
+      <title>코드 품질 파이프라인</title>
+      <text>ESLint/Prettier/Typecheck 파이프라인으로 코드 표준화 및 일관성 유지</text>
+    </workItem>
+    <workItem id="work-albamon-events" projectRef="project-albamon-operations" sourceRefs="source-page-6" kind="feature">
+      <title>이벤트·프로모션 페이지 개발</title>
+      <text>출석체크/쿠폰·경품/즉시당첨 등 참여형 이벤트 페이지를 구현하며, 상태 분기·중복 방지·서버시간 기준 동기화 등 운영 리스크를 흡수</text>
+    </workItem>
+    <workItem id="work-albamon-resume-api" projectRef="project-albamon-operations" sourceRefs="source-page-6" kind="api" initiativeRef="initiative-resume-reboot">
+      <title>리부트데이 신규 API 환경</title>
+      <text>신규 BE API 구성을 위한 환경 구성</text>
+      <text>스키마 타입 자동 생성</text>
+      <text>환경별(개발/운영) 도메인 인증 환경 구성</text>
+    </workItem>
+    <workItem id="work-albamon-design-tokens" projectRef="project-albamon-operations" sourceRefs="source-page-6" kind="design-system" status="needs-review" initiativeRef="initiative-resume-reboot">
+      <title>리부트데이 디자인 시스템</title>
+      <text>Figama 디자인 시스템을 환경 구성</text>
+      <text>Figama 디자인 토큰 변수화</text>
+      <text>토큰 기반 공통 시스템 컴포넌트 생성</text>
+    </workItem>
+    <workItem id="work-albamon-minimal-resume" projectRef="project-albamon-operations" sourceRefs="source-page-6 source-resume-page-2 source-resume-page-3" kind="feature" initiativeRef="initiative-resume-reboot">
+      <title>최소 입력 기반 이력서 등록·지원</title>
+      <text>‘이력서 없이 탐색/지원’ 흐름에서 필요한 시점에 최소 정보만 입력해 이력서 등록/지원까지 이어지는 신규 페이지 설계·구현</text>
+    </workItem>
+    <workItem id="work-albamon-resume-entry-policies" projectRef="project-albamon-operations" sourceRefs="source-page-6 source-resume-page-2 source-resume-page-3" kind="validation" initiativeRef="initiative-resume-reboot">
+      <title>간편·기본 이력서 정책 분리</title>
+      <text>간편/기본 이력서 작성·저장·지원 진입 정책 분리</text>
+    </workItem>
+    <workItem id="work-albamon-deeplink-library" projectRef="project-albamon-operations" technologyRef="tech-nexus" sourceRefs="source-page-6 source-resume-page-3" kind="library" initiativeRef="initiative-deeplink">
+      <title>딥링크 패키지 제작 및 버전 관리</title>
+      <text>딥링크 버전 관리를 위한 공통 라이브러리 제작 및 Nexus 배포/버전 관리</text>
+      <link kind="technical-document">https://www.ycseng.com/projects/albamon-deeplink-library</link>
+    </workItem>
+    <workItem id="work-albamon-deeplink-routing" projectRef="project-albamon-operations" sourceRefs="source-page-6 source-page-7 source-resume-page-3" kind="validation" initiativeRef="initiative-deeplink">
+      <title>앱·웹 딥링크 분기</title>
+      <text>브라우저 진입 시에도 동일 동작을 보장하도록 전체 플로우 정비</text>
+      <text>허용 쿼리키 제한, OS별 분기, 앱/웹 전환 로직 정비로 잘못된 파라미터 접근 방지</text>
+    </workItem>
+    <workItem id="work-albamon-amz" projectRef="project-albamon-operations" sourceRefs="source-page-7 source-resume-page-3" kind="feature" initiativeRef="initiative-amz">
+      <title>알바몬제트(AMZ) 상품화</title>
+      <text>기능/노출 단위를 정리하고, 배포 프로세스에 맞춘 이슈 기반 개발·검증·배포 수행</text>
+      <text>AMZ 기본 상품화로 노출 지면 확장(제트 공고 → 제트 + 유료 공고) 및 안내/구매 유도 UI 개선</text>
+    </workItem>
+    <workItem id="work-albamon-resume-validation" projectRef="project-albamon-operations" sourceRefs="source-page-7" kind="validation">
+      <title>어학·자격증 유효성</title>
+      <text>어학·자격증 정책 변경에 맞춰 누락 케이스까지 포함한 유효성 체크 로직 추가로 저장 단계 오류 예방</text>
+    </workItem>
+    <workItem id="work-albamon-education-validation" projectRef="project-albamon-operations" sourceRefs="source-page-7" kind="validation">
+      <title>이력서 상세학력 예외 처리</title>
+      <text>이력서 상세학력 입력 오류 수정 문서 기반으로 학력 입력 예외 케이스 정리 및 문구/검증 로직 개선</text>
+    </workItem>
+    <workItem id="work-albamon-talent-ui" projectRef="project-albamon-operations" sourceRefs="source-page-7 source-resume-page-3" kind="feature" initiativeRef="initiative-talent-ui">
+      <title>인재정보 카드 UI/UX 개편</title>
+      <text>인재 리스트/뷰 UI 고도화로 정보 밀도와 탐색 흐름(리스트 → 상세 → 액션) 일관성 개선</text>
+    </workItem>
+    <workItem id="work-albamon-company-auth" projectRef="project-albamon-operations" sourceRefs="source-page-7 source-resume-page-3" kind="automation" initiativeRef="initiative-company-auth">
+      <title>기업 인증 고도화</title>
+      <text>실패 시나리오 기반 상태 전이/예외 처리 플로우 정리 후 개선</text>
+      <text>기업인증 자동화로 수동 프로세스 자동화</text>
+    </workItem>
+    <workItem id="work-albamon-applicant-notifications" projectRef="project-albamon-operations" sourceRefs="source-page-7 source-resume-page-3" kind="feature" initiativeRef="initiative-applicant-notification">
+      <title>온라인 지원자 실시간 알림톡 발송</title>
+      <text>온라인 지원 발생 시 기업 담당자 알림톡 안내로 지원서 열람 유도 및 전환 개선</text>
+      <text>앱 설치 여부, 로그인 상태 분기 UX 정리 및 루프 방지</text>
+    </workItem>
+    <workItem id="work-albamon-notification-tracking" projectRef="project-albamon-operations" sourceRefs="source-page-7 source-resume-page-3" kind="analytics" initiativeRef="initiative-applicant-notification">
+      <title>알림톡 유입 통계</title>
+      <text>유입 통계 추적을 위한 브릿지(중계) 페이지 도입 및 이벤트 적재 기준 정의·구현</text>
+    </workItem>
+    <workItem id="work-albamon-resume-skills" projectRef="project-albamon-operations" sourceRefs="source-page-7 source-resume-page-3" kind="feature" initiativeRef="initiative-resume-skills">
+      <title>이력서 스킬 항목 도입</title>
+      <text>스킬을 이력서 신규 데이터로 정의하고 사용자 직접 등록 입력 프로세스 설계·구현</text>
+      <text>PC/M 공통 정책으로 등록·수정·삭제 UX 통일</text>
+    </workItem>
+    <workItem id="work-albamon-skills-validation" projectRef="project-albamon-operations" sourceRefs="source-page-7 source-resume-page-3" kind="validation" initiativeRef="initiative-resume-skills">
+      <title>스킬 입력 검증</title>
+      <text>자동완성(추천 목록) + 직접 입력 예외 처리, 중복 방지/최대 개수 제한 등 유효성 규칙 반영</text>
+    </workItem>
+    <workItem id="work-msa-paid-resume" projectRef="project-albamon-msa" sourceRefs="source-page-8" kind="feature">
+      <title>이력서 강조상품 (M)</title>
+      <text>이력서 유형별 유료 상품 조회</text>
+      <text>이력서 상품 결제 신청</text>
+      <text>알바몬 결제 서버를 별도로 운영중으로 상품에 맞춰서 결제 서버로 데이터 전송</text>
+    </workItem>
+    <workItem id="work-msa-resume-views" projectRef="project-albamon-msa" sourceRefs="source-page-8" kind="feature">
+      <title>이력서 열람 스크랩 (PC/M)</title>
+      <text>이력서 열람 상태별 메뉴 (이력서 열람, 알바제의, 이력서 스크랩)</text>
+      <text>이력서 열람 제한설정/삭제 기능</text>
+      <text>알바제의 응답/거절/홀드 기능</text>
+    </workItem>
+    <workItem id="work-msa-applications" projectRef="project-albamon-msa" sourceRefs="source-page-8 source-page-9" kind="feature">
+      <title>지원현황 (PC/M)</title>
+      <text>지원 타입별 메뉴 (전체, 지원완료, 면접, 합격, 불합격/취소)</text>
+      <text>지원 상태별 조회 (온라인, 이메일, 문자, 기타 지원)</text>
+      <text>지원 카드</text>
+      <text>설정 메뉴 (지원내역, 지원 숨기기, 메모)</text>
+      <text>체용 알림받기</text>
+      <text>지원 내역 검색</text>
+    </workItem>
+    <workItem id="work-msa-resume-editing" projectRef="project-albamon-msa" sourceRefs="source-page-9" kind="feature">
+      <title>이력서 작성/수정 (PC/M)</title>
+      <text>포트폴리오 등록, 자기소개서, 취업우대사항, 자격증 영역 담당</text>
+      <text>이력서 현재 입력 사항 체크리스트</text>
+      <text>이력서 전체 상태를 구독하고 있으며, 필수, 선택 항목으로 구분</text>
+    </workItem>
+    <workItem id="work-msa-resume-visibility" projectRef="project-albamon-msa" sourceRefs="source-page-9" kind="feature">
+      <title>이력서 공개설정 (PC/M)</title>
+      <text>이력서 비공개/공개 설정 및 상태조회 페이지</text>
+      <text>이력서 설정 기능 구현 (공개기간 날짜, 연락처 선택, 통화 시간, 기업용 메시지)</text>
+    </workItem>
+    <workItem id="work-msa-resume-management" projectRef="project-albamon-msa" sourceRefs="source-page-9" kind="feature">
+      <title>이력서 관리 (PC/M)</title>
+      <text>이력서 리스트 (임시 이력서, 일반 이력서)</text>
+      <text>기본/임시 이력서 카드</text>
+      <text>이력서 설정 메뉴(모달) &gt; 이메일 발송, 이력서 삭제, 이력서 인쇄</text>
+      <text>이력서 상태별 액션바 구성</text>
+    </workItem>
+    <workItem id="work-msa-swipe-banners" projectRef="project-albamon-msa" sourceRefs="source-page-9" kind="feature">
+      <title>스와이프 배너</title>
+      <text>배너 조회.클릭 수집 통계</text>
+      <text>관리자 타입별로 배너 등록/삭제</text>
+    </workItem>
+    <workItem id="work-msa-my-page" projectRef="project-albamon-msa" sourceRefs="source-page-9" kind="feature">
+      <title>마이페이지(M)</title>
+      <text>사용자 프로필 조회/등록/수정/삭제</text>
+      <text>나의소식 타입별 UI 리스트 / 알림 URL로 이동</text>
+      <text>이력서/지원/스크랩 카운트 조회</text>
+      <text>AI 추천 알바 공고 리스트 (조회, 스크랩)</text>
+    </workItem>
+    <workItem id="work-msa-portfolio" projectRef="project-albamon-msa" sourceRefs="source-page-9" kind="feature">
+      <title>포트폴리오 관리 (PC/M)</title>
+      <text>포트폴리오 리스트 (조회, 삭제)</text>
+      <text>포트폴리오 URL 등록, 파일 업로드</text>
+      <text>포트폴리오 다운로드. 링크 이동(앱의 경우 외부 브라우저로 이동)</text>
+    </workItem>
+    <workItem id="work-msa-admin" projectRef="project-albamon-msa" technologyRefs="tech-react tech-nextjs tech-mui" sourceRefs="source-page-8 source-page-10" kind="feature">
+      <title>알바몬 MSA 관리자</title>
+      <text>React, Next, Mui 기반으로 구성된 알바몬 관리자</text>
+      <text>개인서비스 개발 관련 영역 부분을 담당하며 같이 개발 진행</text>
+    </workItem>
+    <workItem id="work-msa-api-types" projectRef="project-albamon-msa" technologyRef="tech-swagger" sourceRefs="source-page-10 source-page-11" kind="automation">
+      <title>REST API 스키마 타입 변환 자동화</title>
+      <text>API 서버에서 Swagger 를 별도로 운영하고 있으며, 문서 정보를 통해서 스키마의 타입 정보를 프론트엔드 enum type, interface 타입으로 변환합니다 , 변환한 타입을 서비스 도메인별 API 요청에 사용해서 API 를 호출합니다</text>
+    </workItem>
+    <workItem id="work-msa-monorepo" projectRef="project-albamon-msa" technologyRef="tech-nx" sourceRefs="source-page-10 source-page-11" kind="architecture" status="needs-review">
+      <title>서비스별 모노레포 구성</title>
+      <text>4개 도메인(서비스, 알바토크, 기업, 서비스, 개인)을 nx 프레임워크를 사용하여 모노레포로 구성/ 4개 도메인을 하나의 프로젝트로 관리</text>
+      <text>서비스 구조: 4개 서비스 (알바토크, 비즈니스, 서비스, 개인)를 Nx</text>
+    </workItem>
+    <workItem id="work-msa-shared-libraries" projectRef="project-albamon-msa" technologyRef="tech-eslint" sourceRefs="source-page-10 source-page-11" kind="architecture">
+      <title>libs/shared 공유 구조</title>
+      <text>libs/shared 기반 컴포넌트/훅/유틸을 4개의 도메인에서 동일하게 사용</text>
+      <text>eslint 규칙으로 각 도메인에서 libs/shared 공유 구조를 통해서만 각 도메인의 컴포넌트, 유틸, 훅 등을 사용할 수 있도록 구성되어 있습니다.</text>
+    </workItem>
+    <workItem id="work-msa-app-bridge" projectRef="project-albamon-msa" sourceRefs="source-page-8 source-page-10" kind="architecture">
+      <title>useAppBridge 훅</title>
+      <text>알바몬은 하이드리드 앱으로 구성되어 있어, 앱과의 통신을 위한 훅을 공용으로 사용합니다.</text>
+      <text>해당 훅을 사용하여 앱 기능 스펙을 관리 및 핸들링하고 있습니다.</text>
+      <text>캡처, 새창 열기 및 이동, 새창 닫기, 앱 로그인 화면 이동, 앱 동의 화면 이동 등</text>
+      <text>구조상 대부분의 앱브릿지 기능은 FE 가 제어권을 가지며 앱에서는 기능만 제공</text>
+    </workItem>
+    <workItem id="work-msa-router" projectRef="project-albamon-msa" technologyRef="tech-nextjs" sourceRefs="source-page-10" kind="architecture">
+      <title>useRouter 커스텀 훅</title>
+      <text>next 기반으로 구성한 UseRouter 를 커스텀하여 사용하였습니다.</text>
+      <text>알바몬 모바일 웹은, 모바일 앱도 하나의 레포에서 관리 되고 있어서 UseRouter 를 사용하여 앱과의 통신을 통한 페이지 이동, 새창 이동의 히스토리를 제어 및 관리 하고 있습니다.</text>
+    </workItem>
+    <workItem id="work-msa-webview-repository" projectRef="project-albamon-msa" sourceRefs="source-page-8" kind="architecture">
+      <title>모바일 웹·웹뷰 공통 저장소</title>
+      <text>PC/M 레포로 구성되어 있으며 M 은 모바일 웹, 모바일 앱(웹뷰) 모두 대응하는 형태로 공통 레포로 관리</text>
+      <text>모바일 웹은 앱브릿지를 통해서 앱과 통신하여 기능을 구현</text>
+    </workItem>
+    <workItem id="work-msa-file-server" projectRef="project-albamon-msa" sourceRefs="source-page-10" kind="api">
+      <title>파일 등록/삭제</title>
+      <text>알바몬의 파일 업로드는 알바몬 IDC 파일서버를 통해서 제공</text>
+      <text>테스트/운영 파일서버 도메인을 별도로 관리하고 있으며 파일서버에서 업로드/삭제/파일 조회 기능을 제공합니다.</text>
+    </workItem>
+    <workItem id="work-fujifilm-points" projectRef="project-fujifilm-commerce" sourceRefs="source-page-11" kind="feature">
+      <title>적립금 일괄지급 시스템</title>
+      <text>엑셀파일을 업로드하면 해당 아이디에 해당하는 회원 적립금 일괄 지급</text>
+    </workItem>
+    <workItem id="work-fujifilm-employee-sales" projectRef="project-fujifilm-commerce" sourceRefs="source-page-11" kind="feature">
+      <title>임직원 상품 판매 시스템</title>
+      <text>담당 임직원 이름 유효성 체크</text>
+      <text>임직원 이름이 일차하는 경우 자동 상품 주문</text>
+    </workItem>
+    <workItem id="work-fujifilm-kakao-signup" projectRef="project-fujifilm-commerce" sourceRefs="source-page-11 source-page-12" kind="feature">
+      <title>카카오 SNS 회원가입</title>
+      <text>기존회원의 카카오 신규회원 가입 프로세스 도입</text>
+    </workItem>
+    <workItem id="work-fujifilm-kcp" projectRef="project-fujifilm-commerce" sourceRefs="source-page-12 source-resume-page-4" kind="feature">
+      <title>KCP 결제 모듈 변경</title>
+      <text>기존 KCP 모듈 노후화로 모듈 변경 및 결제 시스템 개편</text>
+    </workItem>
+    <workItem id="work-fujifilm-instagram" projectRef="project-fujifilm-commerce" sourceRefs="source-page-12" kind="feature">
+      <title>인스타그램 게시물 조회</title>
+      <text>인스타그램 게시물 조회</text>
+    </workItem>
+    <workItem id="work-fujifilm-entry-coupon" projectRef="project-fujifilm-commerce" sourceRefs="source-page-12" kind="event">
+      <title>응모형 쿠폰발급 이벤트</title>
+      <text>응모형 쿠폰발급 이벤트</text>
+    </workItem>
+    <workItem id="work-fujifilm-exam-event" projectRef="project-fujifilm-commerce" sourceRefs="source-page-12" kind="event">
+      <title>수능 이벤트</title>
+      <text>수능 이벤트 (이미지 첨부)</text>
+    </workItem>
+    <workItem id="work-fujifilm-random-coupon" projectRef="project-fujifilm-commerce" sourceRefs="source-page-12" kind="event">
+      <title>랜덤 쿠폰 발급 이벤트</title>
+      <text>랜덤 쿠폰 발급 이벤트</text>
+    </workItem>
+    <workItem id="work-fujifilm-attendance" projectRef="project-fujifilm-commerce" sourceRefs="source-page-12" kind="event">
+      <title>출석체크 이벤트</title>
+      <text>출석체크 이벤트</text>
+    </workItem>
+    <workItem id="work-fujifilm-roulette" projectRef="project-fujifilm-commerce" sourceRefs="source-page-12" kind="event">
+      <title>룰렛 이벤트</title>
+      <text>룰렛 이벤트</text>
+    </workItem>
+    <workItem id="work-ai-guidelines" contributionRef="contribution-ai-guidelines" technologyRefs="tech-gemini tech-claude" sourceRefs="source-page-2" kind="enablement">
+      <title>생성형 AI 활용 가이드</title>
+      <text>Gemini/Claude 초기 활용 가이드 정의: 팀 내 생성형 AI 도입을 위한 정책 가이드 수립 및 개발 생산성 설정 스킬 업데이트.</text>
+    </workItem>
+    <workItem id="work-ai-qa" contributionRef="contribution-ai-guidelines" sourceRefs="source-page-3" kind="enablement">
+      <title>AI 기반 QA 디버깅</title>
+      <text>이력서 QA 디버깅 생산성 향상: 알바몬 정책 가이드를 반영하여 QA 단계에 AI를 접목</text>
+    </workItem>
+    <workItem id="work-pr-summary" contributionRef="contribution-pr-automation" sourceRefs="source-page-3" kind="automation">
+      <title>PR 본문 자동 생성·요약</title>
+      <text>자동 요약 스킬 제작: AI가 코드 변경점을 분석하여 PR 본문을 자동으로 생성하고 요약하는 기능 구현.</text>
+    </workItem>
+    <workItem id="work-pr-slack" contributionRef="contribution-pr-automation" technologyRef="tech-slack" sourceRefs="source-page-3" kind="automation">
+      <title>PR 요약 Slack 전송</title>
+      <text>Slack 연동 알림 스킬: 요약된 PR 내용을 코드 리뷰 전용 Slack 채널로 자동 전송하여 팀 내 전파 속도 최적화.</text>
+    </workItem>
+    <workItem id="work-code-summary" contributionRef="contribution-code-summary" sourceRefs="source-page-3" kind="enablement">
+      <title>코드 요약 스킬 배포</title>
+      <text>AI 코드 요약 스킬 도입: 일관된 리뷰 품질 유지를 위해 AI 요약 스킬을 배포</text>
+    </workItem>
+    <workItem id="work-shared-package-development" contributionRef="contribution-shared-libraries" sourceRefs="source-page-3" kind="library">
+      <title>공용 모듈·패키지 제작</title>
+      <text>협업에 필요한 라이브러리를 모듈/패키지 형태로 제작</text>
+    </workItem>
+    <workItem id="work-shared-package-distribution" contributionRef="contribution-shared-libraries" technologyRefs="tech-nexus tech-pnpm tech-yarn" sourceRefs="source-page-3" kind="library">
+      <title>공용 패키지 배포·운영</title>
+      <text>Nexus에 패키지를 배포하고 pnpm/yarn 등 패키지 매니저 기반으로 팀에 공유/운영</text>
+    </workItem>
+    <workItem id="work-shared-deeplink-admin" contributionRef="contribution-shared-libraries" sourceRefs="source-page-3" kind="library">
+      <title>딥링크 유틸·Admin 공용 컴포넌트</title>
+      <text>웹투앱 연결을 위한 딥링크 유틸, 알바몬 Admin 공용 컴포넌트 제작</text>
+    </workItem>
+    <workItem id="work-blog-structure" contributionRef="contribution-tech-blog" sourceRefs="source-page-3" kind="organization">
+      <title>기술 블로그 운영 구조</title>
+      <text>초기 기술 블로그 설계 방식 논의 및 운영 구조 수립</text>
+    </workItem>
+    <workItem id="work-blog-onboarding" contributionRef="contribution-tech-blog" sourceRefs="source-page-3" kind="organization">
+      <title>기술 블로그 온보딩</title>
+      <text>온보딩 프로세스 구성</text>
+    </workItem>
+    <workItem id="work-blog-editorial" contributionRef="contribution-tech-blog" sourceRefs="source-page-3" kind="organization">
+      <title>프론트엔드 글감·일정 관리</title>
+      <text>프론트엔드 카테고리 글감 요청 및 일정 관리</text>
+    </workItem>
+    <workItem id="work-albamon-step-validation" projectRef="project-albamon-operations" sourceRefs="source-resume-page-2" kind="validation" initiativeRef="initiative-resume-reboot">
+      <title>단계별 입력·이탈 방지</title>
+      <text>step 기반 입력/검증, 버튼 상태, 뒤로가기/닫기 이탈 방지 등 예외 케이스를 체계화</text>
+    </workItem>
+    <workItem id="work-albamon-input-limits" projectRef="project-albamon-operations" sourceRefs="source-resume-page-2 source-resume-page-3" kind="validation" initiativeRef="initiative-resume-reboot">
+      <title>이력서 입력·업로드 제약</title>
+      <text>입력 정책(자기소개 20~50,000자, 희망직종 1~20, 스킬 최대 20) 및 업로드 제약(프로필 사진 4MB, 포트폴리오 파일 50MB) 반영</text>
+    </workItem>
+    <workItem id="work-msa-end-to-end" projectRef="project-albamon-msa" sourceRefs="source-resume-page-3" kind="delivery">
+      <title>요구사항부터 운영까지 대응</title>
+      <text>요구사항 분석 → 화면/흐름 설계 → API 연동 → 예외 케이스 정의 → 배포/운영 이슈 대응까지 전 과정 담당</text>
+    </workItem>
+    <workItem id="work-msa-policy-changes" projectRef="project-albamon-msa" sourceRefs="source-resume-page-4" kind="delivery">
+      <title>정책·기획 변경 대응</title>
+      <text>정책/기획 변경이 잦은 도메인(이력서/마이페이지)에서 변경 포인트 및 영향 범위를 빠르게 정리하고 구현 반영</text>
+    </workItem>
+    <workItem id="work-msa-outsourced-code" projectRef="project-albamon-msa" sourceRefs="source-resume-page-4" kind="quality">
+      <title>외주 코드 품질관리</title>
+      <text>외주 코드 품질관리</text>
+    </workItem>
+    <workItem id="work-msa-code-review-culture" projectRef="project-albamon-msa" sourceRefs="source-resume-page-4" kind="organization">
+      <title>코드리뷰 문화</title>
+      <text>팀내 코드리뷰 문화</text>
+    </workItem>
+    <workItem id="work-msa-event-pages" projectRef="project-albamon-msa" sourceRefs="source-resume-page-4" kind="feature">
+      <title>알바몬 이벤트 페이지 제작</title>
+      <text>알바몬 이벤트 페이지 제작</text>
+    </workItem>
+    <workItem id="work-happy-platform" projectRef="project-happyshopping-platform" sourceRefs="source-resume-page-4" kind="feature">
+      <title>가격비교 플랫폼 개발·유지보수</title>
+      <text>DataLab 부서에서 개발자로 가격비교 플랫폼 유지보수/프로젝트 개발을 담당 하였습니다.</text>
+      <text>가격비교 플랫폼 사이트 신규 프로젝트 개발</text>
+    </workItem>
+    <workItem id="work-happy-publishing" projectRef="project-happyshopping-platform" sourceRefs="source-resume-page-4" kind="feature">
+      <title>퍼블리싱·프론트엔드</title>
+      <text>퍼블리싱(CSS)/프론트엔드 개발을 같이 담당 하였습니다.</text>
+    </workItem>
+    <workItem id="work-happy-admin-members" projectRef="project-happyshopping-platform" sourceRefs="source-resume-page-4" kind="feature">
+      <title>백오피스 회원관리</title>
+      <text>백오피스 관리자 회원관리</text>
+    </workItem>
+    <workItem id="work-happy-payments" projectRef="project-happyshopping-platform" sourceRefs="source-resume-page-4" kind="feature">
+      <title>백오피스 결제내역</title>
+      <text>결제내역</text>
+    </workItem>
+    <workItem id="work-happy-charts" projectRef="project-happyshopping-platform" sourceRefs="source-resume-page-4" kind="feature">
+      <title>데이터 시각화</title>
+      <text>데이터 시각화(차트) 등 개발</text>
+    </workItem>
+    <workItem id="work-happy-cdn" projectRef="project-happyshopping-platform" sourceRefs="source-resume-page-4" kind="operations">
+      <title>CDN 이미지 캐시</title>
+      <text>cdn 이미지 캐시처리</text>
+    </workItem>
+    <workItem id="work-happy-deployment" projectRef="project-happyshopping-platform" sourceRefs="source-resume-page-4" kind="operations">
+      <title>프론트 소스 배포</title>
+      <text>git 프론트 구글 클라우드 프론트 소스 배포</text>
+    </workItem>
+    <workItem id="work-happy-functions" projectRef="project-happyshopping-platform" sourceRefs="source-resume-page-4" kind="operations">
+      <title>Firebase Functions 유지보수</title>
+      <text>구글 firebase functions 소스 유지보수</text>
+    </workItem>
+    <workItem id="work-fujifilm-fullstack" projectRef="project-fujifilm-commerce" sourceRefs="source-resume-page-4" kind="feature">
+      <title>프론트·백엔드 개발</title>
+      <text>프론트 수정 및 백엔드 개발</text>
+    </workItem>
+    <workItem id="work-fujifilm-customer-support" projectRef="project-fujifilm-commerce" sourceRefs="source-resume-page-4" kind="operations">
+      <title>고객 클레임 처리</title>
+      <text>고객 클레임 처리</text>
+    </workItem>
+    <workItem id="work-fujifilm-products" projectRef="project-fujifilm-commerce" sourceRefs="source-resume-page-4" kind="feature">
+      <title>신규 상품 개발</title>
+      <text>신규 상품 개발</text>
+    </workItem>
+    <workItem id="work-fujifilm-api" projectRef="project-fujifilm-commerce" sourceRefs="source-resume-page-4" kind="api">
+      <title>API 개발</title>
+      <text>API 개발</text>
+    </workItem>
+    <workItem id="work-fujifilm-backoffice" projectRef="project-fujifilm-commerce" sourceRefs="source-resume-page-4" kind="feature">
+      <title>백 오피스 시스템 개발</title>
+      <text>백 오피스 시스템 개발</text>
+    </workItem>
+  </workItems>
+  <outcomes>
+    <outcome id="outcome-ai-adoption" workItemRef="work-ai-qa" sourceRefs="source-page-3" status="source-reported" verificationStatus="needs-review">
+      <text>AI 사용률 30% 상승 (10명 중 3명 활용군 진입).</text>
+      <metric>
+        <name>AI 사용률</name>
+        <reportedChange unit="percent" interpretation="unconfirmed">30</reportedChange>
+        <participants unit="person">3</participants>
+        <population unit="person">10</population>
+      </metric>
+      <measurementPeriod status="missing"/>
+      <attribution status="unconfirmed"/>
+    </outcome>
+    <outcome id="outcome-pr-writing-time" workItemRef="work-pr-summary" sourceRefs="source-page-3" status="source-reported" verificationStatus="needs-review">
+      <text>프로세스 효율화: 기존 수동 작성 방식 대비 업무 처리 시간 단축 (5분 → 2분).</text>
+      <metric>
+        <name>업무 처리 시간</name>
+        <before unit="minute">5</before>
+        <after unit="minute">2</after>
+      </metric>
+      <measurementPeriod status="missing"/>
+      <attribution status="unconfirmed"/>
+    </outcome>
+    <outcome id="outcome-code-summary-adoption" workItemRef="work-code-summary" sourceRefs="source-page-3" status="source-reported" verificationStatus="needs-review">
+      <text>팀 내 사용률 50% 달성.</text>
+      <metric>
+        <name>코드 요약 스킬 팀 내 사용률</name>
+        <value unit="percent">50</value>
+      </metric>
+      <measurementPeriod status="missing"/>
+      <attribution status="unconfirmed"/>
+    </outcome>
+    <outcome id="outcome-amz-members" workItemRef="work-albamon-amz" sourceRefs="source-page-7 source-resume-page-3" status="source-reported" verificationStatus="needs-review">
+      <text>크루 회원 30만 → 60만 달성</text>
+      <metric>
+        <name>크루 회원 수</name>
+        <before unit="person">300000</before>
+        <after unit="person">600000</after>
+      </metric>
+      <measurementPeriod status="missing"/>
+      <attribution status="unconfirmed"/>
+    </outcome>
+    <outcome id="outcome-talent-resume-views" workItemRef="work-albamon-talent-ui" sourceRefs="source-page-7 source-resume-page-3" status="source-reported" verificationStatus="needs-review">
+      <text>인재 이력서 조회율 이전 대비 30% 증가</text>
+      <metric>
+        <name>인재 이력서 조회율</name>
+        <reportedChange unit="percent" interpretation="unconfirmed">30</reportedChange>
+      </metric>
+      <measurementPeriod status="missing"/>
+      <attribution status="unconfirmed"/>
+    </outcome>
+    <outcome id="outcome-company-auth-rate" workItemRef="work-albamon-company-auth" sourceRefs="source-page-7 source-resume-page-3" status="source-reported" verificationStatus="needs-review">
+      <text>기업회원 인증율 17% 증가</text>
+      <metric>
+        <name>기업회원 인증율</name>
+        <reportedChange unit="percent" interpretation="unconfirmed">17</reportedChange>
+      </metric>
+      <measurementPeriod status="missing"/>
+      <attribution status="unconfirmed"/>
+    </outcome>
+    <outcome id="outcome-manual-auth-reduction" workItemRef="work-albamon-company-auth" sourceRefs="source-page-7 source-resume-page-3" status="source-reported" verificationStatus="needs-review">
+      <text>기업인증 프로세스 자동화로 수동 인증 처리 20% 감소(인건비 절감)</text>
+      <metric>
+        <name>수동 인증 처리</name>
+        <reportedChange unit="percent" interpretation="unconfirmed" direction="decrease">20</reportedChange>
+      </metric>
+      <measurementPeriod status="missing"/>
+      <attribution status="unconfirmed"/>
+    </outcome>
+  </outcomes>
+  <activities>
+    <activity id="activity-convenience-store" sourceRefs="source-resume-page-5" kind="part-time" visibility="private" status="source-reported">
+      <organization>편의점</organization>
+      <period precision="month" status="source-reported">
+        <start>2016-04</start>
+        <end>2017-06</end>
+      </period>
+      <reportedDuration>1년 3개월</reportedDuration>
+      <text xml:space="preserve">처음 알바 입사 당시에는 고객대응 업무를 중점적으로 하면서 업무를 배웠습니다.
+처음에는 성격이 활발하지 못하여 고객을 대응하는 업무에 대하여 어려움을 겪었지만 다른사람에게 먼저 다가가려고 노
+력하여 업무를 잘 할 수 있게 되었습니다 고객대응을 잘 하게 된 후에는 해당 업무를 하면서 상품 계산을 위한 포스(계산
+기) 사용방법을 배운 후 매출관리와 매장관리에 대한 업무를 인수인계 받았습니다.
+포스 사용은 금방 숙달되어 잘할 수 있게 되었고 매출관리와 매장 운영관리(상품 입고 및 진열 상품 채우기, 이벤트 진행
+등)를 점차 잘할 수 있게 되었습니다 그리고 점차 모든 업무가 숙달된 후에는 점장님께서 저를 믿고 매장을 맡겨 주셔서
+매장을 혼자 관리하게 되었습니다.
+2017년 6월에는 복학 후 공부에 집중 하기 위하여 알바를 그만두게 되었습니다. 점장님께서는 저한테 업무를 배우는 속도
+가 빠르지는 않지만 항상 출근시간도 정확하고 성실하게 업무를 하여 믿고 맡길 수 있었다고 말씀 하셨습니다.</text>
+    </activity>
+  </activities>
+  <trainingHistory>
+    <training id="training-kh-security" sourceRefs="source-resume-page-5" status="source-reported">
+      <institution>KH정보교육원</institution>
+      <title>정보보안 기반 해킹기법 분석 양성 과정</title>
+      <period precision="month" status="source-reported">
+        <start>2018-03</start>
+        <end>2018-09</end>
+      </period>
+      <reportedDuration>6개월</reportedDuration>
+      <completion>이수</completion>
+      <topics>
+        <topic id="training-kh-topic-1">Server-Client 환경 구축 및 Server 관리법 숙지</topic>
+        <topic id="training-kh-topic-2">Linux os 설치 및 패키지 설치 숙달</topic>
+        <topic id="training-kh-topic-3">Linux 서비스 운영 및 네트워크 통신 방식 숙달</topic>
+        <topic id="training-kh-topic-4">네트워크와 프로토콜의 이해 및 취약점 분석</topic>
+        <topic id="training-kh-topic-5">HTML, PHP를 활용한 웹구성 및 취약점 분석</topic>
+        <topic id="training-kh-topic-6">Wireshark를 활용한 네트워크 트래픽 분석</topic>
+        <topic id="training-kh-topic-7">C / php / javascript등 언어 기본 문법 사용 및 숙달</topic>
+        <topic id="training-kh-topic-8">다양한 해킹기법 분석</topic>
+        <topic id="training-kh-topic-9">보안솔루션 구성 및 분석</topic>
+      </topics>
+    </training>
+  </trainingHistory>
+  <certifications>
+    <certification id="certification-driving-license" sourceRefs="source-resume-page-5" visibility="private" status="source-reported">
+      <name>2종보통운전면허</name>
+      <issuedAt precision="month">2015-07</issuedAt>
+      <issuer>경찰청(운전면허시험관리단)</issuer>
+    </certification>
+  </certifications>
+  <personalStatements>
+    <statement id="statement-motivation" sourceRefs="source-resume-page-5" visibility="private" status="source-reported">
+      <title>왜 개발자가 되고 싶은가?</title>
+      <text xml:space="preserve">저는 중학생 때 저를 지도해 주시던 담임 선생님께서 계셨습니다. 선생님은 제가 진로로 고민하고 있을 때 언제나 저의 고민을 들어주셨습니다. 중학교
+때 IT 분야에 대한 관심은 있었지만, 전문지식이 없는 저로서는 갈등이 많았습니다, 하지만 담임 선생님께서 ‘어떤 일이든 가서 배우게 되면 잘하게 될
+수 있을 것이다.’라는 말로 저를 설득해주셨고, IT 관련 학과에 지원하게 된 계기가 되었습니다.
+저는 한국후지필름 회사에 웹 개발자로 입사하게 되었습니다. 입사 초기에는 업무를 배우는 과정에서 남들보다 전공 지식이 없었던 저는 업무에 적응
+하는 과정에서 어려움이 있었습니다. 그렇지만 개발 소스를 분석하고 규칙을 찾아 오류를 해결하는 과정에서 재미를 찾게 되었습니다. 결과물을 만든
+후에는 성취감을 느낄 수 있었고 다양한 개발 업무를 접해보고 싶다는 생각이 들었습니다.</text>
+    </statement>
+    <statement id="statement-developer-values" sourceRefs="source-resume-page-5 source-resume-page-6" visibility="private" status="source-reported">
+      <title>개발자란 어떤 사람인가?</title>
+      <text xml:space="preserve">개발자는 도전하는 자라고 생각합니다. 저는 한국후지필름 회사에 ASP 웹 개발자로 2년 근무하였습니다. 입사 당시에 비전공자로 입사한 저는 업무를
+배우는 과정에서 남들보다 큰 노력이 필요했었습니다. 그렇지만 비전공자로 시작한 개발자이기에 두려워하지 않고 도전하여 제가 성장할 수 있는 계
+기가 되었다고 생각합니다. 개발자란 `항상 도전하는 자`라고 생각합니다.</text>
+    </statement>
+    <statement id="statement-strengths" sourceRefs="source-resume-page-6" visibility="private" status="source-reported">
+      <title>성격의 장단점</title>
+      <text xml:space="preserve">저는 어머니로부터 약속은 곧 신뢰라고 배웠습니다. 어머니께서는 항상 30분 전에 회사에 출근하시는 모범사원이셨습니다.
+저는 어머니께 왜 그렇게 일찍 출근하시는지 물어보았습니다. 그것은 약속이 곧 신뢰를 지키는 일이라고 생각하셨기 때문입니다. 이런 어머니를 보면
+서 성장한 저는 ‘약속한 일은 지키자!’라는 원칙을 가지게 되었습니다. 그 뒤로 어떤 일을 하더라도 약속을 지킨다는 것은 서로를 신뢰하기 위해서 가장
+중요한 요소라고 생각하며, 그 약속을 지키기 위해 행동으로 직접 실천해오고 있습니다.
+저는 학비를 마련하기 위해 대학생 때 편의점에서 아르바이트한 적이 있습니다. 예전에 저는 적극적이지 못한 성격 탓에 처음 보는 사람에게 말도 걸지
+못하는 성격이었습니다. 그래서 주변 사람으로부터 내성적이라는 얘기를 듣기도 하고 힘든 일을 겪기도 하였었습니다. 하지만 편의점 아르바이트에서
+점장님의 ‘처음부터 잘하는 사람은 없다’라는 말씀을 계기로 성격을 개선하기 위해서 손님을 상대할 때 항상 웃는 얼굴로 손님을 먼저 생각하려고 노력
+하였고, 자신감도 생기고 주변에도 먼저 다가가려고 노력하는 사람이 되었습니다.</text>
+    </statement>
+    <statement id="statement-goals" sourceRefs="source-resume-page-6" visibility="private" status="source-reported">
+      <title>목표 및 포부</title>
+      <text xml:space="preserve">입사 후에는 현재의 안주하지 않고 발전하겠습니다.
+다양한 기술을 저의 사이트에 접목해 나가면서 회사에 기여할 수 있는 전문성을 키우려고 합니다.
+위와 같은 열정으로 다양한 개발 지식을 습득하고 자기 계발을 위한 노력을 아끼지 않겠습니다.</text>
+    </statement>
+  </personalStatements>
+  <portfolioReferences>
+    <portfolioReference id="portfolio-albamon" kind="url" sourceRefs="source-resume-page-6" status="referenced-only">
+      <value>https://www.ycseng.com/projects/albamon</value>
+    </portfolioReference>
+    <portfolioReference id="portfolio-bizcenter" kind="url" sourceRefs="source-resume-page-6" status="referenced-only">
+      <value>https://www.ycseng.com/projects/jobkorea-bizcenter</value>
+    </portfolioReference>
+    <portfolioReference id="portfolio-career-attachment" kind="attachment-name" sourceRefs="source-resume-page-6" status="referenced-only">
+      <value>성연철_전체_경력기술서.zip</value>
+    </portfolioReference>
+  </portfolioReferences>
+  <employmentEligibility id="employment-eligibility" sourceRefs="source-resume-page-6" visibility="private">
+    <veteran status="unspecified">-</veteran>
+    <employmentProtection status="unspecified">-</employmentProtection>
+    <employmentSubsidy status="unspecified">-</employmentSubsidy>
+    <militaryService status="source-reported">해당없음</militaryService>
+    <disability status="unspecified">-</disability>
+    <note>원본의 - 표시는 미지정으로 보존하고 해당 없음이나 거짓으로 해석하지 않습니다.</note>
+  </employmentEligibility>
+  <employmentPreferences id="employment-preferences" sourceRefs="source-resume-page-6" visibility="private">
+    <employmentType>정규직</employmentType>
+    <regions>
+      <region>서울전지역</region>
+      <region>경기전지역</region>
+    </regions>
+    <salary status="negotiable">면접 후 결정</salary>
+    <roles>
+      <role id="preferred-role-frontend">
+        <name>프론트엔드개발자</name>
+        <specialization>GUI</specialization>
+        <specialization>인터페이스</specialization>
+        <specialization>반응형웹</specialization>
+      </role>
+      <role id="preferred-role-web">
+        <name>웹개발자</name>
+      </role>
+      <role id="preferred-role-ai">
+        <name>AI서비스개발자</name>
+      </role>
+    </roles>
+    <industries>
+      <industry>
+        <name>솔루션·SI·CRM·ERP</name>
+        <field>솔루션</field>
+      </industry>
+      <industry>
+        <name>쇼핑몰·오픈마켓·소셜커머스</name>
+        <field>쇼핑몰</field>
+        <field>오픈마켓</field>
+        <field>전자상거래</field>
+        <field>B2B</field>
+      </industry>
+    </industries>
+  </employmentPreferences>
+  <missingInformation>
+    <item id="missing-bizcenter-period" targetRef="project-jobkorea-bizcenter" status="missing">
+      <description>잡코리아 비즈센터 구축 수행기간을 확인해야 합니다.</description>
+    </item>
+    <item id="missing-happyshopping-project-period" targetRef="project-happyshopping-platform" status="missing">
+      <description>행복쇼핑은 재직기간만 확인되므로 개별 프로젝트 수행기간은 추가 확인이 필요합니다.</description>
+    </item>
+  </missingInformation>
+  <reviewItems>
+    <reviewItem id="review-summary-editor-note" targetRef="summary-service-experience" sourceRefs="source-page-2" status="open">
+      <sourceText>(서비스적인 태도 필요)</sourceText>
+      <reason>원본의 편집 메모는 요약 콘텐츠에서 분리했습니다.</reason>
+    </reviewItem>
+    <reviewItem id="review-tool-spelling" targetRef="practice-development-tools" sourceRefs="source-page-2" status="open">
+      <sourceText>caludeCode</sourceText>
+      <reason>원문 표기를 보존했습니다. 도구의 공식 표기와 실제 사용 제품을 확인해야 합니다.</reason>
+    </reviewItem>
+    <reviewItem id="review-figama-spelling" targetRef="work-albamon-design-tokens" sourceRefs="source-page-6" status="open">
+      <sourceText>Figama</sourceText>
+      <reason>원문 표기를 보존했습니다. 확인 후 표시 이름과 기술 참조를 정해야 합니다.</reason>
+    </reviewItem>
+    <reviewItem id="review-msa-domains" targetRef="work-msa-monorepo" sourceRefs="source-page-10 source-page-11" status="open">
+      <reason>원본의 서비스 수와 열거 항목 및 명칭이 일치하지 않아 임의로 확정하지 않았습니다.</reason>
+    </reviewItem>
+    <reviewItem id="review-msa-versions" targetRef="project-albamon-msa" sourceRefs="source-page-8 source-page-11" status="open">
+      <reason>기술 버전은 원본 기재값입니다. 구축 당시 사용 버전인지 후속 운영 시점 버전인지 확인해야 합니다.</reason>
+    </reviewItem>
+    <reviewItem id="review-source-typos" targetRefs="project-fujifilm-commerce work-fujifilm-employee-sales work-msa-applications work-msa-app-bridge" sourceRefs="source-page-9 source-page-10 source-page-11" status="open">
+      <reason>쇼핑물, 일차, 체용, 하이드리드 등 원문 표현을 보존했습니다. 발행 전 표기를 검토해야 합니다.</reason>
+    </reviewItem>
+    <reviewItem id="review-metric-evidence" targetRefs="outcome-ai-adoption outcome-pr-writing-time outcome-code-summary-adoption outcome-amz-members outcome-talent-resume-views outcome-company-auth-rate outcome-manual-auth-reduction" sourceRefs="source-page-3 source-page-7" status="open">
+      <reason>수치의 측정기간, 비교 기준, 근거와 개인 기여를 확인해야 합니다. 퍼센트 변화의 상대 변화율과 퍼센트포인트를 임의로 해석하지 않았습니다.</reason>
+    </reviewItem>
+    <reviewItem id="review-source-bullet-granularity" targetRefs="work-bizcenter-data-access work-msa-applications work-msa-my-page" sourceRefs="source-page-5 source-page-8 source-page-9" status="open">
+      <reason>현재는 독립 업무를 원소로 분리하고 세부 설명을 text로 보존했습니다. 개별 세부 기능까지 별도 식별자가 필요한지는 조합 모델 설계 시 검토합니다.</reason>
+    </reviewItem>
+    <reviewItem id="review-headline-career-duration" targetRefs="profile-seong-yeoncheol" sourceRefs="source-resume-page-1" status="open">
+      <reason>제목의 5년차 표현과 경력 요약의 총 6년 4개월을 함께 보존했습니다. 최종 표제의 연차 표현을 확인해야 합니다.</reason>
+    </reviewItem>
+    <reviewItem id="review-albamon-operations-period" targetRefs="project-albamon-operations project-albamon-operations-career-period" sourceRefs="source-page-6 source-resume-page-2" status="resolved">
+      <reason>운영 시작월이 경력기술서의 2023-11과 추가 이력서의 2023-10으로 다릅니다. 두 원본을 보존하고 확정하지 않았습니다.</reason>
+      <resolution>사용자 지시에 따라 추가 이력서의 시작월과 종료월을 기준값으로 확정했습니다. 경력기술서의 이전 값은 superseded 이력으로 보존했습니다.</resolution>
+    </reviewItem>
+    <reviewItem id="review-albamon-msa-period" targetRefs="project-albamon-msa project-albamon-msa-career-period" sourceRefs="source-page-8 source-resume-page-3" status="resolved">
+      <reason>구축 종료월이 경력기술서의 2023-08과 추가 이력서의 2023-10으로 다릅니다. 두 원본을 보존하고 확정하지 않았습니다.</reason>
+      <resolution>사용자 지시에 따라 추가 이력서의 시작월과 종료월을 기준값으로 확정했습니다. 경력기술서의 이전 값은 superseded 이력으로 보존했습니다.</resolution>
+    </reviewItem>
+    <reviewItem id="review-bizcenter-responsibility" targetRefs="project-jobkorea-bizcenter bizcenter-resume-responsibility" sourceRefs="source-page-4 source-resume-page-1" status="open">
+      <reason>역할 표현이 리딩과 구축으로 다릅니다. 원본별 표현을 보존하고 본인 역할을 확인한 뒤 발행 문구를 정해야 합니다.</reason>
+    </reviewItem>
+    <reviewItem id="review-skills-initiative-period" targetRefs="initiative-resume-skills project-albamon-operations" sourceRefs="source-resume-page-2 source-resume-page-3" status="open">
+      <reason>스킬 항목 도입 시작월 2023-09가 상위 운영 프로젝트의 두 시작월보다 앞섭니다. 원본 기간을 보존하고 소속과 범위를 확인해야 합니다.</reason>
+    </reviewItem>
+    <reviewItem id="review-profile-photo" targetRefs="profile-seong-yeoncheol" sourceRefs="source-resume-page-1" status="open">
+      <reason>원본에 프로필 사진이 있으나 이미지 파일은 추출하지 않았습니다. 사진 데이터는 해당 원본 페이지를 참조합니다.</reason>
+    </reviewItem>
+    <reviewItem id="review-amz-display-scope" targetRefs="work-albamon-amz" sourceRefs="source-page-7 source-resume-page-3" status="open">
+      <reason>노출 지면 설명이 제트 + 유료 공고와 제트 유료 공고로 다릅니다. 기존 설명을 유지하고 추가 문서의 표현 차이를 확인해야 합니다.</reason>
+      <sourceText sourceRefs="source-resume-page-3">AMZ 기본 상품화로 노출 지면 확장(제트 공고 → 제트 유료 공고) 및 안내/구매 유도 UI 개선</sourceText>
+    </reviewItem>
+  </reviewItems>
+</resumeAsset>
