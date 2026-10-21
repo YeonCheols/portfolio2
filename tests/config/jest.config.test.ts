@@ -60,7 +60,10 @@ describe("jest.config", () => {
     const config = await createConfig();
 
     expect(config.testPathIgnorePatterns).toEqual(
-      expect.arrayContaining(["<rootDir>/tests/integration/"]),
+      expect.arrayContaining([
+        "<rootDir>/tests/integration/",
+        "<rootDir>/mcp/dist/",
+      ]),
     );
   });
 });

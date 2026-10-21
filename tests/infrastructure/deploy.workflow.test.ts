@@ -42,6 +42,9 @@ describe("deploy workflow", () => {
     );
     expect(workflow).toContain("WAKATIME_API_KEY=WAKATIME_API_KEY:latest");
     expect(workflow).toContain("API_URL=API_URL:latest");
+    expect(workflow.split("deploy-mcp")[0]).toContain(
+      "RESUME_CONNECTION_TOKEN=RESUME_CONNECTION_TOKEN:latest",
+    );
     expect(workflow).not.toContain("NEXT_PUBLIC_GITHUB_ACCESS_TOKEN");
     expect(workflow).not.toContain("NEXT_PUBLIC_WAKATIME_API_KEY");
   });
@@ -53,5 +56,20 @@ describe("deploy workflow", () => {
       "--service-account=${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}",
     );
     expect(workflow).toContain("--allow-unauthenticated");
+  });
+
+  it("MCP는 별도 Cloud Run 서비스로 배포하고 공개 접근을 열지 않는다", () => {
+    const workflow = fs.readFileSync(workflowPath, "utf8");
+
+    expect(workflow).toContain("Dockerfile.mcp");
+    expect(workflow).toContain("gcloud run deploy portfolio-mcp");
+    expect(workflow).toContain("--no-allow-unauthenticated");
+    expect(workflow).toContain("MCP_AUTH_TOKEN=MCP_AUTH_TOKEN:latest");
+    expect(workflow).toContain(
+      "RESUME_CONNECTION_TOKEN=RESUME_CONNECTION_TOKEN:latest",
+    );
+    expect(workflow).toContain(
+      'RESUME_CONNECTION_URL="${{ vars.RESUME_CONNECTION_URL }}"',
+    );
   });
 });
