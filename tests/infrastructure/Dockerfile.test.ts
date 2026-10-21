@@ -14,6 +14,10 @@ describe("Dockerfile", () => {
     expect(dockerfile).toMatch(/COPY --from=builder[^\n]*public/);
   });
 
+  it("이력서 연결이 기준 XML을 읽도록 runner에 복사한다", () => {
+    expect(dockerfile).toContain("src/contents/resume/resume.xml");
+  });
+
   it("진입점은 standalone server.js이다", () => {
     expect(dockerfile).not.toContain("next start");
     expect(dockerfile).toContain("node server.js");
