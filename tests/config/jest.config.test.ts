@@ -23,7 +23,7 @@ describe("jest.config", () => {
       transformIgnorePatterns: string[];
     }> => Promise.reject(new Error("설정을 불러오지 못했습니다."));
     jest.isolateModules(() => {
-      createConfig = require("./jest.config");
+      createConfig = require("../../jest.config");
     });
 
     const config = await createConfig();
@@ -54,7 +54,7 @@ describe("jest.config", () => {
       testPathIgnorePatterns: string[];
     }> => Promise.reject(new Error("설정을 불러오지 못했습니다."));
     jest.isolateModules(() => {
-      createConfig = require("./jest.config");
+      createConfig = require("../../jest.config");
     });
 
     const config = await createConfig();

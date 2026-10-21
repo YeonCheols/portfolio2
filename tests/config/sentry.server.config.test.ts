@@ -16,23 +16,19 @@ type ServerOptions = {
 const load = async () => {
   process.env.SENTRY_DSN = "https://example.ingest.sentry.io/1";
   jest.resetModules();
-  await import("./sentry.server.config");
+  await import("../../sentry.server.config");
 
   return mockInit.mock.calls.at(-1)?.[0] as ServerOptions;
 };
 
 describe("sentry.server.config", () => {
-  const originalNodeEnv = process.env.NODE_ENV;
-  const originalDsn = process.env.SENTRY_DSN;
-
   beforeEach(() => {
+    jest.replaceProperty(process, "env", { ...process.env });
     mockInit.mockClear();
-    (process.env as { NODE_ENV?: string }).NODE_ENV = originalNodeEnv;
   });
 
   afterEach(() => {
-    (process.env as { NODE_ENV?: string }).NODE_ENV = originalNodeEnv;
-    process.env.SENTRY_DSN = originalDsn;
+    jest.restoreAllMocks();
   });
 
   it("테스트 환경이면 디버그 없이 DSN으로 초기화한다", async () => {
@@ -61,8 +57,6 @@ describe("sentry.server.config", () => {
 
     expect(options.beforeSend(event)).toBe(event);
     expect(info).toHaveBeenCalledWith("Sentry Server Event:", event);
-
-    info.mockRestore();
   });
 
   it("개발 환경이 아니면 로그 없이 이벤트를 반환한다", async () => {
@@ -74,7 +68,5 @@ describe("sentry.server.config", () => {
 
     expect(options.beforeSend(event)).toBe(event);
     expect(info).not.toHaveBeenCalled();
-
-    info.mockRestore();
   });
 });

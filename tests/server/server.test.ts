@@ -53,7 +53,7 @@ const loadServer = async ({
   }));
 
   jest.isolateModules(() => {
-    require("./server");
+    require("../../server");
   });
   await Promise.resolve();
 

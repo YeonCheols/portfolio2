@@ -6,8 +6,18 @@ jest.mock("@playwright/test", () => ({
 }));
 
 describe("playwright.config", () => {
+  beforeEach(() => {
+    jest.replaceProperty(process, "env", { ...process.env });
+    jest.resetModules();
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+    jest.resetModules();
+  });
+
   it("통합 테스트를 tests/integration에서 프로덕션 서버로 실행한다", () => {
-    const config = require("./playwright.config").default as {
+    const config = require("../../playwright.config").default as {
       testDir: string;
       webServer: { command: string; reuseExistingServer: boolean };
     };
@@ -19,21 +29,12 @@ describe("playwright.config", () => {
   });
 
   it("CI에서는 html 리포트를 남긴다", () => {
-    const previous = process.env.CI;
     process.env.CI = "true";
-    jest.resetModules();
 
-    const config = require("./playwright.config").default as {
+    const config = require("../../playwright.config").default as {
       reporter: unknown;
     };
 
     expect(JSON.stringify(config.reporter)).toContain("html");
-
-    if (previous === undefined) {
-      delete process.env.CI;
-    } else {
-      process.env.CI = previous;
-    }
-    jest.resetModules();
   });
 });

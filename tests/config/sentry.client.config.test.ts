@@ -4,7 +4,7 @@ jest.mock("@sentry/nextjs", () => ({
 
 import * as Sentry from "@sentry/nextjs";
 
-import "./sentry.client.config";
+import "../../sentry.client.config";
 
 const mockInit = Sentry.init as jest.Mock;
 
@@ -29,6 +29,10 @@ type ClientOptions = {
 const options = mockInit.mock.calls[0][0] as ClientOptions;
 
 describe("sentry.client.config", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   it("디버그와 트레이스를 켜고 리플레이는 끈다", () => {
     expect(options.dsn).toContain("ingest.us.sentry.io");
     expect(options.tracesSampleRate).toBe(1);
@@ -48,8 +52,6 @@ describe("sentry.client.config", () => {
     expect(options.beforeSend(event)).toBe(event);
     expect(info).toHaveBeenCalledWith("Log message detected:", "로그");
     expect(info).toHaveBeenCalledWith("Log level:", "info");
-
-    info.mockRestore();
   });
 
   it("로그가 아니면 추가 출력 없이 이벤트를 보낸다", () => {
@@ -60,8 +62,6 @@ describe("sentry.client.config", () => {
 
     expect(options.beforeSend(event)).toBe(event);
     expect(info).not.toHaveBeenCalled();
-
-    info.mockRestore();
   });
 
   it("브레드크럼을 그대로 반환한다", () => {

@@ -1,4 +1,4 @@
-const tailwind = require("./tailwind.config");
+const tailwind = require("../../tailwind.config");
 
 describe("tailwind.config", () => {
   it("클래스 다크 모드와 소스 경로와 색을 둔다", () => {

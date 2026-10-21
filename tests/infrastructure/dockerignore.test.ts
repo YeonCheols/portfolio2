@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 
 const dockerignore = fs.readFileSync(
-  path.join(__dirname, ".dockerignore"),
+  path.join(__dirname, "../../.dockerignore"),
   "utf8",
 );
 

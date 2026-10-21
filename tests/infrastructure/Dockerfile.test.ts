@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 
 const dockerfile = fs
-  .readFileSync(path.join(__dirname, "Dockerfile"), "utf8")
+  .readFileSync(path.join(__dirname, "../../Dockerfile"), "utf8")
   .split("\n")
   .filter((line) => !line.trim().startsWith("#"))
   .join("\n");

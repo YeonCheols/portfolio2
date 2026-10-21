@@ -1,4 +1,4 @@
-import seo from "./next-seo.config";
+import seo from "../../next-seo.config";
 
 describe("next-seo.config", () => {
   it("사이트 제목과 정규 URL과 오픈그래프 이미지를 둔다", () => {
