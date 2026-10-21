@@ -17,6 +17,26 @@ const sendJson = (res: ServerResponse, status: number, body: unknown): void => {
   res.end(JSON.stringify(body));
 };
 
+const wantsEventStream = (req: IncomingMessage): boolean =>
+  req.headers.accept?.includes("text/event-stream") ?? false;
+
+const sendMcp = (
+  req: IncomingMessage,
+  res: ServerResponse,
+  body: unknown,
+): void => {
+  if (!wantsEventStream(req)) {
+    sendJson(res, 200, body);
+    return;
+  }
+
+  res.writeHead(200, {
+    "content-type": "text/event-stream",
+    "cache-control": "no-cache",
+  });
+  res.end(`event: message\ndata: ${JSON.stringify(body)}\n\n`);
+};
+
 export const createResumeMcpServer = (options: {
   token: string;
   connection: ResumeConnection;
@@ -27,6 +47,12 @@ export const createResumeMcpServer = (options: {
 
     if (req.method === "GET" && url === "/health") {
       sendJson(res, 200, { ok: true });
+      return;
+    }
+
+    if (req.method === "GET" && url === "/mcp") {
+      res.writeHead(405, { allow: "POST" });
+      res.end();
       return;
     }
 
@@ -56,7 +82,7 @@ export const createResumeMcpServer = (options: {
         res.end();
         return;
       }
-      sendJson(res, 200, response);
+      sendMcp(req, res, response);
     } catch {
       options.log?.("INVALID_INPUT");
       sendJson(res, 400, { ok: false, code: "INVALID_INPUT" });

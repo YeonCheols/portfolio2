@@ -101,5 +101,5 @@ jobs:
             --set-secrets=MCP_AUTH_TOKEN=MCP_AUTH_TOKEN:latest,RESUME_CONNECTION_TOKEN=RESUME_CONNECTION_TOKEN:latest \
             --set-env-vars=RESUME_CONNECTION_URL="${{ vars.RESUME_CONNECTION_URL }}" \
             --service-account=${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }} \
-            --no-allow-unauthenticated \
+            --allow-unauthenticated \
             --quiet

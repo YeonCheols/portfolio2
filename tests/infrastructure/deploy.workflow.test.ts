@@ -58,13 +58,15 @@ describe("deploy workflow", () => {
     expect(workflow).toContain("--allow-unauthenticated");
   });
 
-  it("MCP는 별도 Cloud Run 서비스로 배포하고 공개 접근을 열지 않는다", () => {
+  it("MCP는 공개 주소에서 Bearer 비밀로만 도구를 연다", () => {
     const workflow = fs.readFileSync(workflowPath, "utf8");
+    const mcpJob = workflow.split("deploy-mcp")[1];
 
-    expect(workflow).toContain("Dockerfile.mcp");
-    expect(workflow).toContain("gcloud run deploy portfolio-mcp");
-    expect(workflow).toContain("--no-allow-unauthenticated");
-    expect(workflow).toContain("MCP_AUTH_TOKEN=MCP_AUTH_TOKEN:latest");
+    expect(mcpJob).toContain("Dockerfile.mcp");
+    expect(mcpJob).toContain("gcloud run deploy portfolio-mcp");
+    expect(mcpJob).toContain("--allow-unauthenticated");
+    expect(mcpJob).not.toContain("--no-allow-unauthenticated");
+    expect(mcpJob).toContain("MCP_AUTH_TOKEN=MCP_AUTH_TOKEN:latest");
     expect(workflow).toContain(
       "RESUME_CONNECTION_TOKEN=RESUME_CONNECTION_TOKEN:latest",
     );
