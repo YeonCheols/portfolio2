@@ -1,7 +1,10 @@
+import { randomUUID } from "crypto";
 import http, { type IncomingMessage, type ServerResponse } from "http";
 
-import { handleMcpRequest } from "./handleMcpRequest";
+import { handleMcpRequest, type McpJsonRpcRequest } from "./handleMcpRequest";
 import type { ResumeConnection } from "./resumeTools";
+
+const protocolVersion = "2024-11-05";
 
 const readBody = (req: IncomingMessage): Promise<string> =>
   new Promise((resolve, reject) => {
@@ -20,19 +23,34 @@ const sendJson = (res: ServerResponse, status: number, body: unknown): void => {
 const wantsEventStream = (req: IncomingMessage): boolean =>
   req.headers.accept?.includes("text/event-stream") ?? false;
 
+const headerValue = (
+  value: string | string[] | undefined,
+): string | undefined => (Array.isArray(value) ? value[0] : value);
+
 const sendMcp = (
   req: IncomingMessage,
   res: ServerResponse,
   body: unknown,
+  headers: Record<string, string> = {},
 ): void => {
+  const responseHeaders = {
+    "mcp-protocol-version": protocolVersion,
+    ...headers,
+  };
+
   if (!wantsEventStream(req)) {
-    sendJson(res, 200, body);
+    res.writeHead(200, {
+      "content-type": "application/json",
+      ...responseHeaders,
+    });
+    res.end(JSON.stringify(body));
     return;
   }
 
   res.writeHead(200, {
     "content-type": "text/event-stream",
     "cache-control": "no-cache",
+    ...responseHeaders,
   });
   res.end(`event: message\ndata: ${JSON.stringify(body)}\n\n`);
 };
@@ -73,16 +91,24 @@ export const createResumeMcpServer = (options: {
     }
 
     try {
-      const response = await handleMcpRequest(
-        JSON.parse(raw),
-        options.connection,
-      );
+      const request = JSON.parse(raw) as McpJsonRpcRequest;
+      const response = await handleMcpRequest(request, options.connection);
       if (response === null) {
-        res.writeHead(202);
+        res.writeHead(202, { "mcp-protocol-version": protocolVersion });
         res.end();
         return;
       }
-      sendMcp(req, res, response);
+
+      const sessionId =
+        request.method === "initialize"
+          ? randomUUID()
+          : headerValue(req.headers["mcp-session-id"]);
+      sendMcp(
+        req,
+        res,
+        response,
+        sessionId ? { "mcp-session-id": sessionId } : {},
+      );
     } catch {
       options.log?.("INVALID_INPUT");
       sendJson(res, 400, { ok: false, code: "INVALID_INPUT" });

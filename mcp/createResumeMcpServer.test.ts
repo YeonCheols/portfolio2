@@ -20,34 +20,38 @@ const request = (
     body?: string;
   },
 ) =>
-  new Promise<{ status: number; contentType: string; body: string }>(
-    (resolve, reject) => {
-      const req = http.request(
-        {
-          hostname: "127.0.0.1",
-          port,
-          method: options.method,
-          path: options.path,
-          headers: options.headers,
-        },
-        (res) => {
-          const chunks: string[] = [];
-          res.setEncoding("utf8");
-          res.on("data", (chunk: string) => chunks.push(chunk));
-          res.on("end", () =>
-            resolve({
-              status: res.statusCode ?? 0,
-              contentType: String(res.headers["content-type"] ?? ""),
-              body: chunks.join(""),
-            }),
-          );
-        },
-      );
-      req.on("error", reject);
-      if (options.body) req.write(options.body);
-      req.end();
-    },
-  );
+  new Promise<{
+    status: number;
+    contentType: string;
+    headers: http.IncomingHttpHeaders;
+    body: string;
+  }>((resolve, reject) => {
+    const req = http.request(
+      {
+        hostname: "127.0.0.1",
+        port,
+        method: options.method,
+        path: options.path,
+        headers: options.headers,
+      },
+      (res) => {
+        const chunks: string[] = [];
+        res.setEncoding("utf8");
+        res.on("data", (chunk: string) => chunks.push(chunk));
+        res.on("end", () =>
+          resolve({
+            status: res.statusCode ?? 0,
+            contentType: String(res.headers["content-type"] ?? ""),
+            headers: res.headers,
+            body: chunks.join(""),
+          }),
+        );
+      },
+    );
+    req.on("error", reject);
+    if (options.body) req.write(options.body);
+    req.end();
+  });
 
 describe("createResumeMcpServer", () => {
   it("헬스 확인은 열고 인증 없는 도구 호출은 본문 없이 거부한다", async () => {
@@ -158,6 +162,11 @@ describe("createResumeMcpServer", () => {
       expect(opened.status).toBe(200);
       expect(opened.contentType).toContain("text/event-stream");
       expect(opened.body).toContain("portfolio-resume");
+      expect(opened.headers["mcp-session-id"]).toEqual(expect.any(String));
+      expect(String(opened.headers["mcp-session-id"]).length).toBeGreaterThan(
+        0,
+      );
+      expect(opened.headers["mcp-protocol-version"]).toBe("2024-11-05");
 
       const listening = await request(address.port, {
         method: "GET",
@@ -176,6 +185,8 @@ describe("createResumeMcpServer", () => {
           authorization: "Bearer test-token",
           accept: "application/json, text/event-stream",
           "content-type": "application/json",
+          "mcp-session-id": String(opened.headers["mcp-session-id"]),
+          "mcp-protocol-version": "2024-11-05",
         },
         body: JSON.stringify({
           jsonrpc: "2.0",
@@ -188,6 +199,10 @@ describe("createResumeMcpServer", () => {
         }),
       });
       expect(called.contentType).toContain("text/event-stream");
+      expect(called.headers["mcp-session-id"]).toBe(
+        opened.headers["mcp-session-id"],
+      );
+      expect(called.headers["mcp-protocol-version"]).toBe("2024-11-05");
       expect(called.body).toContain("resume-test");
     } finally {
       await new Promise<void>((resolve, reject) => {
