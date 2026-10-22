@@ -73,4 +73,17 @@ describe("deploy workflow", () => {
       'RESUME_CONNECTION_URL="${{ vars.RESUME_CONNECTION_URL }}"',
     );
   });
+
+  it("MCP 이미지 빌드는 mcp 컨텍스트의 기본 Dockerfile을 사용한다", () => {
+    const workflow = fs.readFileSync(workflowPath, "utf8");
+    const mcpBuildStep = workflow
+      .split("  deploy-mcp:\n")[1]
+      ?.split("\n      - name: Cloud Run 배포")[0]
+      ?.split("      - name: 이미지 빌드와 푸시\n")[1];
+
+    expect(mcpBuildStep).toBeDefined();
+    expect(mcpBuildStep).toContain("uses: docker/build-push-action@v6");
+    expect(mcpBuildStep).toContain("context: ./mcp");
+    expect(mcpBuildStep).not.toMatch(/^\s*file:/m);
+  });
 });
