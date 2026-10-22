@@ -529,3 +529,81 @@ describe("MCP OAuth authorization server", () => {
     }
   });
 });
+
+describe("MCP OAuth authorization server entry", () => {
+  const originalArgv = process.argv[1];
+  const originalEnv = { ...process.env };
+
+  afterEach(() => {
+    process.argv[1] = originalArgv;
+    process.env = { ...originalEnv };
+    jest.restoreAllMocks();
+    jest.resetModules();
+  });
+
+  it("진입점이 auth/server.js이면 인증서버가 수신을 시작한다", () => {
+    process.argv[1] = "/app/dist/auth/server.js";
+    process.env.MCP_AUTH_ISSUER = issuer;
+    process.env.MCP_PUBLIC_URL = resource;
+    process.env.GITHUB_OAUTH_CLIENT_ID = "test-github-client-id";
+    process.env.GITHUB_OAUTH_CLIENT_SECRET = "test-github-client-secret";
+    process.env.MCP_AUTHORIZED_GITHUB_USER_IDS = "91575756";
+    process.env.MCP_OAUTH_SIGNING_PRIVATE_KEY = privateKeyPem;
+    process.env.PORT = "0";
+    const listen = jest
+      .spyOn(http.Server.prototype, "listen")
+      .mockImplementation(function mockListen(this: http.Server) {
+        return this;
+      });
+
+    jest.isolateModules(() => {
+      require("./server");
+    });
+
+    expect(listen).toHaveBeenCalled();
+  });
+
+  it("진입점이 auth/server.js가 아니면 인증서버가 수신을 시작하지 않는다", () => {
+    process.argv[1] = "/app/dist/server.js";
+    process.env.MCP_AUTH_ISSUER = issuer;
+    process.env.MCP_PUBLIC_URL = resource;
+    process.env.GITHUB_OAUTH_CLIENT_ID = "test-github-client-id";
+    process.env.GITHUB_OAUTH_CLIENT_SECRET = "test-github-client-secret";
+    process.env.MCP_AUTHORIZED_GITHUB_USER_IDS = "91575756";
+    process.env.MCP_OAUTH_SIGNING_PRIVATE_KEY = privateKeyPem;
+    process.env.PORT = "0";
+    const listen = jest
+      .spyOn(http.Server.prototype, "listen")
+      .mockImplementation(function mockListen(this: http.Server) {
+        return this;
+      });
+
+    jest.isolateModules(() => {
+      require("./server");
+    });
+
+    expect(listen).not.toHaveBeenCalled();
+  });
+
+  it("진입점인데 필수 값이 없으면 수신을 시작하지 않는다", () => {
+    process.argv[1] = "/app/dist/auth/server.js";
+    delete process.env.MCP_AUTH_ISSUER;
+    delete process.env.MCP_PUBLIC_URL;
+    delete process.env.GITHUB_OAUTH_CLIENT_ID;
+    delete process.env.GITHUB_OAUTH_CLIENT_SECRET;
+    delete process.env.MCP_AUTHORIZED_GITHUB_USER_IDS;
+    delete process.env.MCP_OAUTH_SIGNING_PRIVATE_KEY;
+    const listen = jest
+      .spyOn(http.Server.prototype, "listen")
+      .mockImplementation(function mockListen(this: http.Server) {
+        return this;
+      });
+
+    expect(() => {
+      jest.isolateModules(() => {
+        require("./server");
+      });
+    }).toThrow("MCP_AUTH_ISSUER is required");
+    expect(listen).not.toHaveBeenCalled();
+  });
+});
