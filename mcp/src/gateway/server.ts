@@ -296,7 +296,7 @@ const createGateway = (options: {
 };
 
 export const startMcpOAuthGateway = () => {
-  const issuer = requiredEnv("AUTH0_ISSUER");
+  const issuer = requiredEnv("MCP_AUTH_ISSUER");
   const resourceUrl = requiredEnv("MCP_PUBLIC_URL");
   const backendUrl = requiredEnv("MCP_BACKEND_URL");
   const backendToken = requiredEnv("MCP_AUTH_TOKEN");

@@ -2,6 +2,10 @@ import fs from "fs";
 import path from "path";
 
 const workflowPath = path.join(__dirname, "../../.github/workflows/deploy.yml");
+const mcpWorkflowPath = path.join(
+  __dirname,
+  "../../.github/workflows/deploy-mcp.yml",
+);
 
 describe("deploy workflow", () => {
   it("master 푸시에서 이미지를 빌드한다", () => {
@@ -10,6 +14,23 @@ describe("deploy workflow", () => {
     expect(workflow).toMatch(/branches:\s*\n\s*-\s*master/);
     expect(workflow).toContain("docker/build-push-action");
     expect(workflow).toContain("GITHUB_NPM_TOKEN");
+  });
+
+  it("MCP 변경만 반영할 때 웹 배포 workflow를 실행하지 않는다", () => {
+    const workflow = fs.readFileSync(workflowPath, "utf8");
+    const ignoredPaths = workflow.split("paths-ignore:\n")[1] ?? "";
+
+    expect(ignoredPaths).toContain('      - "mcp/**"');
+    expect(ignoredPaths).toContain('      - "AGENTS.md"');
+    expect(ignoredPaths).toContain('      - ".cursor/rules/agents.mdc"');
+    expect(ignoredPaths).toContain('      - ".github/copilot-instructions.md"');
+    expect(ignoredPaths).toContain('      - ".github/workflows/deploy.yml"');
+    expect(ignoredPaths).toContain(
+      '      - ".github/workflows/deploy-mcp.yml"',
+    );
+    expect(ignoredPaths).toContain(
+      '      - "tests/infrastructure/deploy.workflow.test.ts"',
+    );
   });
 
   it("Artifact Registry에 이미지를 푸시한다", () => {
@@ -42,9 +63,10 @@ describe("deploy workflow", () => {
     );
     expect(workflow).toContain("WAKATIME_API_KEY=WAKATIME_API_KEY:latest");
     expect(workflow).toContain("API_URL=API_URL:latest");
-    expect(workflow.split("deploy-mcp")[0]).toContain(
+    expect(workflow).toContain(
       "RESUME_CONNECTION_TOKEN=RESUME_CONNECTION_TOKEN:latest",
     );
+    expect(workflow).not.toContain("portfolio-mcp");
     expect(workflow).not.toContain("NEXT_PUBLIC_GITHUB_ACCESS_TOKEN");
     expect(workflow).not.toContain("NEXT_PUBLIC_WAKATIME_API_KEY");
   });
@@ -59,9 +81,8 @@ describe("deploy workflow", () => {
   });
 
   it("MCP는 별도 Cloud Run 서비스로 배포하고 공개 접근을 열지 않는다", () => {
-    const workflow = fs.readFileSync(workflowPath, "utf8");
+    const workflow = fs.readFileSync(mcpWorkflowPath, "utf8");
 
-    expect(workflow).toContain("mcp/Dockerfile");
     expect(workflow).toContain("context: ./mcp");
     expect(workflow).toContain("gcloud run deploy portfolio-mcp");
     expect(workflow).toContain("--no-allow-unauthenticated");
@@ -75,11 +96,10 @@ describe("deploy workflow", () => {
   });
 
   it("MCP 이미지 빌드는 mcp 컨텍스트의 기본 Dockerfile을 사용한다", () => {
-    const workflow = fs.readFileSync(workflowPath, "utf8");
+    const workflow = fs.readFileSync(mcpWorkflowPath, "utf8");
     const mcpBuildStep = workflow
-      .split("  deploy-mcp:\n")[1]
-      ?.split("\n      - name: Cloud Run 배포")[0]
-      ?.split("      - name: 이미지 빌드와 푸시\n")[1];
+      .split("      - name: MCP 이미지 빌드와 푸시\n")[1]
+      ?.split("\n      - name: 비공개 MCP 서버 배포")[0];
 
     expect(mcpBuildStep).toBeDefined();
     expect(mcpBuildStep).toContain("uses: docker/build-push-action@v6");

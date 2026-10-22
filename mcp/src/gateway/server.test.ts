@@ -3,7 +3,7 @@ import http from "http";
 
 import { startMcpOAuthGateway } from "./server";
 
-const issuer = "https://auth.example.test/";
+const issuer = "https://auth.example.test";
 const resourceUrl = "https://mcp.example.test/mcp";
 const requiredScope = "resume:use";
 const { privateKey, publicKey } = generateKeyPairSync("rsa", {
@@ -83,7 +83,7 @@ describe("MCP OAuth gateway", () => {
   let server: http.Server | undefined;
 
   beforeEach(async () => {
-    process.env.AUTH0_ISSUER = issuer;
+    process.env.MCP_AUTH_ISSUER = issuer;
     process.env.MCP_PUBLIC_URL = resourceUrl;
     process.env.MCP_BACKEND_URL = "https://backend.example.test/mcp";
     process.env.MCP_AUTH_TOKEN = "internal-test-token";
