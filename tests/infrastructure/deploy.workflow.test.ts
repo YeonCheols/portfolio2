@@ -61,7 +61,8 @@ describe("deploy workflow", () => {
   it("MCP는 별도 Cloud Run 서비스로 배포하고 공개 접근을 열지 않는다", () => {
     const workflow = fs.readFileSync(workflowPath, "utf8");
 
-    expect(workflow).toContain("Dockerfile.mcp");
+    expect(workflow).toContain("mcp/Dockerfile");
+    expect(workflow).toContain("context: ./mcp");
     expect(workflow).toContain("gcloud run deploy portfolio-mcp");
     expect(workflow).toContain("--no-allow-unauthenticated");
     expect(workflow).toContain("MCP_AUTH_TOKEN=MCP_AUTH_TOKEN:latest");
