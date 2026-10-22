@@ -15,13 +15,17 @@ const publicJwk = {
   use: "sig",
 };
 
-const createToken = (claims: Record<string, unknown>): string => {
+const createToken = (
+  claims: Record<string, unknown>,
+  key = privateKey,
+  kid = "test-key",
+): string => {
   const header = Buffer.from(
-    JSON.stringify({ alg: "RS256", kid: "test-key", typ: "JWT" }),
+    JSON.stringify({ alg: "RS256", kid, typ: "JWT" }),
   ).toString("base64url");
   const payload = Buffer.from(JSON.stringify(claims)).toString("base64url");
   const input = `${header}.${payload}`;
-  return `${input}.${sign("RSA-SHA256", Buffer.from(input), privateKey).toString("base64url")}`;
+  return `${input}.${sign("RSA-SHA256", Buffer.from(input), key).toString("base64url")}`;
 };
 
 const request = (
@@ -212,6 +216,101 @@ describe("MCP OAuth gateway", () => {
       expect.stringContaining("metadata.google.internal"),
       expect.anything(),
     );
+  });
+
+  it("캐시에 없는 새 서명 키를 발견하면 JWKS를 갱신해 토큰을 검증한다", async () => {
+    const rotatedPair = generateKeyPairSync("rsa", { modulusLength: 2048 });
+    const rotatedJwk = {
+      ...rotatedPair.publicKey.export({ format: "jwk" }),
+      kid: "rotated-key",
+      use: "sig",
+    };
+    let activeKeys = [publicJwk];
+    mockFetch.mockImplementation(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith("/.well-known/jwks.json")) {
+        return {
+          ok: true,
+          json: async () => ({ keys: activeKeys }),
+        } as Response;
+      }
+      if (url.startsWith("http://metadata.google.internal/")) {
+        return { ok: true, text: async () => "google-id-token" } as Response;
+      }
+      return {
+        ok: true,
+        status: 200,
+        headers: { get: () => "application/json" },
+        body: (async function* () {
+          yield Buffer.from(JSON.stringify({ jsonrpc: "2.0", id: 1 }));
+        })(),
+      } as unknown as Response;
+    });
+    if (!server) throw new Error("server missing");
+    const address = server.address();
+    if (!address || typeof address === "string")
+      throw new Error("port missing");
+
+    const claims = {
+      iss: issuer,
+      aud: resourceUrl,
+      exp: Math.floor(Date.now() / 1000) + 300,
+      iat: Math.floor(Date.now() / 1000),
+      scope: requiredScope,
+    };
+    const initialResponse = await request(address.port, {
+      path: "/mcp",
+      token: createToken({ ...claims, scope: "other:read" }),
+    });
+    expect(initialResponse.status).toBe(403);
+
+    activeKeys = [rotatedJwk];
+    const rotatedResponse = await request(address.port, {
+      path: "/mcp",
+      token: createToken(claims, rotatedPair.privateKey, "rotated-key"),
+    });
+
+    expect(rotatedResponse.status).toBe(200);
+    expect(
+      mockFetch.mock.calls.filter(([input]) =>
+        String(input).endsWith("/.well-known/jwks.json"),
+      ),
+    ).toHaveLength(2);
+  });
+
+  it("알 수 없는 kid의 JWKS 갱신을 10초 안에 반복하지 않는다", async () => {
+    const token = createToken(
+      {
+        iss: issuer,
+        aud: resourceUrl,
+        exp: Math.floor(Date.now() / 1000) + 300,
+        iat: Math.floor(Date.now() / 1000),
+        scope: requiredScope,
+      },
+      privateKey,
+      "unknown-key",
+    );
+    if (!server) throw new Error("server missing");
+    const address = server.address();
+    if (!address || typeof address === "string")
+      throw new Error("port missing");
+
+    const firstResponse = await request(address.port, {
+      path: "/mcp",
+      token,
+    });
+    const secondResponse = await request(address.port, {
+      path: "/mcp",
+      token,
+    });
+
+    expect(firstResponse.status).toBe(401);
+    expect(secondResponse.status).toBe(401);
+    expect(
+      mockFetch.mock.calls.filter(([input]) =>
+        String(input).endsWith("/.well-known/jwks.json"),
+      ),
+    ).toHaveLength(2);
   });
 
   it("canonical 리소스 audience와 scope가 맞으면 내부 자격 증명으로만 백엔드를 호출한다", async () => {

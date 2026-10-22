@@ -66,6 +66,29 @@ const createTokenVerifier = (options: {
 }) => {
   let cachedKeys: Jwk[] = [];
   let cachedAt = 0;
+  let lastUnknownKidRefreshAt = 0;
+  let unknownKidRefresh: Promise<boolean> | null = null;
+
+  const refreshForUnknownKid = (): Promise<boolean> => {
+    if (unknownKidRefresh) return unknownKidRefresh;
+    const now = Date.now();
+    if (now - lastUnknownKidRefreshAt < 10_000) return Promise.resolve(false);
+
+    lastUnknownKidRefreshAt = now;
+    unknownKidRefresh = (async () => {
+      const response = await fetch(options.jwksUrl);
+      if (!response.ok) return false;
+      const jwks = (await response.json()) as Jwks;
+      cachedKeys = jwks.keys;
+      cachedAt = Date.now();
+      return true;
+    })()
+      .catch(() => false)
+      .finally(() => {
+        unknownKidRefresh = null;
+      });
+    return unknownKidRefresh;
+  };
 
   return async (token: string): Promise<TokenVerification> => {
     try {
@@ -88,9 +111,14 @@ const createTokenVerifier = (options: {
         cachedAt = Date.now();
       }
 
-      const jwk = cachedKeys.find(
+      let jwk = cachedKeys.find(
         (key) => key.kid === header.kid && (!key.use || key.use === "sig"),
       );
+      if (!jwk && (await refreshForUnknownKid())) {
+        jwk = cachedKeys.find(
+          (key) => key.kid === header.kid && (!key.use || key.use === "sig"),
+        );
+      }
       if (!jwk) return { ok: false, reason: "invalid_token" };
 
       const validSignature = verify(
