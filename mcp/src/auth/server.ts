@@ -492,3 +492,7 @@ export const startMcpOAuthAuthorizationServer = () => {
   );
   return server.listen(Number(process.env.PORT ?? 8080));
 };
+
+if ((process.argv[1] ?? "").endsWith("auth/server.js")) {
+  startMcpOAuthAuthorizationServer();
+}
