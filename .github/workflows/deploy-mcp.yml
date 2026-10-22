@@ -1,0 +1,127 @@
+name: Deploy MCP
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "mcp/**"
+      - ".github/workflows/deploy-mcp.yml"
+
+concurrency:
+  group: deploy-mcp-master
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy-mcp:
+    name: Deploy MCP services
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/portfolio/mcp:${{ github.sha }}
+
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: GCP WIF 인증
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }}
+
+      - name: gcloud 설치
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Artifact Registry 로그인
+        run: gcloud auth configure-docker "${{ vars.GCP_REGION }}-docker.pkg.dev" --quiet
+
+      - name: MCP 이미지 빌드와 푸시
+        uses: docker/build-push-action@v6
+        with:
+          context: ./mcp
+          push: true
+          tags: ${{ env.IMAGE }}
+
+      - name: 비공개 MCP 서버 배포
+        run: |
+          gcloud run deploy portfolio-mcp \
+            --image "${IMAGE}" \
+            --region "${{ vars.GCP_REGION }}" \
+            --project "${{ vars.GCP_PROJECT_ID }}" \
+            --set-secrets=MCP_AUTH_TOKEN=MCP_AUTH_TOKEN:latest,RESUME_CONNECTION_TOKEN=RESUME_CONNECTION_TOKEN:latest \
+            --set-env-vars=RESUME_CONNECTION_URL="${{ vars.RESUME_CONNECTION_URL }}" \
+            --service-account=${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }} \
+            --no-allow-unauthenticated \
+            --quiet
+
+      - name: 게이트웨이 런타임 계정에 MCP 호출 권한 부여
+        run: |
+          gcloud run services add-iam-policy-binding portfolio-mcp \
+            --member="serviceAccount:${{ vars.GCP_MCP_GATEWAY_RUNTIME_SERVICE_ACCOUNT }}" \
+            --role=roles/run.invoker \
+            --region="${{ vars.GCP_REGION }}" \
+            --project="${{ vars.GCP_PROJECT_ID }}" \
+            --quiet
+
+      - name: OAuth 게이트웨이 이미지 빌드와 푸시
+        run: |
+          docker build \
+            --file mcp/Dockerfile.gateway \
+            --tag "${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/portfolio/mcp-gateway:${{ github.sha }}" \
+            mcp
+          docker push "${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/portfolio/mcp-gateway:${{ github.sha }}"
+
+      - name: OAuth 인증서버 이미지 빌드와 푸시
+        run: |
+          docker build \
+            --file mcp/Dockerfile.auth \
+            --tag "${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/portfolio/mcp-auth:${{ github.sha }}" \
+            mcp
+          docker push "${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/portfolio/mcp-auth:${{ github.sha }}"
+
+      - name: OAuth 인증서버 Cloud Run 배포
+        id: deploy-auth
+        run: |
+          gcloud run deploy portfolio-mcp-oauth-auth \
+            --image "${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/portfolio/mcp-auth:${{ github.sha }}" \
+            --region "${{ vars.GCP_REGION }}" \
+            --project "${{ vars.GCP_PROJECT_ID }}" \
+            --set-secrets=GITHUB_OAUTH_CLIENT_SECRET=GITHUB_OAUTH_CLIENT_SECRET:latest,MCP_OAUTH_SIGNING_PRIVATE_KEY=MCP_OAUTH_SIGNING_PRIVATE_KEY:latest \
+            --set-env-vars=MCP_AUTH_ISSUER="https://issuer-bootstrap.invalid",MCP_PUBLIC_URL="${{ vars.MCP_PUBLIC_URL }}",GITHUB_OAUTH_CLIENT_ID="${{ vars.MCP_GITHUB_OAUTH_CLIENT_ID }}",MCP_AUTHORIZED_GITHUB_USER_IDS="${{ vars.MCP_AUTHORIZED_GITHUB_USER_IDS }}" \
+            --service-account="${{ vars.GCP_MCP_AUTH_RUNTIME_SERVICE_ACCOUNT }}" \
+            --max=1 \
+            --no-allow-unauthenticated \
+            --quiet
+          AUTH_ISSUER="$(gcloud run services describe portfolio-mcp-oauth-auth \
+            --region="${{ vars.GCP_REGION }}" \
+            --project="${{ vars.GCP_PROJECT_ID }}" \
+            --format='value(status.url)')"
+          gcloud run services update portfolio-mcp-oauth-auth \
+            --region "${{ vars.GCP_REGION }}" \
+            --project "${{ vars.GCP_PROJECT_ID }}" \
+            --update-env-vars="MCP_AUTH_ISSUER=${AUTH_ISSUER}" \
+            --quiet
+          gcloud run services add-iam-policy-binding portfolio-mcp-oauth-auth \
+            --member=allUsers \
+            --role=roles/run.invoker \
+            --region="${{ vars.GCP_REGION }}" \
+            --project="${{ vars.GCP_PROJECT_ID }}" \
+            --quiet
+          echo "issuer=${AUTH_ISSUER}" >> "${GITHUB_OUTPUT}"
+
+      - name: OAuth 게이트웨이 Cloud Run 배포
+        run: |
+          gcloud run deploy portfolio-mcp-oauth-gateway \
+            --image "${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/portfolio/mcp-gateway:${{ github.sha }}" \
+            --region "${{ vars.GCP_REGION }}" \
+            --project "${{ vars.GCP_PROJECT_ID }}" \
+            --set-secrets=MCP_AUTH_TOKEN=MCP_AUTH_TOKEN:latest \
+            --set-env-vars=MCP_AUTH_ISSUER="${{ steps.deploy-auth.outputs.issuer }}",MCP_PUBLIC_URL="${{ vars.MCP_PUBLIC_URL }}",MCP_BACKEND_URL="${{ vars.MCP_BACKEND_URL }}",MCP_REQUIRED_SCOPE="resume:use" \
+            --service-account="${{ vars.GCP_MCP_GATEWAY_RUNTIME_SERVICE_ACCOUNT }}" \
+            --allow-unauthenticated \
+            --quiet

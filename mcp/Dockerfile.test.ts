@@ -28,4 +28,16 @@ describe("mcp container", () => {
     expect(dockerfile).toContain("dist/gateway/server.js");
     expect(dockerfile).not.toContain("next start");
   });
+
+  it("같은 MCP 프로젝트 소스로 독립 OAuth 인증서버 이미지를 만든다", () => {
+    const dockerfile = fs.readFileSync(
+      path.join(__dirname, "Dockerfile.auth"),
+      "utf8",
+    );
+
+    expect(dockerfile).toContain("COPY src ./src");
+    expect(dockerfile).toContain("COPY package.json pnpm-lock.yaml ./");
+    expect(dockerfile).toContain("dist/auth/server.js");
+    expect(dockerfile).not.toContain("next start");
+  });
 });
