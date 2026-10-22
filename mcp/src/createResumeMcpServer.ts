@@ -1,7 +1,7 @@
 import http, { type IncomingMessage, type ServerResponse } from "http";
 
 import { handleMcpRequest } from "./handleMcpRequest";
-import type { ResumeConnection } from "./resumeTools";
+import type { ResumeConnection } from "./resume/resumeTools";
 
 const readBody = (req: IncomingMessage): Promise<string> =>
   new Promise((resolve, reject) => {

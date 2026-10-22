@@ -1,4 +1,4 @@
-import { callResumeTool, type ResumeConnection } from "./resumeTools";
+import { callResumeTool, type ResumeConnection } from "./resume/resumeTools";
 
 export type McpJsonRpcRequest = {
   jsonrpc: "2.0";

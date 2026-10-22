@@ -85,12 +85,10 @@ jobs:
       - name: 이미지 빌드와 푸시
         uses: docker/build-push-action@v6
         with:
-          context: .
-          file: Dockerfile.mcp
+          context: ./mcp
+          file: Dockerfile
           push: true
           tags: ${{ env.IMAGE }}
-          build-args: |
-            GITHUB_NPM_TOKEN=${{ secrets.NPM_TOKEN }}
 
       - name: Cloud Run 배포
         run: |
@@ -102,4 +100,38 @@ jobs:
             --set-env-vars=RESUME_CONNECTION_URL="${{ vars.RESUME_CONNECTION_URL }}" \
             --service-account=${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }} \
             --no-allow-unauthenticated \
+            --quiet
+
+      - name: 게이트웨이 런타임 계정에 MCP 호출 권한 부여
+        run: |
+          gcloud run services add-iam-policy-binding portfolio-mcp \
+            --member="serviceAccount:${{ vars.GCP_MCP_GATEWAY_RUNTIME_SERVICE_ACCOUNT }}" \
+            --role=roles/run.invoker \
+            --region="${{ vars.GCP_REGION }}" \
+            --project="${{ vars.GCP_PROJECT_ID }}" \
+            --quiet
+          gcloud secrets add-iam-policy-binding MCP_AUTH_TOKEN \
+            --member="serviceAccount:${{ vars.GCP_MCP_GATEWAY_RUNTIME_SERVICE_ACCOUNT }}" \
+            --role=roles/secretmanager.secretAccessor \
+            --project="${{ vars.GCP_PROJECT_ID }}" \
+            --quiet
+
+      - name: OAuth 게이트웨이 이미지 빌드와 푸시
+        run: |
+          docker build \
+            --file mcp/Dockerfile.gateway \
+            --tag "${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/portfolio/mcp-gateway:${{ github.sha }}" \
+            mcp
+          docker push "${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/portfolio/mcp-gateway:${{ github.sha }}"
+
+      - name: OAuth 게이트웨이 Cloud Run 배포
+        run: |
+          gcloud run deploy portfolio-mcp-oauth-gateway \
+            --image "${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/portfolio/mcp-gateway:${{ github.sha }}" \
+            --region "${{ vars.GCP_REGION }}" \
+            --project "${{ vars.GCP_PROJECT_ID }}" \
+            --set-secrets=MCP_AUTH_TOKEN=MCP_AUTH_TOKEN:latest \
+            --set-env-vars=AUTH0_ISSUER="${{ vars.AUTH0_ISSUER }}",MCP_PUBLIC_URL="${{ vars.MCP_PUBLIC_URL }}",MCP_BACKEND_URL="${{ vars.MCP_BACKEND_URL }}",MCP_REQUIRED_SCOPE="resume:use" \
+            --service-account="${{ vars.GCP_MCP_GATEWAY_RUNTIME_SERVICE_ACCOUNT }}" \
+            --allow-unauthenticated \
             --quiet

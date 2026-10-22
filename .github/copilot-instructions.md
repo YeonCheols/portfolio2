@@ -12,6 +12,7 @@
 - 코드 리뷰 기준은 `review` 스킬을 따릅니다. 댓글은 `.agents/skills/review/TEMPLATE.md`만 채웁니다. 목적·데이터 흐름·공통 소유권·불변조건을 검토하고 발견마다 코드·계약 근거와 기존 또는 필요한 회귀 테스트를 적습니다. 테스트 부재로 확인된 결함을 제외하지 않습니다. 중요한 미확인은 차단 표시가 있는 검증 보류로 보고하며 수정 후 최신 상태를 재검토합니다. PR 자동 실행은 꺼 두고 `/review` 댓글로만 실행합니다.
 - 이슈 생성 시 `issue` 스킬: 본문은 `.github/ISSUE_TEMPLATE.md`만 채운다. 예상, 변경범위, 코드, 1급 시민, 불변조건, TDD 기준 테스트 조건은 목록이다. 상태는 저장소 GitHub Project의 Status만 쓰고 값은 `ToDo`, `In Progress`, `Review`, `Done`이다. 새 이슈는 `ToDo`다. 라벨로 상태를 만들지 않는다. 제목과 본문 문장은 `~습니다` 또는 `~ㅂ니다`로 끝낸다. `~다`로 끝내지 않는다
 - 이슈에는 관련 요구·댓글, 사실과 후보, 모델 소유권, 구현·테스트 경로와 검증 조건을 연결합니다. 요청된 하위 관계·Project·Status를 검증하고 부분 실패 시 같은 이슈를 재생성하지 않습니다.
+- MCP 인증·배포·클라이언트 연결 작업 전 `mcp/docs/oauth-gateway.md`를 읽는다. 표준 MCP OAuth 클라이언트는 공개 게이트웨이를 사용하고 기존 `portfolio-mcp`는 비공개로 유지한다. 토큰과 시크릿을 저장소·클라이언트 설정·로그에 기록하지 않는다
 - 근거를 남기는 문장은 `~습니다`로 끝낸다. 패키지 매니저는 pnpm
 - `Lint, Typecheck, Test`, `Integration`, `review-gate`, `integration-gate`가 실패했거나 최신 리뷰에 🔴가 있으면 머지하지 않는다
 - `master` 기준 작업 전에는 `git fetch origin`으로 `origin/master` 최신을 받는다
