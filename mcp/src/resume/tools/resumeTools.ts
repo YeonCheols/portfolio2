@@ -4,6 +4,10 @@ import {
   type ResumeConnectionInput,
 } from "@mcp/resume/connection/resumeConnection";
 import type { ResumeModel, ResumeXmlNode } from "@mcp/resume/model/resumeModel";
+import {
+  isResumeTemplate,
+  type ResumeTemplate,
+} from "@mcp/resume/model/resumeTemplate";
 import { previewResume } from "@mcp/resume/output/previewResume";
 import { renderResumeForm } from "@mcp/resume/output/renderResumeForm";
 import { renderResumeTemplate } from "@mcp/resume/output/renderResumeTemplate";
@@ -39,6 +43,11 @@ const readStringList = (value: unknown): string[] => {
     return fail("INVALID_INPUT");
   }
 
+  return value;
+};
+
+const readTemplate = (value: unknown): ResumeTemplate => {
+  if (!isResumeTemplate(value)) return fail("UNKNOWN_TEMPLATE");
   return value;
 };
 
@@ -114,14 +123,7 @@ export const callResumeTool = async (
     }
 
     if (name === "render_resume_template") {
-      const template = args.template;
-      if (
-        template !== "기본형" &&
-        template !== "경력 중심형" &&
-        template !== "프로젝트 중심형"
-      ) {
-        return fail("UNKNOWN_TEMPLATE");
-      }
+      const template = readTemplate(args.template);
       const composed = composeResume(await loadFromArgs(args, connection), {
         elementIds: readStringList(args.elementIds),
         sectionOrder: readStringList(args.sectionOrder),
@@ -130,14 +132,7 @@ export const callResumeTool = async (
     }
 
     if (name === "render_resume_form") {
-      const template = args.template;
-      if (
-        template !== "기본형" &&
-        template !== "경력 중심형" &&
-        template !== "프로젝트 중심형"
-      ) {
-        return fail("UNKNOWN_TEMPLATE");
-      }
+      const template = readTemplate(args.template);
       const composed = composeResume(await loadFromArgs(args, connection), {
         elementIds: readStringList(args.elementIds),
         sectionOrder: readStringList(args.sectionOrder),

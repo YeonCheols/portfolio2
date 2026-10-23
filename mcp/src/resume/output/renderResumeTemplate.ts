@@ -1,4 +1,6 @@
 import type { ResumeModel, ResumeXmlNode } from "@mcp/resume/model/resumeModel";
+import type { ResumeTemplate } from "@mcp/resume/model/resumeTemplate";
+import { selectTemplateSections } from "@mcp/resume/output/selectTemplateSections";
 
 const isSimpleValue = (node: ResumeXmlNode): boolean =>
   node.children.length === 0 && node.text.trim() !== "";
@@ -47,12 +49,12 @@ const labeledLines = (node: ResumeXmlNode): string[] => {
 
 export const renderResumeTemplate = (
   resume: ResumeModel,
-  template: string,
+  template: ResumeTemplate,
 ): string =>
   [
     template,
-    ...Object.entries(resume.sections).flatMap(([sectionName, nodes]) => [
-      sectionName,
-      ...nodes.flatMap((node) => labeledLines(node)),
-    ]),
+    ...selectTemplateSections(resume, template).flatMap(({ name, nodes }) => {
+      const lines = nodes.flatMap((node) => labeledLines(node));
+      return lines.length > 0 ? [name, ...lines] : [];
+    }),
   ].join("\n");

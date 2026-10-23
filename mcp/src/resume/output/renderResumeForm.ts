@@ -1,4 +1,6 @@
 import type { ResumeModel, ResumeXmlNode } from "@mcp/resume/model/resumeModel";
+import type { ResumeTemplate } from "@mcp/resume/model/resumeTemplate";
+import { selectTemplateSections } from "@mcp/resume/output/selectTemplateSections";
 
 const sectionLabels: Record<string, string> = {
   profile: "프로필",
@@ -42,18 +44,6 @@ const fieldLabels: Record<string, string> = {
 
 const textOf = (node: ResumeXmlNode | undefined): string =>
   node?.text.trim() ?? "";
-
-const findNamed = (
-  nodes: readonly ResumeXmlNode[],
-  name: string,
-): ResumeXmlNode[] =>
-  nodes.flatMap((node) => [
-    ...(node.name === name ? [node] : []),
-    ...findNamed(node.children, name),
-  ]);
-
-const employmentRefOf = (node: ResumeXmlNode): string | undefined =>
-  node.references.employmentRef?.[0] ?? node.attributes.employmentRef;
 
 const fieldLabel = (
   name: string,
@@ -134,73 +124,15 @@ const linesOf = (
 const sectionLines = (nodes: readonly ResumeXmlNode[]): string[] =>
   nodes.flatMap((node) => linesOf(node, []));
 
-const recordsNamed = (
-  nodes: readonly ResumeXmlNode[],
-  name: string,
-  include: (node: ResumeXmlNode) => boolean,
-): ResumeXmlNode[] =>
-  nodes.flatMap((node) => {
-    if (node.name === name) return include(node) ? [node] : [];
-    return findNamed([node], name).filter(include);
-  });
-
-const visibleNodes = (
-  template: string,
-  sectionName: string,
-  nodes: readonly ResumeXmlNode[],
-  employmentIds: ReadonlySet<string>,
-  linkedEmploymentIds: ReadonlySet<string>,
-): readonly ResumeXmlNode[] => {
-  if (template === "경력 중심형" && sectionName === "projects") {
-    return recordsNamed(nodes, "project", (project) =>
-      employmentIds.has(employmentRefOf(project) ?? ""),
-    );
-  }
-
-  if (template === "프로젝트 중심형" && sectionName === "employmentHistory") {
-    return recordsNamed(nodes, "employment", (employment) =>
-      linkedEmploymentIds.has(employment.attributes.id ?? ""),
-    );
-  }
-
-  return nodes;
-};
-
-const templateSections = (template: string): string[] => {
-  if (template === "경력 중심형") return ["employmentHistory", "projects"];
-  if (template === "프로젝트 중심형") {
-    return ["projects", "employmentHistory"];
-  }
-  return ["profile", "educationHistory", "employmentHistory", "projects"];
-};
-
 export const renderResumeForm = (
   resume: ResumeModel,
-  template: string,
+  template: ResumeTemplate,
 ): string => {
-  const employmentIds = new Set(
-    findNamed(resume.sections.employmentHistory ?? [], "employment")
-      .map((node) => node.attributes.id)
-      .filter((id): id is string => Boolean(id)),
-  );
-  const linkedEmploymentIds = new Set(
-    findNamed(resume.sections.projects ?? [], "project")
-      .map((node) => employmentRefOf(node))
-      .filter((id): id is string => Boolean(id)),
-  );
-  const lines = [template];
+  const lines: string[] = [template];
 
-  templateSections(template).forEach((sectionName) => {
-    const nodes = resume.sections[sectionName] ?? [];
-    const visible = visibleNodes(
-      template,
-      sectionName,
-      nodes,
-      employmentIds,
-      linkedEmploymentIds,
-    );
-    const content = sectionLines(visible);
-    const heading = sectionLabels[sectionName];
+  selectTemplateSections(resume, template).forEach(({ name, nodes }) => {
+    const content = sectionLines(nodes);
+    const heading = sectionLabels[name];
     if (heading && content.length > 0) lines.push(heading, ...content);
   });
 
