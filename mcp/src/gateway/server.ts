@@ -195,8 +195,45 @@ const createGateway = (options: {
     }
 
     if (req.method === "GET" && path === "/mcp") {
-      res.writeHead(405, { allow: "POST" });
-      res.end();
+      const accept = headerValue(req.headers.accept) ?? "";
+      if (!accept.includes("text/event-stream")) {
+        res.writeHead(405, { allow: "POST" });
+        res.end();
+        return;
+      }
+
+      const token = getBearerToken(req);
+      const tokenVerification = token
+        ? await verifyToken(token)
+        : { ok: false as const, reason: "invalid_token" as const };
+      if (!tokenVerification.ok) {
+        const metadataUrl = new URL(
+          "/.well-known/oauth-protected-resource/mcp",
+          options.resourceUrl,
+        ).toString();
+        const insufficientScope =
+          tokenVerification.reason === "insufficient_scope";
+        const status = insufficientScope ? 403 : 401;
+        const error = insufficientScope
+          ? "insufficient_scope"
+          : "invalid_token";
+        res.writeHead(status, {
+          "content-type": "application/json",
+          "www-authenticate": `Bearer resource_metadata="${metadataUrl}", error="${error}"${insufficientScope ? `, scope="${options.requiredScope}"` : ""}`,
+        });
+        res.end(JSON.stringify({ error }));
+        return;
+      }
+
+      res.writeHead(200, {
+        "content-type": "text/event-stream",
+        "cache-control": "no-cache, no-transform",
+        connection: "keep-alive",
+      });
+      res.write(": connected\n\n");
+      req.on("close", () => {
+        if (!res.writableEnded) res.end();
+      });
       return;
     }
 

@@ -217,6 +217,73 @@ describe("MCP OAuth gateway", () => {
     ).toBe(false);
   });
 
+  it("이벤트 스트림 요청은 백엔드 없이 SSE 연결을 연다", async () => {
+    const token = createToken({
+      iss: issuer,
+      aud: resourceUrl,
+      exp: Math.floor(Date.now() / 1000) + 300,
+      iat: Math.floor(Date.now() / 1000),
+      scope: requiredScope,
+    });
+    if (!server) throw new Error("server missing");
+    const address = server.address();
+    if (!address || typeof address === "string")
+      throw new Error("port missing");
+
+    const response = await new Promise<{
+      status: number;
+      contentType: string;
+      body: string;
+    }>((resolve, reject) => {
+      const req = http.request(
+        {
+          hostname: "127.0.0.1",
+          port: address.port,
+          method: "GET",
+          path: "/mcp",
+          headers: {
+            accept: "text/event-stream",
+            authorization: `Bearer ${token}`,
+          },
+        },
+        (res) => {
+          res.setEncoding("utf8");
+          let body = "";
+          let settled = false;
+          const finish = () => {
+            if (settled) return;
+            settled = true;
+            resolve({
+              status: res.statusCode ?? 0,
+              contentType: String(res.headers["content-type"] ?? ""),
+              body,
+            });
+          };
+          res.on("data", (chunk: string) => {
+            body += chunk;
+            finish();
+            req.destroy();
+          });
+          res.on("end", finish);
+        },
+      );
+      req.on("error", (error) => {
+        if ((error as NodeJS.ErrnoException).code !== "ECONNRESET")
+          reject(error);
+      });
+      req.end();
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.contentType).toContain("text/event-stream");
+    expect(response.body).toContain(": connected");
+    expect(
+      mockFetch.mock.calls.some(([input]) =>
+        String(input).includes("backend.example.test"),
+      ),
+    ).toBe(false);
+  });
+
   it("토큰이 없으면 표준 discovery challenge를 반환하고 백엔드를 호출하지 않는다", async () => {
     if (!server) throw new Error("server missing");
     const address = server.address();
