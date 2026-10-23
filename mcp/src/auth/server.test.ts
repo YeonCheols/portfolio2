@@ -3,6 +3,26 @@ import http from "http";
 
 import { startMcpOAuthAuthorizationServer } from "./server";
 
+const asciiBytes = (value: string): Uint8Array => {
+  const bytes = new Uint8Array(value.length);
+  for (let index = 0; index < value.length; index += 1) {
+    bytes[index] = value.charCodeAt(index);
+  }
+  return bytes;
+};
+
+const base64UrlText = (value: string): string => {
+  const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = normalized.padEnd(
+    normalized.length + ((4 - (normalized.length % 4)) % 4),
+    "=",
+  );
+  return atob(padded);
+};
+
+const base64UrlBytes = (value: string): Uint8Array =>
+  asciiBytes(base64UrlText(value));
+
 const issuer = "https://auth.example.test";
 const resource = "https://mcp.example.test/mcp";
 const { privateKey, publicKey } = generateKeyPairSync("rsa", {
@@ -289,6 +309,47 @@ describe("MCP OAuth authorization server", () => {
     });
   });
 
+  it("refresh_token이 포함된 grant_types로도 클라이언트를 등록한다", async () => {
+    if (!server) throw new Error("server missing");
+    const address = server.address();
+    if (!address || typeof address === "string")
+      throw new Error("port missing");
+
+    const response = await post(address.port, "/register", {
+      client_name: "Cursor",
+      redirect_uris: [
+        "https://www.cursor.com/agents/mcp/oauth/callback",
+        "http://localhost:8787/callback",
+      ],
+      grant_types: ["authorization_code", "refresh_token"],
+      response_types: ["code"],
+      token_endpoint_auth_method: "none",
+    });
+
+    expect(response.status).toBe(201);
+    expect(JSON.parse(response.body)).toMatchObject({
+      client_id: expect.any(String),
+      grant_types: ["authorization_code"],
+    });
+    expect(JSON.parse(response.body)).not.toHaveProperty("refresh_token");
+  });
+
+  it("authorization_code가 없는 grant_types 등록을 거부한다", async () => {
+    if (!server) throw new Error("server missing");
+    const address = server.address();
+    if (!address || typeof address === "string")
+      throw new Error("port missing");
+
+    const response = await post(address.port, "/register", {
+      redirect_uris: ["http://127.0.0.1:43123/callback"],
+      grant_types: ["refresh_token"],
+      token_endpoint_auth_method: "none",
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toContain('"error":"invalid_client_metadata"');
+  });
+
   it("loopback이 아닌 평문 HTTP redirect URI 등록을 거부한다", async () => {
     if (!server) throw new Error("server missing");
     const address = server.address();
@@ -488,12 +549,14 @@ describe("MCP OAuth authorization server", () => {
       };
       const [encodedHeader, encodedClaims, encodedSignature] =
         tokenResponse.access_token.split(".");
-      const header = JSON.parse(
-        Buffer.from(encodedHeader, "base64url").toString("utf8"),
-      ) as { alg: string; kid: string };
-      const claims = JSON.parse(
-        Buffer.from(encodedClaims, "base64url").toString("utf8"),
-      ) as Record<string, unknown>;
+      const header = JSON.parse(base64UrlText(encodedHeader)) as {
+        alg: string;
+        kid: string;
+      };
+      const claims = JSON.parse(base64UrlText(encodedClaims)) as Record<
+        string,
+        unknown
+      >;
       expect(header).toMatchObject({ alg: "RS256", kid: expect.any(String) });
       expect(claims).toMatchObject({
         iss: issuer,
@@ -504,9 +567,9 @@ describe("MCP OAuth authorization server", () => {
       expect(
         verify(
           "RSA-SHA256",
-          Buffer.from(`${encodedHeader}.${encodedClaims}`),
+          asciiBytes(`${encodedHeader}.${encodedClaims}`),
           publicKey,
-          Buffer.from(encodedSignature, "base64url"),
+          base64UrlBytes(encodedSignature),
         ),
       ).toBe(true);
       expect(tokenResponse).toMatchObject({
@@ -514,6 +577,7 @@ describe("MCP OAuth authorization server", () => {
         expires_in: 3600,
         scope: "resume:use",
       });
+      expect(tokenResponse).not.toHaveProperty("refresh_token");
       const replay = await postForm(address.port, "/token", {
         grant_type: "authorization_code",
         code: code ?? "",
