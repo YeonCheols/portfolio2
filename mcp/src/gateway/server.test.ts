@@ -25,7 +25,22 @@ const createToken = (
   ).toString("base64url");
   const payload = Buffer.from(JSON.stringify(claims)).toString("base64url");
   const input = `${header}.${payload}`;
-  return `${input}.${sign("RSA-SHA256", Buffer.from(input), key).toString("base64url")}`;
+  const inputBytes = Buffer.from(input);
+  const data = new Uint8Array(inputBytes.length);
+  for (let index = 0; index < inputBytes.length; index += 1) {
+    data[index] = inputBytes[index];
+  }
+  return `${input}.${sign("RSA-SHA256", data, key).toString("base64url")}`;
+};
+
+const readRequestBody = (body: BodyInit | null | undefined): string => {
+  if (typeof body === "string") return body;
+  if (!Buffer.isBuffer(body)) return "";
+  let text = "";
+  for (let index = 0; index < body.length; index += 1) {
+    text += String.fromCharCode(body[index]);
+  }
+  return text;
 };
 
 const request = (
@@ -175,6 +190,33 @@ describe("MCP OAuth gateway", () => {
     expect(JSON.parse(response.body).resource).toBe(resourceUrl);
   });
 
+  it("스트림을 지원하지 않는 GET /mcp는 405를 반환하고 백엔드를 호출하지 않는다", async () => {
+    const token = createToken({
+      iss: issuer,
+      aud: resourceUrl,
+      exp: Math.floor(Date.now() / 1000) + 300,
+      iat: Math.floor(Date.now() / 1000),
+      scope: requiredScope,
+    });
+    if (!server) throw new Error("server missing");
+    const address = server.address();
+    if (!address || typeof address === "string")
+      throw new Error("port missing");
+
+    const response = await request(address.port, {
+      method: "GET",
+      path: "/mcp",
+      token,
+    });
+
+    expect(response.status).toBe(405);
+    expect(
+      mockFetch.mock.calls.some(([input]) =>
+        String(input).includes("backend.example.test"),
+      ),
+    ).toBe(false);
+  });
+
   it("토큰이 없으면 표준 discovery challenge를 반환하고 백엔드를 호출하지 않는다", async () => {
     if (!server) throw new Error("server missing");
     const address = server.address();
@@ -321,7 +363,13 @@ describe("MCP OAuth gateway", () => {
       iat: Math.floor(Date.now() / 1000),
       scope: requiredScope,
     });
+    const requestBody = JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/list",
+    });
     const backendHeaders: HeadersInit[] = [];
+    const backendBodies: string[] = [];
     const responseHeaders = {
       "content-type": "application/json",
       "mcp-session-id": "session-response",
@@ -341,6 +389,7 @@ describe("MCP OAuth gateway", () => {
         }
 
         backendHeaders.push(init?.headers ?? {});
+        backendBodies.push(readRequestBody(init?.body));
         return {
           ok: true,
           status: 200,
@@ -381,5 +430,6 @@ describe("MCP OAuth gateway", () => {
       "mcp-protocol-version": "2024-11-05",
     });
     expect(JSON.stringify(backendHeaders[0])).not.toContain(token);
+    expect(backendBodies).toEqual([requestBody]);
   });
 });
