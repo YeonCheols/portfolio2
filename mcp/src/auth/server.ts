@@ -54,29 +54,27 @@ const redirectToClient = (
   res.end();
 };
 
-const readForm = async (req: IncomingMessage): Promise<URLSearchParams> => {
-  const chunks: Buffer[] = [];
+const readLimitedUtf8 = async (
+  req: IncomingMessage,
+  limit: number,
+): Promise<string> => {
+  const chunks: string[] = [];
   let size = 0;
+  req.setEncoding("utf8");
   for await (const chunk of req) {
-    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-    size += buffer.length;
-    if (size > 32_768) throw new Error("BODY_TOO_LARGE");
-    chunks.push(buffer);
+    const text = String(chunk);
+    size += Buffer.byteLength(text);
+    if (size > limit) throw new Error("BODY_TOO_LARGE");
+    chunks.push(text);
   }
-  return new URLSearchParams(Buffer.concat(chunks).toString("utf8"));
+  return chunks.join("");
 };
 
-const readJson = async (req: IncomingMessage): Promise<unknown> => {
-  const chunks: Buffer[] = [];
-  let size = 0;
-  for await (const chunk of req) {
-    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-    size += buffer.length;
-    if (size > 32_768) throw new Error("BODY_TOO_LARGE");
-    chunks.push(buffer);
-  }
-  return JSON.parse(Buffer.concat(chunks).toString("utf8"));
-};
+const readForm = async (req: IncomingMessage): Promise<URLSearchParams> =>
+  new URLSearchParams(await readLimitedUtf8(req, 32_768));
+
+const readJson = async (req: IncomingMessage): Promise<unknown> =>
+  JSON.parse(await readLimitedUtf8(req, 32_768));
 
 type RegisteredClient = {
   redirect_uris: string[];
@@ -94,6 +92,26 @@ type PendingAuthorization = {
   expiresAt: number;
 };
 type AuthorizationCode = PendingAuthorization & { subject: string };
+
+const validGrantTypes = (value: unknown): boolean => {
+  if (value === undefined) return true;
+  if (!Array.isArray(value) || value.length === 0) return false;
+  const grants = value.filter(
+    (grant): grant is string => typeof grant === "string",
+  );
+  if (
+    grants.length !== value.length ||
+    new Set(grants).size !== grants.length
+  ) {
+    return false;
+  }
+  return (
+    grants.includes("authorization_code") &&
+    grants.every(
+      (grant) => grant === "authorization_code" || grant === "refresh_token",
+    )
+  );
+};
 
 const validRedirectUri = (value: string): boolean => {
   try {
@@ -121,8 +139,14 @@ const createClientIdCodec = (key: string) => {
     decode: (clientId: string): RegisteredClient | null => {
       const [payload, signature, extra] = clientId.split(".");
       if (!payload || !signature || extra) return null;
-      const expected = Buffer.from(sign(payload));
-      const received = Buffer.from(signature);
+      const expectedBytes = Buffer.from(sign(payload));
+      const receivedBytes = Buffer.from(signature);
+      const expected = new Uint8Array(expectedBytes.length);
+      const received = new Uint8Array(receivedBytes.length);
+      for (let index = 0; index < expected.length; index += 1) {
+        expected[index] = expectedBytes[index];
+        received[index] = receivedBytes[index];
+      }
       if (
         expected.length !== received.length ||
         !timingSafeEqual(expected, received)
@@ -159,9 +183,12 @@ const createSigningKey = (privateKeyValue: string): SigningJwk => {
   }
   const publicKey = createPublicKey(privateKey);
   const jwk = publicKey.export({ format: "jwk" }) as JsonWebKey;
-  const fingerprint = createHash("sha256")
-    .update(publicKey.export({ format: "der", type: "spki" }))
-    .digest("hex");
+  const exported = publicKey.export({ format: "der", type: "spki" });
+  const der = new Uint8Array(exported.length);
+  for (let index = 0; index < exported.length; index += 1) {
+    der[index] = exported[index];
+  }
+  const fingerprint = createHash("sha256").update(der).digest("hex");
   return { ...jwk, kid: fingerprint.slice(0, 24), use: "sig", alg: "RS256" };
 };
 
@@ -255,9 +282,7 @@ export const startMcpOAuthAuthorizationServer = () => {
                 (uri) => typeof uri !== "string" || !validRedirectUri(uri),
               ) ||
               new Set(redirectUris).size !== redirectUris.length ||
-              (body.grant_types !== undefined &&
-                JSON.stringify(body.grant_types) !==
-                  JSON.stringify(["authorization_code"])) ||
+              !validGrantTypes(body.grant_types) ||
               (body.response_types !== undefined &&
                 JSON.stringify(body.response_types) !==
                   JSON.stringify(["code"])) ||
@@ -471,9 +496,14 @@ export const startMcpOAuthAuthorizationServer = () => {
               }),
             ).toString("base64url");
             const signingInput = `${header}.${claims}`;
+            const signingBytes = Buffer.from(signingInput);
+            const data = new Uint8Array(signingBytes.length);
+            for (let index = 0; index < signingBytes.length; index += 1) {
+              data[index] = signingBytes[index];
+            }
             const signature = sign(
               "RSA-SHA256",
-              Buffer.from(signingInput),
+              data,
               createPrivateKey(privateKey.replace(/\\n/g, "\n")),
             ).toString("base64url");
             sendNoStoreJson(res, 200, {
