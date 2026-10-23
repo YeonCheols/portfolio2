@@ -551,4 +551,217 @@ describe("callResumeTool", () => {
     expect(result.text).not.toContain("hidden@example.com");
     expect(result.text).not.toContain("테스트 사용자");
   });
+
+  it("선택 조회는 고른 원소의 식별자 원문 출처 공개 여부를 유지하고 고르지 않은 원소는 빼 준다", async () => {
+    const headline = "재사용 가능한  컴포넌트";
+    const result = await callResumeTool(
+      "read_resume_selection",
+      {
+        source: "embedded",
+        xml: 'schemaVersion="0.2.0"',
+        template: "기본형",
+        elementIds: ["profile-test"],
+        sectionOrder: ["profile", "employmentHistory"],
+      },
+      {
+        load: async () => ({
+          ...connectedResume(),
+          sections: {
+            profile: [
+              resumeNode("profile", {
+                attributes: {
+                  id: "profile-test",
+                  sourceRefs: "source-page-1",
+                  visibility: "private",
+                },
+                references: { sourceRefs: ["source-page-1"] },
+                children: [
+                  resumeNode("headline", {
+                    attributes: { visibility: "public" },
+                    text: headline,
+                  }),
+                  resumeNode("email", {
+                    attributes: { visibility: "private" },
+                    text: "hidden@example.com",
+                  }),
+                ],
+              }),
+            ],
+            employmentHistory: [
+              resumeNode("employmentHistory", {
+                children: [
+                  resumeNode("employment", {
+                    attributes: {
+                      id: "employment-hidden",
+                      visibility: "private",
+                    },
+                    children: [
+                      resumeNode("organization", { text: "빠지는 회사" }),
+                    ],
+                  }),
+                ],
+              }),
+            ],
+          },
+        }),
+      },
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(JSON.parse(result.text)).toEqual([
+      {
+        id: "profile-test",
+        section: "profile",
+        name: "profile",
+        text: "",
+        sourceRefs: ["source-page-1"],
+        visibility: "private",
+        children: [
+          {
+            section: "profile",
+            name: "headline",
+            text: headline,
+            sourceRefs: [],
+            visibility: "public",
+            children: [],
+          },
+          {
+            section: "profile",
+            name: "email",
+            text: "hidden@example.com",
+            sourceRefs: [],
+            visibility: "private",
+            children: [],
+          },
+        ],
+      },
+    ]);
+    expect(result.text).not.toContain("빠지는 회사");
+  });
+
+  it("선택 조회의 기본형은 공개 여부가 없는 값을 빈 문자열로 두고 프로필을 경력보다 앞에 둔다", async () => {
+    const result = await callResumeTool(
+      "read_resume_selection",
+      {
+        source: "embedded",
+        xml: 'schemaVersion="0.2.0"',
+        template: "기본형",
+        elementIds: ["employment-open", "profile-test"],
+        sectionOrder: ["employmentHistory", "profile"],
+      },
+      {
+        load: async () => ({
+          ...connectedResume(),
+          sections: {
+            profile: [
+              resumeNode("profile", {
+                attributes: {
+                  id: "profile-test",
+                  visibility: "private",
+                },
+                references: { sourceRefs: ["source-page-1"] },
+                text: "프로필 원문",
+              }),
+            ],
+            employmentHistory: [
+              resumeNode("employment", {
+                attributes: { id: "employment-open" },
+                text: "회사 원문",
+              }),
+            ],
+          },
+        }),
+      },
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const selection = JSON.parse(result.text) as {
+      id: string;
+      visibility: string;
+    }[];
+    expect(selection.map((item) => item.id)).toEqual([
+      "profile-test",
+      "employment-open",
+    ]);
+    expect(selection[0].visibility).toBe("private");
+    expect(selection[1].visibility).toBe("");
+  });
+
+  it("선택 조회의 경력 중심형은 선택한 경력과 연결된 프로젝트만 남기고 프로필은 빼 준다", async () => {
+    const result = await callResumeTool(
+      "read_resume_selection",
+      {
+        source: "embedded",
+        xml: 'schemaVersion="0.2.0"',
+        template: "경력 중심형",
+        elementIds: [
+          "profile-test",
+          "employment-selected",
+          "project-linked",
+          "project-other",
+        ],
+        sectionOrder: ["profile", "employmentHistory", "projects"],
+      },
+      {
+        load: async () => ({
+          ...connectedResume([resumeNode("name", { text: "테스트 사용자" })]),
+          sections: {
+            ...connectedResume([resumeNode("name", { text: "테스트 사용자" })])
+              .sections,
+            employmentHistory: [
+              resumeNode("employmentHistory", {
+                children: [
+                  resumeNode("employment", {
+                    attributes: { id: "employment-selected" },
+                    children: [
+                      resumeNode("organization", { text: "선택한 회사" }),
+                    ],
+                  }),
+                ],
+              }),
+            ],
+            projects: [
+              resumeNode("projects", {
+                children: [
+                  resumeNode("project", {
+                    attributes: {
+                      id: "project-linked",
+                      employmentRef: "employment-selected",
+                    },
+                    references: { employmentRef: ["employment-selected"] },
+                    children: [
+                      resumeNode("title", { text: "연결된 프로젝트" }),
+                    ],
+                  }),
+                  resumeNode("project", {
+                    attributes: {
+                      id: "project-other",
+                      employmentRef: "employment-other",
+                    },
+                    references: { employmentRef: ["employment-other"] },
+                    children: [
+                      resumeNode("title", { text: "분리된 프로젝트" }),
+                    ],
+                  }),
+                ],
+              }),
+            ],
+          },
+        }),
+      },
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const ids = (JSON.parse(result.text) as { id: string }[]).map(
+      (item) => item.id,
+    );
+    expect(ids).toEqual(["employment-selected", "project-linked"]);
+    expect(result.text).toContain("선택한 회사");
+    expect(result.text).toContain("연결된 프로젝트");
+    expect(result.text).not.toContain("테스트 사용자");
+    expect(result.text).not.toContain("분리된 프로젝트");
+  });
 });

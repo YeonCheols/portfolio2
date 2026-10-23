@@ -58,24 +58,27 @@ mcp/
 - `source`는 `repository`, `embedded`, `file` 중 하나입니다. 그 외는 `INVALID_INPUT`입니다.
 - `embedded`와 `file`은 `xml` 문자열이 필요합니다.
 - `elementIds`와 `sectionOrder`는 문자열 배열입니다. 선택하지 않은 원소는 출력에서 빠집니다.
-- `template`은 `기본형`, `경력 중심형`, `프로젝트 중심형`만입니다. 목록의 소유자는 `src/resume/model/resumeTemplate.ts`입니다. `render_resume_template`와 `render_resume_form`이 이 목록을 함께 씁니다. 다른 이름은 `UNKNOWN_TEMPLATE`만 반환합니다.
+- `template`은 `기본형`, `경력 중심형`, `프로젝트 중심형`만입니다. 목록의 소유자는 `src/resume/model/resumeTemplate.ts`입니다. `render_resume_template`, `render_resume_form`, `read_resume_selection`이 이 목록을 함께 씁니다. 다른 이름은 `UNKNOWN_TEMPLATE`만 반환합니다.
 
 | 도구                     | 하는 일                                                                |
 | ------------------------ | ---------------------------------------------------------------------- |
 | `validate_resume_xml`    | 모델을 읽고 이력서 id를 반환합니다.                                    |
 | `list_resume_elements`   | 원소 id, 섹션, 이름, 출처만 JSON으로 반환합니다. 본문은 넣지 않습니다. |
 | `preview_resume`         | 섹션 이름과 원문 줄만 이어 붙입니다. 원소 이름은 붙이지 않습니다.      |
+| `read_resume_selection`  | 선택한 원소의 식별자, 원문, 출처, 공개 여부를 JSON으로 반환합니다.     |
 | `render_resume_template` | 원소 이름과 원문을 한 줄로 출력합니다.                                 |
 | `render_resume_form`     | 한글 항목명과 원문으로 이력서 양식을 출력합니다.                       |
 
 없는 도구 이름은 `UNKNOWN_TOOL`입니다. 연결이 거부한 입력은 연결 오류 코드만 반환합니다.
 
-`render_resume_template`와 `render_resume_form`은 `src/resume/output/selectTemplateSections.ts`의 같은 섹션 선택을 사용합니다.
+`render_resume_template`, `render_resume_form`, `read_resume_selection`은 `src/resume/output/selectTemplateSections.ts`의 같은 섹션 선택을 사용합니다.
 
 - `기본형`은 프로필, 학력, 경력, 프로젝트 순서입니다.
 - `경력 중심형`은 선택한 경력과, 그 경력에 `employmentRef`로 연결된 프로젝트만 보여 줍니다.
 - `프로젝트 중심형`은 선택한 프로젝트와, 그 프로젝트가 가리키는 경력만 보여 줍니다.
-- 이 네 섹션 밖은 두 출력 모두에 넣지 않습니다.
+- 이 네 섹션 밖은 세 출력 모두에 넣지 않습니다.
+
+`read_resume_selection`은 고른 원소 중 id가 있는 노드를 JSON으로 반환합니다. 각 노드는 섹션, 이름, 자신의 원문, `sourceRefs`, `visibility`를 유지하고 자식의 원문도 그대로 둡니다. `visibility` 속성이 없으면 빈 문자열입니다. 선택하지 않은 원소는 빠지고, 비공개 원소를 응답에서 지우지 않습니다.
 
 `render_resume_template`는 원소 이름과 원문을 출력합니다. 같은 원소 이름이 연속되면 이름을 한 번만 쓰고 값은 `- ` 불릿으로 묶습니다. 한 번만 있는 값은 `이름 원문`입니다. 원문 내부의 띄어쓰기는 유지합니다.
 

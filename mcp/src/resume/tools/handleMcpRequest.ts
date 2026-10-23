@@ -39,6 +39,11 @@ const tools = [
     inputSchema: { type: "object" },
   },
   {
+    name: "read_resume_selection",
+    description: "선택한 원소의 식별자, 원문, 출처, 공개 여부를 반환한다",
+    inputSchema: { type: "object" },
+  },
+  {
     name: "render_resume_template",
     description: "선택한 원소를 라벨이 있는 템플릿으로 출력한다",
     inputSchema: templateInputSchema,

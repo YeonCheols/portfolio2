@@ -11,6 +11,7 @@ import {
 import { previewResume } from "@mcp/resume/output/previewResume";
 import { renderResumeForm } from "@mcp/resume/output/renderResumeForm";
 import { renderResumeTemplate } from "@mcp/resume/output/renderResumeTemplate";
+import { selectTemplateSections } from "@mcp/resume/output/selectTemplateSections";
 
 export type ResumeToolResult =
   | { ok: true; text: string }
@@ -96,6 +97,57 @@ const listElements = (resume: ResumeModel): string => {
   return JSON.stringify(found);
 };
 
+type ResumeSelectionNode = {
+  id?: string;
+  section: string;
+  name: string;
+  text: string;
+  sourceRefs: readonly string[];
+  visibility: string;
+  children: ResumeSelectionNode[];
+};
+
+const selectionNode = (
+  section: string,
+  node: ResumeXmlNode,
+): ResumeSelectionNode => {
+  const record: ResumeSelectionNode = {
+    section,
+    name: node.name,
+    text: node.text,
+    sourceRefs: node.references.sourceRefs ?? [],
+    visibility: node.attributes.visibility ?? "",
+    children: node.children.map((child) => selectionNode(section, child)),
+  };
+  if (node.attributes.id) record.id = node.attributes.id;
+  return record;
+};
+
+const collectSelection = (
+  section: string,
+  nodes: readonly ResumeXmlNode[],
+  found: ResumeSelectionNode[],
+) => {
+  nodes.forEach((node) => {
+    if (node.attributes.id) {
+      found.push(selectionNode(section, node));
+      return;
+    }
+    collectSelection(section, node.children, found);
+  });
+};
+
+const readSelection = (
+  resume: ResumeModel,
+  template: ResumeTemplate,
+): string => {
+  const found: ResumeSelectionNode[] = [];
+  selectTemplateSections(resume, template).forEach(({ name, nodes }) => {
+    collectSelection(name, nodes, found);
+  });
+  return JSON.stringify(found);
+};
+
 export const callResumeTool = async (
   name: string,
   args: Record<string, unknown>,
@@ -112,6 +164,15 @@ export const callResumeTool = async (
         ok: true,
         text: listElements(await loadFromArgs(args, connection)),
       };
+    }
+
+    if (name === "read_resume_selection") {
+      const template = readTemplate(args.template);
+      const composed = composeResume(await loadFromArgs(args, connection), {
+        elementIds: readStringList(args.elementIds),
+        sectionOrder: readStringList(args.sectionOrder),
+      });
+      return { ok: true, text: readSelection(composed, template) };
     }
 
     if (name === "preview_resume") {

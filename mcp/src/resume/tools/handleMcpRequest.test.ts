@@ -63,6 +63,25 @@ describe("handleMcpRequest", () => {
     });
   });
 
+  it("도구 목록에 선택한 원소의 구조화 조회를 포함한다", async () => {
+    const response = await handleMcpRequest(
+      { jsonrpc: "2.0", id: 6, method: "tools/list" },
+      connection,
+    );
+
+    expect(response).toMatchObject({
+      result: {
+        tools: expect.arrayContaining([
+          expect.objectContaining({
+            name: "read_resume_selection",
+            description:
+              "선택한 원소의 식별자, 원문, 출처, 공개 여부를 반환한다",
+          }),
+        ]),
+      },
+    });
+  });
+
   it("도구 목록에 이력서 양식 출력 도구를 포함한다", async () => {
     const response = await handleMcpRequest(
       { jsonrpc: "2.0", id: 4, method: "tools/list" },
