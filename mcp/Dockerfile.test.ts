@@ -40,4 +40,19 @@ describe("mcp container", () => {
     expect(dockerfile).toContain("dist/auth/server.js");
     expect(dockerfile).not.toContain("next start");
   });
+
+  it("alias를 되돌리는 빌드 스크립트를 이미지에 넣는다", () => {
+    for (const fileName of [
+      "Dockerfile",
+      "Dockerfile.gateway",
+      "Dockerfile.auth",
+    ]) {
+      const dockerfile = fs.readFileSync(
+        path.join(__dirname, fileName),
+        "utf8",
+      );
+
+      expect(dockerfile).toContain("COPY scripts ./scripts");
+    }
+  });
 });
