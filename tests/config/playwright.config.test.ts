@@ -37,4 +37,12 @@ describe("playwright.config", () => {
 
     expect(JSON.stringify(config.reporter)).toContain("html");
   });
+
+  it("웹 서버 빌드 출력을 진행 로그로 내보낸다", () => {
+    const config = require("../../playwright.config").default as {
+      webServer: { stdout?: string };
+    };
+
+    expect(config.webServer.stdout).toBe("pipe");
+  });
 });
