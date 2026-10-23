@@ -12,4 +12,14 @@ describe("integration workflow", () => {
     expect(workflow).toContain("pnpm test:integration");
     expect(workflow).not.toContain("pnpm test:ci");
   });
+
+  it("Chromium 바이너리만 설치하고 시스템 패키지는 받지 않는다", () => {
+    const workflow = fs.readFileSync(
+      path.join(__dirname, "../../.github/workflows/integration.yml"),
+      "utf8",
+    );
+
+    expect(workflow).toContain("pnpm exec playwright install chromium");
+    expect(workflow).not.toContain("--with-deps");
+  });
 });
