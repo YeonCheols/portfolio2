@@ -28,16 +28,17 @@ const requiredEnv = (name: string): string => {
   return value;
 };
 
-const readBody = async (req: IncomingMessage): Promise<Buffer> => {
-  const chunks: Buffer[] = [];
+const readBody = async (req: IncomingMessage): Promise<string> => {
+  const chunks: string[] = [];
   let size = 0;
+  req.setEncoding("utf8");
   for await (const chunk of req) {
-    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-    size += buffer.length;
+    const text = String(chunk);
+    size += Buffer.byteLength(text);
     if (size > 1_000_000) throw new Error("BODY_TOO_LARGE");
-    chunks.push(buffer);
+    chunks.push(text);
   }
-  return Buffer.concat(chunks);
+  return chunks.join("");
 };
 
 const sendJson = (res: ServerResponse, status: number, body: unknown): void => {
@@ -121,11 +122,21 @@ const createTokenVerifier = (options: {
       }
       if (!jwk) return { ok: false, reason: "invalid_token" };
 
+      const signed = Buffer.from(`${encodedHeader}.${encodedClaims}`);
+      const signature = Buffer.from(encodedSignature, "base64url");
+      const signedBytes = new Uint8Array(signed.length);
+      const signatureBytes = new Uint8Array(signature.length);
+      for (let index = 0; index < signed.length; index += 1) {
+        signedBytes[index] = signed[index];
+      }
+      for (let index = 0; index < signature.length; index += 1) {
+        signatureBytes[index] = signature[index];
+      }
       const validSignature = verify(
         "RSA-SHA256",
-        Buffer.from(`${encodedHeader}.${encodedClaims}`),
+        signedBytes,
         createPublicKey({ key: jwk, format: "jwk" }),
-        Buffer.from(encodedSignature, "base64url"),
+        signatureBytes,
       );
       if (!validSignature) return { ok: false, reason: "invalid_token" };
 
@@ -180,6 +191,12 @@ const createGateway = (options: {
         scopes_supported: [options.requiredScope],
         bearer_methods_supported: ["header"],
       });
+      return;
+    }
+
+    if (req.method === "GET" && path === "/mcp") {
+      res.writeHead(405, { allow: "POST" });
+      res.end();
       return;
     }
 
