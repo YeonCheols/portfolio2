@@ -1,5 +1,5 @@
+import { fetchResumeModel } from "../connection/resumeConnection";
 import { createResumeMcpServer } from "./createResumeMcpServer";
-import { fetchResumeModel } from "./resume/resumeConnection";
 
 export const startResumeMcpServer = () => {
   const token = process.env.MCP_AUTH_TOKEN ?? "";

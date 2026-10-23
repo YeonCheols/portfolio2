@@ -1,10 +1,12 @@
-import { composeResume } from "./composeResume";
-import { previewResume } from "./previewResume";
+import { composeResume } from "../compose/composeResume";
 import {
   ResumeConnectionError,
   type ResumeConnectionInput,
-} from "./resumeConnection";
-import type { ResumeModel, ResumeXmlNode } from "./resumeModel";
+} from "../connection/resumeConnection";
+import type { ResumeModel, ResumeXmlNode } from "../model/resumeModel";
+import { previewResume } from "../output/previewResume";
+import { renderResumeForm } from "../output/renderResumeForm";
+import { renderResumeTemplate } from "../output/renderResumeTemplate";
 
 export type ResumeToolResult =
   | { ok: true; text: string }
@@ -109,6 +111,38 @@ export const callResumeTool = async (
         sectionOrder: readStringList(args.sectionOrder),
       });
       return { ok: true, text: previewResume(composed) };
+    }
+
+    if (name === "render_resume_template") {
+      const template = args.template;
+      if (
+        template !== "기본형" &&
+        template !== "경력 중심형" &&
+        template !== "프로젝트 중심형"
+      ) {
+        return fail("UNKNOWN_TEMPLATE");
+      }
+      const composed = composeResume(await loadFromArgs(args, connection), {
+        elementIds: readStringList(args.elementIds),
+        sectionOrder: readStringList(args.sectionOrder),
+      });
+      return { ok: true, text: renderResumeTemplate(composed, template) };
+    }
+
+    if (name === "render_resume_form") {
+      const template = args.template;
+      if (
+        template !== "기본형" &&
+        template !== "경력 중심형" &&
+        template !== "프로젝트 중심형"
+      ) {
+        return fail("UNKNOWN_TEMPLATE");
+      }
+      const composed = composeResume(await loadFromArgs(args, connection), {
+        elementIds: readStringList(args.elementIds),
+        sectionOrder: readStringList(args.sectionOrder),
+      });
+      return { ok: true, text: renderResumeForm(composed, template) };
     }
 
     return { ok: false, code: "UNKNOWN_TOOL" };

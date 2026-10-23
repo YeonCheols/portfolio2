@@ -1,4 +1,4 @@
-import { callResumeTool, type ResumeConnection } from "./resume/resumeTools";
+import { callResumeTool, type ResumeConnection } from "./resumeTools";
 
 export type McpJsonRpcRequest = {
   jsonrpc: "2.0";
@@ -24,6 +24,16 @@ const tools = [
   {
     name: "preview_resume",
     description: "선택한 원소를 대표 템플릿 미리보기로 만든다",
+    inputSchema: { type: "object" },
+  },
+  {
+    name: "render_resume_template",
+    description: "선택한 원소를 라벨이 있는 템플릿으로 출력한다",
+    inputSchema: { type: "object" },
+  },
+  {
+    name: "render_resume_form",
+    description: "선택한 원소를 이력서 양식으로 출력한다",
     inputSchema: { type: "object" },
   },
 ];

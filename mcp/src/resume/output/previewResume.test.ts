@@ -1,6 +1,6 @@
-import { composeResume } from "./composeResume";
+import { composeResume } from "../compose/composeResume";
+import { connectedResume, resumeNode } from "../testing/resumeFixture";
 import { previewResume } from "./previewResume";
-import { connectedResume, resumeNode } from "./resumeFixture";
 
 describe("previewResume", () => {
   it("대표 템플릿이 한글, 링크, 긴 텍스트를 그대로 보여 준다", () => {

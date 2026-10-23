@@ -1,7 +1,7 @@
+import { ResumeConnectionError } from "../connection/resumeConnection";
+import { connectedResume } from "../testing/resumeFixture";
 import { handleMcpRequest } from "./handleMcpRequest";
-import { ResumeConnectionError } from "./resume/resumeConnection";
-import { connectedResume } from "./resume/resumeFixture";
-import type { ResumeConnection } from "./resume/resumeTools";
+import type { ResumeConnection } from "./resumeTools";
 
 const connection: ResumeConnection = {
   load: async (input) => {
@@ -41,6 +41,42 @@ describe("handleMcpRequest", () => {
         content: [
           { type: "text", text: expect.stringContaining("테스트 사용자") },
         ],
+      },
+    });
+  });
+
+  it("도구 목록에 템플릿 출력 도구를 포함한다", async () => {
+    const response = await handleMcpRequest(
+      { jsonrpc: "2.0", id: 3, method: "tools/list" },
+      connection,
+    );
+
+    expect(response).toMatchObject({
+      result: {
+        tools: expect.arrayContaining([
+          expect.objectContaining({
+            name: "render_resume_template",
+            description: "선택한 원소를 라벨이 있는 템플릿으로 출력한다",
+          }),
+        ]),
+      },
+    });
+  });
+
+  it("도구 목록에 이력서 양식 출력 도구를 포함한다", async () => {
+    const response = await handleMcpRequest(
+      { jsonrpc: "2.0", id: 4, method: "tools/list" },
+      connection,
+    );
+
+    expect(response).toMatchObject({
+      result: {
+        tools: expect.arrayContaining([
+          expect.objectContaining({
+            name: "render_resume_form",
+            description: "선택한 원소를 이력서 양식으로 출력한다",
+          }),
+        ]),
       },
     });
   });

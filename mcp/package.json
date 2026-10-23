@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "start": "node dist/server.js",
+    "start": "node dist/resume/http/server.js",
     "start:gateway": "node dist/gateway/server.js",
     "start:auth": "node dist/auth/server.js"
   },

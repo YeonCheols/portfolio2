@@ -1,4 +1,4 @@
-import type { ResumeModel, ResumeXmlNode } from "./resumeModel";
+import type { ResumeModel, ResumeXmlNode } from "../model/resumeModel";
 
 export const resumeNode = (
   name: string,

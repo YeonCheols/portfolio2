@@ -1,7 +1,7 @@
 import http from "http";
 
+import { connectedResume } from "../testing/resumeFixture";
 import { createResumeMcpServer } from "./createResumeMcpServer";
-import { connectedResume } from "./resume/resumeFixture";
 
 const validResumeXml = `<?xml version="1.0" encoding="UTF-8"?>
 <resumeAsset id="resume-test" schemaVersion="0.2.0" xml:lang="ko-KR" status="draft" publicationStatus="internal-only" visibility="private" xmlns:xml="http://www.w3.org/XML/1998/namespace">
