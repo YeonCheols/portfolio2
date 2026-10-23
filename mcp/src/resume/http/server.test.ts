@@ -1,4 +1,4 @@
-import { startResumeMcpServer } from "./server";
+import { startResumeMcpServer } from "@mcp/resume/http/server";
 
 describe("startResumeMcpServer", () => {
   const previousUrl = process.env.RESUME_CONNECTION_URL;

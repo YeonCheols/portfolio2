@@ -14,4 +14,4 @@ ENV PORT=8080
 EXPOSE 8080
 
 USER node
-CMD ["node", "dist/server.js"]
+CMD ["node", "dist/resume/http/server.js"]

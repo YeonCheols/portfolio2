@@ -11,7 +11,7 @@
 - 배포: Vercel. `master` 푸시 시 `.github/workflows/release-tag.yml`이 태그/릴리스를 만든다
 - CI: `master`/`dev` 대상 PR마다 `.github/workflows/ci.yml`이 `lint`, `format:check`, `type-check`, `test:ci`를 실행하고, `.github/workflows/integration.yml`이 통합 테스트를 실행한다. 의존성 설치에는 `NPM_TOKEN` secret(`read:packages`)이 필요하다. 워크플로는 이 값을 `.npmrc`가 읽는 `GITHUB_NPM_TOKEN` 환경 변수로 넘긴다. `master` ruleset은 체크 `Lint, Typecheck, Test`, `Integration`, `review-gate`, `integration-gate`가 성공해야 머지를 허용한다. CI가 실패하거나 최신 리뷰에 🔴가 있으면 머지하지 않는다
 - AI 리뷰: `.github/workflows/ai-review.yml`은 PR 댓글 `/review`로만 실행한다. PR 생성·푸시 자동 실행은 꺼 두었다 (`CURSOR_API_KEY` secret 필요, 체크는 실패시키지 않음)
-- MCP OAuth: MCP 인증·배포·클라이언트 연결 작업 전 [`mcp/docs/oauth-gateway.md`](mcp/docs/oauth-gateway.md)를 읽는다. 인증서버와 OAuth 게이트웨이는 별도 Cloud Run 서비스로 배포하고 MCP 소스·설정·문서와 함께 `mcp/` 경계에 둔다. `mcp/`를 별도 프로젝트로 분리할 때 인증서버도 함께 옮긴다. 기존 `portfolio-mcp` Cloud Run 서비스는 비공개로 유지한다. 토큰과 시크릿을 저장소·클라이언트 설정·로그에 기록하지 않는다
+- MCP: `mcp/` 작업은 [`mcp/AGENTS.md`](mcp/AGENTS.md)를 따른다. 인증, 디렉터리, 도구 절차는 그 파일에만 두고 이 파일에 복사하지 않는다
 - 응답 언어: 사용자에게는 **한국어**로 답변한다. 근거를 남기는 문장(리뷰의 이유·제안·테스트 근거, QA 발견, 테스트를 생략하거나 예외로 둔 이유, 머지를 막는 이유)과 이슈 제목·본문은 `~습니다` 또는 `~ㅂ니다`로 끝낸다. `~다`로 끝내지 않고, 한 글에서 어미를 섞지 않는다. 이슈 본문 형식은 `issue` 스킬을 따른다. 코드, 식별자, 커밋 제목처럼 문장이 아닌 표기는 제외한다
 
 ## 디렉토리 구조
@@ -30,7 +30,7 @@ src/
 mcp/                # 별도 프로젝트로 분리 예정인 MCP 서버 경계
 ```
 
-`mcp/`는 독립 저장소로 옮길 수 있는 경계입니다. MCP 전용 소스(`src/`, 인증서버 `src/auth/`, 게이트웨이 `src/gateway/` 포함), OAuth 안내(`docs/`), TypeScript 설정, MCP·인증서버·게이트웨이 컨테이너 파일, `package.json`, `pnpm-lock.yaml`을 이 디렉터리 안에서 관리합니다. MCP를 분리할 때 인증서버와 게이트웨이도 함께 옮깁니다. 루트 패키지와 lockfile은 웹 앱 전용입니다.
+`mcp/`는 독립 저장소로 옮길 수 있는 경계입니다. 소스, 문서, 에이전트 지침(`AGENTS.md`와 진입점), TypeScript 설정, 컨테이너 파일, `package.json`, `pnpm-lock.yaml`을 이 디렉터리 안에서 관리합니다. 루트 패키지와 lockfile은 웹 앱 전용입니다.
 
 현재 feature 슬라이스: `about`, `blog`, `chat`, `cmdpallete`, `contact`, `dashboard`, `guestbook`, `home`, `learn`, `playground`, `projects`.
 
@@ -161,3 +161,4 @@ ln -s ../../.agents/skills/<kebab-case-name> .claude/skills/<kebab-case-name>
 
 - 필수 규칙(스킬 목록, 필수 사용 시점)을 바꾸면 요약이 들어 있는 `.cursor/rules/agents.mdc`와 `.github/copilot-instructions.md`도 함께 갱신한다
 - 새 에이전트를 지원하려면 그 도구가 읽는 파일을 만들어 이 파일을 가리키게 하고 위 표에 추가한다
+- MCP 에이전트 진입점은 `mcp/AGENTS.md`의 표를 따른다. 루트 표에 MCP 절차를 넣지 않는다

@@ -17,6 +17,7 @@
     "incremental": true,
     "paths": {
       "@/*": ["./src/*"],
+      "@mcp/*": ["./mcp/src/*"],
       "@docs/*": ["./docs/*"],
       "src/*": ["./src/*"],
       "docs/*": ["./docs/*"]

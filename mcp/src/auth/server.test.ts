@@ -1,7 +1,7 @@
 import { createHash, generateKeyPairSync, verify } from "crypto";
 import http from "http";
 
-import { startMcpOAuthAuthorizationServer } from "./server";
+import { startMcpOAuthAuthorizationServer } from "@mcp/auth/server";
 
 const asciiBytes = (value: string): Uint8Array => {
   const bytes = new Uint8Array(value.length);
@@ -621,7 +621,7 @@ describe("MCP OAuth authorization server entry", () => {
       });
 
     jest.isolateModules(() => {
-      require("./server");
+      require("@mcp/auth/server");
     });
 
     expect(listen).toHaveBeenCalled();
@@ -643,7 +643,7 @@ describe("MCP OAuth authorization server entry", () => {
       });
 
     jest.isolateModules(() => {
-      require("./server");
+      require("@mcp/auth/server");
     });
 
     expect(listen).not.toHaveBeenCalled();
@@ -665,7 +665,7 @@ describe("MCP OAuth authorization server entry", () => {
 
     expect(() => {
       jest.isolateModules(() => {
-        require("./server");
+        require("@mcp/auth/server");
       });
     }).toThrow("MCP_AUTH_ISSUER is required");
     expect(listen).not.toHaveBeenCalled();

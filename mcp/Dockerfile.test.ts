@@ -8,7 +8,7 @@ describe("mcp container", () => {
       "utf8",
     );
 
-    expect(dockerfile).toContain("dist/server.js");
+    expect(dockerfile).toContain("dist/resume/http/server.js");
     expect(dockerfile).toContain("COPY package.json pnpm-lock.yaml ./");
     expect(dockerfile).toContain("COPY src ./src");
     expect(dockerfile).not.toContain("src/entities/resume");

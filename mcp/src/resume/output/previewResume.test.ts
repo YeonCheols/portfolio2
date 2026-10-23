@@ -1,6 +1,6 @@
-import { composeResume } from "./composeResume";
-import { previewResume } from "./previewResume";
-import { connectedResume, resumeNode } from "./resumeFixture";
+import { composeResume } from "@mcp/resume/compose/composeResume";
+import { previewResume } from "@mcp/resume/output/previewResume";
+import { connectedResume, resumeNode } from "@mcp/resume/testing/resumeFixture";
 
 describe("previewResume", () => {
   it("대표 템플릿이 한글, 링크, 긴 텍스트를 그대로 보여 준다", () => {

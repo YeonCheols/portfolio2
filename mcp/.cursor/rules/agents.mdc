@@ -1,0 +1,11 @@
+---
+description: MCP 작업은 이 디렉터리의 AGENTS.md를 따른다
+globs: "**/*"
+alwaysApply: true
+---
+
+# MCP 에이전트 진입점
+
+이 프로젝트의 지침 원본은 `AGENTS.md`입니다. 작업을 시작하기 전에 그 파일을 읽고 따릅니다.
+
+인증과 배포는 `docs/oauth-gateway.md`를 읽습니다. 이 파일에는 절차를 복사하지 않습니다.

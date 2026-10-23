@@ -1,5 +1,5 @@
-import { composeResume } from "./composeResume";
-import { connectedResume } from "./resumeFixture";
+import { composeResume } from "@mcp/resume/compose/composeResume";
+import { connectedResume } from "@mcp/resume/testing/resumeFixture";
 
 describe("composeResume", () => {
   it("선택한 원소만 지정한 섹션 순서로 남기고 출처 참조를 유지한다", () => {

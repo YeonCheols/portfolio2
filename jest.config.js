@@ -10,6 +10,7 @@ const customJestConfig = {
   testEnvironment: "jest-environment-jsdom",
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
+    "^@mcp/(.*)$": "<rootDir>/mcp/src/$1",
     "^~/(.*)$": "<rootDir>/public/$1",
     "^@yeoncheols/portfolio-core-ui$":
       "<rootDir>/src/test/portfolio-core-ui.tsx",

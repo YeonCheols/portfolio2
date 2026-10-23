@@ -1,4 +1,4 @@
-import type { ResumeModel, ResumeXmlNode } from "./resumeModel";
+import type { ResumeModel, ResumeXmlNode } from "@mcp/resume/model/resumeModel";
 
 const linesOf = (node: ResumeXmlNode): string[] => {
   const lines = node.text.trim() ? [node.text.trim()] : [];

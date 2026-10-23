@@ -18,4 +18,23 @@ describe("mcp runtime boundary", () => {
     expect(sources).not.toContain("resume.xml");
     expect(sources).not.toContain("parseResumeXml");
   });
+
+  it("내부 모듈은 @mcp alias로만 가져온다", () => {
+    const readTypeScriptFiles = (directory: string): string[] =>
+      fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+        const entryPath = path.join(directory, entry.name);
+        if (entry.isDirectory()) return readTypeScriptFiles(entryPath);
+        return entry.name.endsWith(".ts") ? [entryPath] : [];
+      });
+    const relativeImports = readTypeScriptFiles(__dirname).flatMap((file) => {
+      const source = fs.readFileSync(file, "utf8");
+      return [
+        ...source.matchAll(
+          /\b(?:from\s+|import\s+|require\s*\(\s*)["'](\.[^"']+)["']/g,
+        ),
+      ].map((match) => `${path.relative(__dirname, file)} ${match[1]}`);
+    });
+
+    expect(relativeImports).toEqual([]);
+  });
 });

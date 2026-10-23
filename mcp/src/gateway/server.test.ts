@@ -1,7 +1,7 @@
 import { generateKeyPairSync, sign } from "crypto";
 import http from "http";
 
-import { startMcpOAuthGateway } from "./server";
+import { startMcpOAuthGateway } from "@mcp/gateway/server";
 
 const issuer = "https://auth.example.test";
 const resourceUrl = "https://mcp.example.test/mcp";

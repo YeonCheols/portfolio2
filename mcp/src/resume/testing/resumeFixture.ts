@@ -1,4 +1,4 @@
-import type { ResumeModel, ResumeXmlNode } from "./resumeModel";
+import type { ResumeModel, ResumeXmlNode } from "@mcp/resume/model/resumeModel";
 
 export const resumeNode = (
   name: string,

@@ -1,4 +1,4 @@
-import type { ResumeModel } from "./resumeModel";
+import type { ResumeModel } from "@mcp/resume/model/resumeModel";
 
 export class ResumeConnectionError extends Error {
   constructor(public readonly code: string) {
