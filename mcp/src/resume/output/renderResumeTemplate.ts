@@ -1,4 +1,4 @@
-import type { ResumeModel, ResumeXmlNode } from "../model/resumeModel";
+import type { ResumeModel, ResumeXmlNode } from "@mcp/resume/model/resumeModel";
 
 const isSimpleValue = (node: ResumeXmlNode): boolean =>
   node.children.length === 0 && node.text.trim() !== "";

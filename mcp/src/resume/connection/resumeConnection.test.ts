@@ -1,4 +1,7 @@
-import { ResumeConnectionError, fetchResumeModel } from "./resumeConnection";
+import {
+  ResumeConnectionError,
+  fetchResumeModel,
+} from "@mcp/resume/connection/resumeConnection";
 
 describe("fetchResumeModel", () => {
   it("이력서 연결에서 모델 JSON만 받고 입력 XML은 오류에 남기지 않는다", async () => {

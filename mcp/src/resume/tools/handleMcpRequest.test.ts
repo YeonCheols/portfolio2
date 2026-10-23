@@ -1,7 +1,7 @@
-import { ResumeConnectionError } from "../connection/resumeConnection";
-import { connectedResume } from "../testing/resumeFixture";
-import { handleMcpRequest } from "./handleMcpRequest";
-import type { ResumeConnection } from "./resumeTools";
+import { ResumeConnectionError } from "@mcp/resume/connection/resumeConnection";
+import { connectedResume } from "@mcp/resume/testing/resumeFixture";
+import { handleMcpRequest } from "@mcp/resume/tools/handleMcpRequest";
+import type { ResumeConnection } from "@mcp/resume/tools/resumeTools";
 
 const connection: ResumeConnection = {
   load: async (input) => {

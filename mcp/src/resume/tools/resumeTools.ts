@@ -1,12 +1,12 @@
-import { composeResume } from "../compose/composeResume";
+import { composeResume } from "@mcp/resume/compose/composeResume";
 import {
   ResumeConnectionError,
   type ResumeConnectionInput,
-} from "../connection/resumeConnection";
-import type { ResumeModel, ResumeXmlNode } from "../model/resumeModel";
-import { previewResume } from "../output/previewResume";
-import { renderResumeForm } from "../output/renderResumeForm";
-import { renderResumeTemplate } from "../output/renderResumeTemplate";
+} from "@mcp/resume/connection/resumeConnection";
+import type { ResumeModel, ResumeXmlNode } from "@mcp/resume/model/resumeModel";
+import { previewResume } from "@mcp/resume/output/previewResume";
+import { renderResumeForm } from "@mcp/resume/output/renderResumeForm";
+import { renderResumeTemplate } from "@mcp/resume/output/renderResumeTemplate";
 
 export type ResumeToolResult =
   | { ok: true; text: string }

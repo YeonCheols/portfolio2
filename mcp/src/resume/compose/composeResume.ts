@@ -1,4 +1,4 @@
-import type { ResumeModel, ResumeXmlNode } from "../model/resumeModel";
+import type { ResumeModel, ResumeXmlNode } from "@mcp/resume/model/resumeModel";
 
 export type ResumeSelection = {
   elementIds: readonly string[];

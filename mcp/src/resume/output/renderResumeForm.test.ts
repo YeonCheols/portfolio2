@@ -1,6 +1,6 @@
-import { composeResume } from "../compose/composeResume";
-import { connectedResume, resumeNode } from "../testing/resumeFixture";
-import { renderResumeForm } from "./renderResumeForm";
+import { composeResume } from "@mcp/resume/compose/composeResume";
+import { renderResumeForm } from "@mcp/resume/output/renderResumeForm";
+import { connectedResume, resumeNode } from "@mcp/resume/testing/resumeFixture";
 
 describe("renderResumeForm", () => {
   it("기간은 시작과 종료를 한 줄로 잇고 비어 있는 값은 빼 준다", () => {

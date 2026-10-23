@@ -1,4 +1,4 @@
-import type { ResumeModel, ResumeXmlNode } from "../model/resumeModel";
+import type { ResumeModel, ResumeXmlNode } from "@mcp/resume/model/resumeModel";
 
 const sectionLabels: Record<string, string> = {
   profile: "프로필",

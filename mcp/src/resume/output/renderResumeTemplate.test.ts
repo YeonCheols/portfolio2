@@ -1,6 +1,6 @@
-import { composeResume } from "../compose/composeResume";
-import { connectedResume, resumeNode } from "../testing/resumeFixture";
-import { renderResumeTemplate } from "./renderResumeTemplate";
+import { composeResume } from "@mcp/resume/compose/composeResume";
+import { renderResumeTemplate } from "@mcp/resume/output/renderResumeTemplate";
+import { connectedResume, resumeNode } from "@mcp/resume/testing/resumeFixture";
 
 describe("renderResumeTemplate", () => {
   it("원소 이름을 값 옆에 붙이고 원문 띄어쓰기를 유지한다", () => {

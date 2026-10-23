@@ -47,7 +47,7 @@ mcp/
     └── testing/                  테스트 fixture. 실행 코드가 가져오지 않음
 ```
 
-의존은 `model`에서 `compose`와 `output`으로, 그다음 `tools`, `http` 순서로만 갑니다. 테스트는 대상 파일 옆에 둡니다.
+의존은 `model`에서 `compose`와 `output`으로, 그다음 `tools`, `http` 순서로만 갑니다. 테스트는 대상 파일 옆에 둡니다. MCP 내부 모듈은 `@mcp/...` alias로 가져옵니다. 상대경로는 쓰지 않습니다. alias 정의는 `tsconfig.json`의 `@mcp/*`에 있습니다. 빌드 결과는 Node가 읽을 수 있도록 `@mcp` 경로를 상대경로로 바꿉니다.
 
 ## 도구
 

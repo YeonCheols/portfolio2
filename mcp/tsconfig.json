@@ -6,6 +6,9 @@
     "outDir": "dist",
     "rootDir": "src",
     "strict": true,
+    "paths": {
+      "@mcp/*": ["./src/*"]
+    },
     "esModuleInterop": true,
     "skipLibCheck": true,
     "types": ["node"]
