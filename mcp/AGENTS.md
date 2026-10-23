@@ -16,11 +16,11 @@
 
 인증서버, 게이트웨이, 이력서 MCP는 서로 다른 Cloud Run 서비스입니다. `auth`와 `gateway`는 `resume`를 가져오지 않습니다.
 
-| 프로세스 | 소스 | 실행 파일 |
-| --- | --- | --- |
-| 이력서 MCP | `src/resume/http/server.ts` | `dist/resume/http/server.js` |
-| OAuth 게이트웨이 | `src/gateway/server.ts` | `dist/gateway/server.js` |
-| 인증서버 | `src/auth/server.ts` | `dist/auth/server.js` |
+| 프로세스         | 소스                        | 실행 파일                    |
+| ---------------- | --------------------------- | ---------------------------- |
+| 이력서 MCP       | `src/resume/http/server.ts` | `dist/resume/http/server.js` |
+| OAuth 게이트웨이 | `src/gateway/server.ts`     | `dist/gateway/server.js`     |
+| 인증서버         | `src/auth/server.ts`        | `dist/auth/server.js`        |
 
 이후 포트폴리오 MCP는 `src/portfolio/`에 둡니다. `resume` 내부를 가져오지 않습니다. 디렉터리는 그 작업이 시작될 때 만듭니다.
 
@@ -59,13 +59,13 @@ mcp/
 - `embedded`와 `file`은 `xml` 문자열이 필요합니다.
 - `elementIds`와 `sectionOrder`는 문자열 배열입니다. 선택하지 않은 원소는 출력에서 빠집니다.
 
-| 도구 | 하는 일 |
-| --- | --- |
-| `validate_resume_xml` | 모델을 읽고 이력서 id를 반환합니다. |
-| `list_resume_elements` | 원소 id, 섹션, 이름, 출처만 JSON으로 반환합니다. 본문은 넣지 않습니다. |
-| `preview_resume` | 섹션 이름과 원문 줄만 이어 붙입니다. 원소 이름은 붙이지 않습니다. |
-| `render_resume_template` | 원소 이름과 원문을 한 줄로 출력합니다. |
-| `render_resume_form` | 한글 항목명과 원문으로 이력서 양식을 출력합니다. |
+| 도구                     | 하는 일                                                                |
+| ------------------------ | ---------------------------------------------------------------------- |
+| `validate_resume_xml`    | 모델을 읽고 이력서 id를 반환합니다.                                    |
+| `list_resume_elements`   | 원소 id, 섹션, 이름, 출처만 JSON으로 반환합니다. 본문은 넣지 않습니다. |
+| `preview_resume`         | 섹션 이름과 원문 줄만 이어 붙입니다. 원소 이름은 붙이지 않습니다.      |
+| `render_resume_template` | 원소 이름과 원문을 한 줄로 출력합니다.                                 |
+| `render_resume_form`     | 한글 항목명과 원문으로 이력서 양식을 출력합니다.                       |
 
 `render_resume_template`와 `render_resume_form`의 `template`은 `기본형`, `경력 중심형`, `프로젝트 중심형`만 받습니다. 다른 이름은 `UNKNOWN_TEMPLATE`만 반환합니다. 없는 도구 이름은 `UNKNOWN_TOOL`입니다. 연결이 거부한 입력은 연결 오류 코드만 반환합니다.
 
@@ -82,12 +82,12 @@ mcp/
 
 ## 에이전트별 진입점
 
-| 에이전트 | 자동으로 읽는 파일 |
-| --- | --- |
-| Cursor | `AGENTS.md`, `.cursor/rules/agents.mdc` |
-| Codex | `AGENTS.md` |
-| Claude Code | `CLAUDE.md` (`@AGENTS.md` 포함) |
-| Gemini CLI | `GEMINI.md` (`@AGENTS.md` 포함) |
-| GitHub Copilot | `.github/copilot-instructions.md` |
+| 에이전트       | 자동으로 읽는 파일                      |
+| -------------- | --------------------------------------- |
+| Cursor         | `AGENTS.md`, `.cursor/rules/agents.mdc` |
+| Codex          | `AGENTS.md`                             |
+| Claude Code    | `CLAUDE.md` (`@AGENTS.md` 포함)         |
+| Gemini CLI     | `GEMINI.md` (`@AGENTS.md` 포함)         |
+| GitHub Copilot | `.github/copilot-instructions.md`       |
 
 진입점 파일에는 내용을 늘리지 않습니다. 지침은 이 파일에서만 수정합니다.
