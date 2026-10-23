@@ -1,3 +1,4 @@
+import { resumeTemplateNames } from "@mcp/resume/model/resumeTemplate";
 import {
   callResumeTool,
   type ResumeConnection,
@@ -11,6 +12,14 @@ export type McpJsonRpcRequest = {
     name?: string;
     arguments?: Record<string, unknown>;
   };
+};
+
+const templateInputSchema = {
+  type: "object",
+  properties: {
+    template: { type: "string", enum: [...resumeTemplateNames] },
+  },
+  required: ["template"],
 };
 
 const tools = [
@@ -32,12 +41,12 @@ const tools = [
   {
     name: "render_resume_template",
     description: "선택한 원소를 라벨이 있는 템플릿으로 출력한다",
-    inputSchema: { type: "object" },
+    inputSchema: templateInputSchema,
   },
   {
     name: "render_resume_form",
     description: "선택한 원소를 이력서 양식으로 출력한다",
-    inputSchema: { type: "object" },
+    inputSchema: templateInputSchema,
   },
 ];
 

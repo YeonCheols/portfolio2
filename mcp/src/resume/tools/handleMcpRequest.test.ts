@@ -81,6 +81,40 @@ describe("handleMcpRequest", () => {
     });
   });
 
+  it("템플릿 출력과 양식 출력은 같은 템플릿 이름만 계약으로 알린다", async () => {
+    const response = await handleMcpRequest(
+      { jsonrpc: "2.0", id: 5, method: "tools/list" },
+      connection,
+    );
+    const tools =
+      response && "result" in response
+        ? (
+            response.result as {
+              tools: {
+                name: string;
+                inputSchema: {
+                  properties?: { template?: { enum?: string[] } };
+                };
+              }[];
+            }
+          ).tools
+        : [];
+    const templateTools = tools.filter(
+      (tool) =>
+        tool.name === "render_resume_template" ||
+        tool.name === "render_resume_form",
+    );
+
+    expect(templateTools).toHaveLength(2);
+    templateTools.forEach((tool) => {
+      expect(tool.inputSchema.properties?.template?.enum).toEqual([
+        "기본형",
+        "경력 중심형",
+        "프로젝트 중심형",
+      ]);
+    });
+  });
+
   it("연결이 거부한 XML 도구 호출은 오류 코드만 반환한다", async () => {
     const xml = "<resumeAsset><profile>hidden@example.com</resumeAsset>";
 
