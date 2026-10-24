@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 
+import type { ResumeXmlNode } from "./parseResumeXml";
 import { readResumeModel } from "./readResumeModel";
 
 const validResumeXml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -47,6 +48,23 @@ describe("readResumeModel", () => {
       model: { id: "resume-seong-yeoncheol" },
     });
     expect(fs.readFileSync(canonicalResumePath, "utf8")).toBe(before);
+  });
+
+  it("저장소 이력서의 공개 여부는 모두 public이다", () => {
+    const result = readResumeModel({ source: "repository" });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const values = [result.model.visibility];
+    const walk = (nodes: readonly ResumeXmlNode[]) => {
+      nodes.forEach((node) => {
+        values.push(node.attributes.visibility ?? "");
+        walk(node.children);
+      });
+    };
+    walk(Object.values(result.model.sections).flat());
+
+    expect(new Set(values)).toEqual(new Set(["public"]));
   });
 
   it("잘못된 XML은 오류 코드만 반환한다", () => {
