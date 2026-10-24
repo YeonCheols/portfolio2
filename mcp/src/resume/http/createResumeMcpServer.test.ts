@@ -47,6 +47,73 @@ const request = (
   });
 
 describe("createResumeMcpServer", () => {
+  it("이력서 생성은 서버에 연결된 외부 AI를 호출한다", async () => {
+    const requests: { persona: string; prompt: string }[] = [];
+    const server = createResumeMcpServer({
+      token: "test-token",
+      connection: { load: async () => connectedResume() },
+      model: {
+        generate: async (input) => {
+          requests.push(input);
+          if (requests.length === 1) {
+            return JSON.stringify({
+              elements: [
+                { id: "profile-test", interpretation: "이름을 소개한다" },
+              ],
+            });
+          }
+          return JSON.stringify({
+            claims: [
+              { text: "테스트 사용자입니다", sourceIds: ["profile-test"] },
+            ],
+          });
+        },
+      },
+    });
+    await new Promise<void>((resolve) =>
+      server.listen(0, "127.0.0.1", resolve),
+    );
+    const address = server.address();
+    if (!address || typeof address === "string") {
+      throw new Error("port missing");
+    }
+
+    try {
+      const response = await request(address.port, {
+        method: "POST",
+        path: "/mcp",
+        headers: {
+          authorization: "Bearer test-token",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 2,
+          method: "tools/call",
+          params: {
+            name: "generate_resume",
+            arguments: {
+              source: "embedded",
+              xml: validResumeXml,
+              template: "기본형",
+              elementIds: ["profile-test"],
+              sectionOrder: ["profile"],
+            },
+          },
+        }),
+      });
+
+      expect(response.status).toBe(200);
+      expect(requests).toHaveLength(2);
+      expect(response.body).toContain("테스트 사용자입니다");
+      expect(response.body).not.toContain("gemini");
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()));
+      });
+    }
+  });
+
   it("헬스 확인은 열고 인증 없는 도구 호출은 본문 없이 거부한다", async () => {
     const log = jest.fn();
     const server = createResumeMcpServer({

@@ -43,7 +43,7 @@ mcp/
     ├── output/                   선택한 모델의 출력. 미리보기, 원소 이름 템플릿, 이력서 양식
     ├── tools/                    MCP 도구 이름과 JSON-RPC 처리
     ├── http/                     이력서 MCP HTTP 서버와 프로세스 진입점
-    ├── connection/               이력서 모델 API 호출. http 진입점만 사용
+    ├── connection/               이력서 모델 API와 외부 AI 문장 API 호출. http 진입점만 사용
     └── testing/                  테스트 fixture. 실행 코드가 가져오지 않음
 ```
 
@@ -58,24 +58,35 @@ mcp/
 - `source`는 `repository`, `embedded`, `file` 중 하나입니다. 그 외는 `INVALID_INPUT`입니다.
 - `embedded`와 `file`은 `xml` 문자열이 필요합니다.
 - `elementIds`와 `sectionOrder`는 문자열 배열입니다. 선택하지 않은 원소는 출력에서 빠집니다.
-- `template`은 `기본형`, `경력 중심형`, `프로젝트 중심형`만입니다. 목록의 소유자는 `src/resume/model/resumeTemplate.ts`입니다. `render_resume_template`와 `render_resume_form`이 이 목록을 함께 씁니다. 다른 이름은 `UNKNOWN_TEMPLATE`만 반환합니다.
+- `template`은 `기본형`, `경력 중심형`, `프로젝트 중심형`만입니다. 목록의 소유자는 `src/resume/model/resumeTemplate.ts`입니다. `render_resume_template`, `render_resume_form`, `read_resume_selection`, `check_resume_draft`, `generate_resume`가 이 목록을 함께 씁니다. 다른 이름은 `UNKNOWN_TEMPLATE`만 반환합니다.
 
-| 도구                     | 하는 일                                                                |
-| ------------------------ | ---------------------------------------------------------------------- |
-| `validate_resume_xml`    | 모델을 읽고 이력서 id를 반환합니다.                                    |
-| `list_resume_elements`   | 원소 id, 섹션, 이름, 출처만 JSON으로 반환합니다. 본문은 넣지 않습니다. |
-| `preview_resume`         | 섹션 이름과 원문 줄만 이어 붙입니다. 원소 이름은 붙이지 않습니다.      |
-| `render_resume_template` | 원소 이름과 원문을 한 줄로 출력합니다.                                 |
-| `render_resume_form`     | 한글 항목명과 원문으로 이력서 양식을 출력합니다.                       |
+| 도구                     | 하는 일                                                                                                |
+| ------------------------ | ------------------------------------------------------------------------------------------------------ |
+| `validate_resume_xml`    | 모델을 읽고 이력서 id를 반환합니다.                                                                    |
+| `list_resume_elements`   | 원소 id, 섹션, 이름, 출처만 JSON으로 반환합니다. 본문은 넣지 않습니다.                                 |
+| `preview_resume`         | 섹션 이름과 원문 줄만 이어 붙입니다. 원소 이름은 붙이지 않습니다.                                      |
+| `read_resume_selection`  | 선택한 원소의 식별자, 원문, 출처, 공개 여부를 JSON으로 반환합니다.                                     |
+| `check_resume_draft`     | 초안 문장의 근거를 선택 원소와 맞춰 누락, 충돌, 확인 대상을 반환합니다.                                |
+| `generate_resume`        | 어떤 AI든 같은 작성자 역할로 양식의 각 섹션을 다시 쓰게 하고, 받은 문장을 검사해 최종 본문을 만듭니다. |
+| `render_resume_template` | 원소 이름과 원문을 한 줄로 출력합니다.                                                                 |
+| `render_resume_form`     | 한글 항목명과 원문으로 이력서 양식을 출력합니다.                                                       |
 
 없는 도구 이름은 `UNKNOWN_TOOL`입니다. 연결이 거부한 입력은 연결 오류 코드만 반환합니다.
 
-`render_resume_template`와 `render_resume_form`은 `src/resume/output/selectTemplateSections.ts`의 같은 섹션 선택을 사용합니다.
+`render_resume_template`, `render_resume_form`, `read_resume_selection`, `check_resume_draft`, `generate_resume`는 `src/resume/output/selectTemplateSections.ts`의 같은 섹션 선택을 사용합니다.
 
 - `기본형`은 프로필, 학력, 경력, 프로젝트 순서입니다.
 - `경력 중심형`은 선택한 경력과, 그 경력에 `employmentRef`로 연결된 프로젝트만 보여 줍니다.
 - `프로젝트 중심형`은 선택한 프로젝트와, 그 프로젝트가 가리키는 경력만 보여 줍니다.
-- 이 네 섹션 밖은 두 출력 모두에 넣지 않습니다.
+- 이 네 섹션 밖은 이 출력들에 넣지 않습니다.
+
+`read_resume_selection`은 고른 원소 중 id가 있는 노드를 JSON으로 반환합니다. 각 노드는 섹션, 이름, 자신의 원문, `sourceRefs`, `visibility`를 유지하고 자식의 원문도 그대로 둡니다. `visibility` 속성이 없으면 빈 문자열입니다. 선택하지 않은 원소는 빠지고, 비공개 원소를 응답에서 지우지 않습니다.
+
+`generate_resume`의 역할 문구 소유자는 `src/resume/output/runResumeHarness.ts`의 `resumeWriterPersona`입니다. 서버에 외부 AI 연결이 있으면 `render_resume_form`이 만든 양식의 각 섹션마다 해석과 재작성을 순서대로 요청하고, `checkResumeDraft`를 통과한 문장만 섹션 순서대로 최종 본문에 넣습니다. 연결이 없고 `interpretation`이나 `claims`도 없으면 선택 원소와 해석 요청을 돌려줍니다. `interpretation`이 원소를 포함하면 재작성 요청을 돌려주고, 해석이 비어 있으면 본문을 만들지 않습니다. `claims`가 오면 검사한 문장만 최종 본문에 넣습니다.
+
+외부 AI 연결의 소유자는 `src/resume/connection/resumeModelConnection.ts`입니다. `http/server.ts`가 `RESUME_MODEL_URL`과 `RESUME_MODEL_TOKEN`으로 이 연결을 만듭니다. 요청 본문은 `persona`와 `prompt`이고, 응답은 `{ ok: true, text }` 또는 `{ ok: false, code }`입니다. 주소나 토큰이 없으면 `MISSING_MODEL_CONNECTION`만 반환하고 호출하지 않습니다. 이 계약은 특정 업체 API 형식을 쓰지 않습니다. 키는 환경 변수에만 두고 저장소에 넣지 않습니다.
+
+`check_resume_draft`는 같은 선택 결과로 초안 문장을 검사합니다. 각 문장은 `text`와 `sourceIds`를 가집니다. 근거 id가 모두 선택 안에 있고 그 노드나 자식에 원문이 있으면 문장과 함께 그 원소의 원문, 출처, 공개 여부를 유지합니다. 근거 id가 없거나 선택에 없거나 노드와 자식의 원문이 모두 비어 있으면 그 문장은 누락입니다. 같은 원소 id에 서로 다른 문장이 오면 하나를 고르지 않고 충돌로 둡니다. 공개 여부가 빈 문자열인 근거는 확인 대상이고 값을 공개로 바꾸지 않습니다. 비공개 원문은 지우지 않습니다.
 
 `render_resume_template`는 원소 이름과 원문을 출력합니다. 같은 원소 이름이 연속되면 이름을 한 번만 쓰고 값은 `- ` 불릿으로 묶습니다. 한 번만 있는 값은 `이름 원문`입니다. 원문 내부의 띄어쓰기는 유지합니다.
 

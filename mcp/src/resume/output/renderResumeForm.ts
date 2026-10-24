@@ -124,17 +124,28 @@ const linesOf = (
 const sectionLines = (nodes: readonly ResumeXmlNode[]): string[] =>
   nodes.flatMap((node) => linesOf(node, []));
 
-export const renderResumeForm = (
+export const renderResumeFormSections = (
   resume: ResumeModel,
   template: ResumeTemplate,
-): string => {
-  const lines: string[] = [template];
+): { section: string; text: string }[] => {
+  const sections: { section: string; text: string }[] = [];
 
   selectTemplateSections(resume, template).forEach(({ name, nodes }) => {
     const content = sectionLines(nodes);
     const heading = sectionLabels[name];
-    if (heading && content.length > 0) lines.push(heading, ...content);
+    if (!heading || content.length === 0) return;
+    sections.push({ section: name, text: [heading, ...content].join("\n") });
   });
 
-  return lines.join("\n");
+  return sections;
+};
+
+export const renderResumeForm = (
+  resume: ResumeModel,
+  template: ResumeTemplate,
+): string => {
+  const sections = renderResumeFormSections(resume, template).map(
+    (section) => section.text,
+  );
+  return [template, ...sections].join("\n");
 };

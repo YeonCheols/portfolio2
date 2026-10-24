@@ -1,5 +1,6 @@
 import http, { type IncomingMessage, type ServerResponse } from "http";
 
+import type { ResumeModelClient } from "@mcp/resume/output/runResumeHarness";
 import { handleMcpRequest } from "@mcp/resume/tools/handleMcpRequest";
 import type { ResumeConnection } from "@mcp/resume/tools/resumeTools";
 
@@ -20,6 +21,7 @@ const sendJson = (res: ServerResponse, status: number, body: unknown): void => {
 export const createResumeMcpServer = (options: {
   token: string;
   connection: ResumeConnection;
+  model?: ResumeModelClient;
   log?: (message: string) => void;
 }) =>
   http.createServer(async (req, res) => {
@@ -50,6 +52,7 @@ export const createResumeMcpServer = (options: {
       const response = await handleMcpRequest(
         JSON.parse(raw),
         options.connection,
+        options.model,
       );
       if (response === null) {
         res.writeHead(202);
