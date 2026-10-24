@@ -60,16 +60,16 @@ mcp/
 - `elementIds`와 `sectionOrder`는 문자열 배열입니다. 선택하지 않은 원소는 출력에서 빠집니다.
 - `template`은 `기본형`, `경력 중심형`, `프로젝트 중심형`만입니다. 목록의 소유자는 `src/resume/model/resumeTemplate.ts`입니다. `render_resume_template`, `render_resume_form`, `read_resume_selection`, `check_resume_draft`, `generate_resume`가 이 목록을 함께 씁니다. 다른 이름은 `UNKNOWN_TEMPLATE`만 반환합니다.
 
-| 도구                     | 하는 일                                                                          |
-| ------------------------ | -------------------------------------------------------------------------------- |
-| `validate_resume_xml`    | 모델을 읽고 이력서 id를 반환합니다.                                              |
-| `list_resume_elements`   | 원소 id, 섹션, 이름, 출처만 JSON으로 반환합니다. 본문은 넣지 않습니다.           |
-| `preview_resume`         | 섹션 이름과 원문 줄만 이어 붙입니다. 원소 이름은 붙이지 않습니다.                |
-| `read_resume_selection`  | 선택한 원소의 식별자, 원문, 출처, 공개 여부를 JSON으로 반환합니다.               |
-| `check_resume_draft`     | 초안 문장의 근거를 선택 원소와 맞춰 누락, 충돌, 확인 대상을 반환합니다.          |
+| 도구                     | 하는 일                                                                                                |
+| ------------------------ | ------------------------------------------------------------------------------------------------------ |
+| `validate_resume_xml`    | 모델을 읽고 이력서 id를 반환합니다.                                                                    |
+| `list_resume_elements`   | 원소 id, 섹션, 이름, 출처만 JSON으로 반환합니다. 본문은 넣지 않습니다.                                 |
+| `preview_resume`         | 섹션 이름과 원문 줄만 이어 붙입니다. 원소 이름은 붙이지 않습니다.                                      |
+| `read_resume_selection`  | 선택한 원소의 식별자, 원문, 출처, 공개 여부를 JSON으로 반환합니다.                                     |
+| `check_resume_draft`     | 초안 문장의 근거를 선택 원소와 맞춰 누락, 충돌, 확인 대상을 반환합니다.                                |
 | `generate_resume`        | 어떤 AI든 같은 작성자 역할로 양식의 각 섹션을 다시 쓰게 하고, 받은 문장을 검사해 최종 본문을 만듭니다. |
-| `render_resume_template` | 원소 이름과 원문을 한 줄로 출력합니다.                                           |
-| `render_resume_form`     | 한글 항목명과 원문으로 이력서 양식을 출력합니다.                                 |
+| `render_resume_template` | 원소 이름과 원문을 한 줄로 출력합니다.                                                                 |
+| `render_resume_form`     | 한글 항목명과 원문으로 이력서 양식을 출력합니다.                                                       |
 
 없는 도구 이름은 `UNKNOWN_TOOL`입니다. 연결이 거부한 입력은 연결 오류 코드만 반환합니다.
 
