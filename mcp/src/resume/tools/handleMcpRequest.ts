@@ -1,4 +1,5 @@
 import { resumeTemplateNames } from "@mcp/resume/model/resumeTemplate";
+import type { ResumeModelClient } from "@mcp/resume/output/runResumeHarness";
 import {
   callResumeTool,
   type ResumeConnection,
@@ -18,6 +19,35 @@ const templateInputSchema = {
   type: "object",
   properties: {
     template: { type: "string", enum: [...resumeTemplateNames] },
+  },
+  required: ["template"],
+};
+
+const draftInputSchema = {
+  type: "object",
+  properties: {
+    template: { type: "string", enum: [...resumeTemplateNames] },
+    claims: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          text: { type: "string" },
+          sourceIds: { type: "array", items: { type: "string" } },
+        },
+        required: ["text", "sourceIds"],
+      },
+    },
+  },
+  required: ["template", "claims"],
+};
+
+const generateInputSchema = {
+  type: "object",
+  properties: {
+    template: { type: "string", enum: [...resumeTemplateNames] },
+    interpretation: { type: "string" },
+    claims: draftInputSchema.properties.claims,
   },
   required: ["template"],
 };
@@ -44,6 +74,18 @@ const tools = [
     inputSchema: { type: "object" },
   },
   {
+    name: "check_resume_draft",
+    description:
+      "초안 문장의 근거를 선택 원소와 맞춰 누락, 충돌, 확인 대상을 반환한다",
+    inputSchema: draftInputSchema,
+  },
+  {
+    name: "generate_resume",
+    description:
+      "어떤 AI든 같은 작성자 역할로 양식의 각 섹션을 다시 쓰게 하고, 받은 문장을 검사해 최종 본문을 만든다",
+    inputSchema: generateInputSchema,
+  },
+  {
     name: "render_resume_template",
     description: "선택한 원소를 라벨이 있는 템플릿으로 출력한다",
     inputSchema: templateInputSchema,
@@ -58,6 +100,7 @@ const tools = [
 export const handleMcpRequest = async (
   request: McpJsonRpcRequest,
   connection: ResumeConnection,
+  model?: ResumeModelClient,
 ) => {
   const id = request.id ?? null;
 
@@ -86,6 +129,7 @@ export const handleMcpRequest = async (
       request.params?.name ?? "",
       request.params?.arguments ?? {},
       connection,
+      model,
     );
     return {
       jsonrpc: "2.0" as const,

@@ -1,5 +1,22 @@
-import { fetchResumeModel } from "@mcp/resume/connection/resumeConnection";
+import {
+  fetchResumeModel,
+  type ResumeConnectionFetch,
+} from "@mcp/resume/connection/resumeConnection";
+import { fetchResumeModelText } from "@mcp/resume/connection/resumeModelConnection";
 import { createResumeMcpServer } from "@mcp/resume/http/createResumeMcpServer";
+import type { ResumeModelClient } from "@mcp/resume/output/runResumeHarness";
+
+export const resumeModelFromEnv = (
+  env: { RESUME_MODEL_URL?: string; RESUME_MODEL_TOKEN?: string },
+  fetchImpl?: ResumeConnectionFetch,
+): ResumeModelClient => ({
+  generate: (input) =>
+    fetchResumeModelText(input, {
+      url: env.RESUME_MODEL_URL ?? "",
+      token: env.RESUME_MODEL_TOKEN ?? "",
+      fetchImpl,
+    }),
+});
 
 export const startResumeMcpServer = () => {
   const token = process.env.MCP_AUTH_TOKEN ?? "";
@@ -20,6 +37,10 @@ export const startResumeMcpServer = () => {
       load: (input) =>
         fetchResumeModel(input, { url: resumeUrl, token: resumeToken }),
     },
+    model: resumeModelFromEnv({
+      RESUME_MODEL_URL: process.env.RESUME_MODEL_URL,
+      RESUME_MODEL_TOKEN: process.env.RESUME_MODEL_TOKEN,
+    }),
   }).listen(port);
 };
 
