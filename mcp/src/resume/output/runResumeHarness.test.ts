@@ -213,6 +213,36 @@ describe("runResumeHarness", () => {
     expect(result.resume).not.toContain("unknownSection");
   });
 
+  it("이력서 생성 결과에 경력 요약과 보유 기술을 선택 순서대로 포함한다", async () => {
+    const result = await generateResume(
+      [
+        source("technology", "technologies", "technology"),
+        source("summary", "summaries", "summary"),
+        source("profile", "profile"),
+      ],
+      {
+        claims: [
+          { text: "React", sourceIds: ["technology"] },
+          { text: "프론트엔드 경력 요약", sourceIds: ["summary"] },
+          { text: "프로필 문장", sourceIds: ["profile"] },
+        ],
+      },
+    );
+
+    expect("resume" in result).toBe(true);
+    if (!("resume" in result)) return;
+    expect(result.resume).toBe(
+      [
+        "프로필",
+        "프로필 문장",
+        "핵심 요약",
+        "프론트엔드 경력 요약",
+        "보유 기술",
+        "React",
+      ].join("\n"),
+    );
+  });
+
   it("병역사항에는 군 복무 claim만 출력한다", async () => {
     const selection = [
       source("military", "employmentEligibility", "militaryService"),
@@ -222,6 +252,40 @@ describe("runResumeHarness", () => {
       claims: [
         { text: "병역은 해당 없음입니다", sourceIds: ["military"] },
         { text: "보훈 대상입니다", sourceIds: ["veteran"] },
+      ],
+    });
+
+    expect("resume" in result).toBe(true);
+    if (!("resume" in result)) return;
+    expect(result.resume).toBe("병역사항\n병역은 해당 없음입니다");
+  });
+
+  it("병역 원소가 상위 eligibility 선택에 포함되어도 병역사항으로 분류한다", async () => {
+    const eligibility: ResumeSelectionNode = {
+      id: "eligibility-root",
+      section: "employmentEligibility",
+      name: "employmentEligibility",
+      text: "",
+      sourceRefs: [],
+      visibility: "public",
+      children: [
+        {
+          section: "employmentEligibility",
+          name: "militaryService",
+          text: "해당 없음",
+          sourceRefs: [],
+          visibility: "public",
+          children: [],
+        },
+      ],
+    };
+    const result = await generateResume([eligibility], {
+      claims: [
+        {
+          text: "병역은 해당 없음입니다",
+          sourceIds: ["eligibility-root"],
+          formItem: "militaryService",
+        },
       ],
     });
 
@@ -504,6 +568,127 @@ describe("runResumeHarness", () => {
         "둘째 구조 설명입니다",
         "프로젝트 진행 방식",
         "둘째 진행 방식 설명입니다",
+      ].join("\n"),
+    );
+  });
+
+  it("참조된 업무 항목과 성과 claim을 해당 프로젝트 아래에 배치한다", async () => {
+    const project = (id: string, title: string): ResumeSelectionNode => ({
+      id,
+      section: "projects",
+      name: "project",
+      text: "",
+      sourceRefs: [],
+      visibility: "public",
+      children: [
+        {
+          section: "projects",
+          name: "title",
+          text: title,
+          sourceRefs: [],
+          visibility: "public",
+          children: [],
+        },
+      ],
+    });
+    const workItem = (
+      id: string,
+      projectRef: string,
+      textId: string,
+      text: string,
+    ): ResumeSelectionNode => ({
+      id,
+      projectRef,
+      section: "workItems",
+      name: "workItem",
+      text: "",
+      sourceRefs: [],
+      visibility: "public",
+      children: [
+        {
+          section: "workItems",
+          name: "title",
+          text: "목록 개선",
+          sourceRefs: [],
+          visibility: "public",
+          children: [],
+        },
+        {
+          id: textId,
+          section: "workItems",
+          name: "text",
+          text,
+          sourceRefs: [],
+          visibility: "public",
+          children: [],
+        },
+      ],
+    });
+    const outcome = (
+      id: string,
+      workItemRef: string,
+      text: string,
+    ): ResumeSelectionNode => ({
+      id,
+      workItemRef,
+      section: "outcomes",
+      name: "outcome",
+      text: "",
+      sourceRefs: [],
+      visibility: "public",
+      children: [
+        {
+          id: `${id}-text`,
+          section: "outcomes",
+          name: "text",
+          text,
+          sourceRefs: [],
+          visibility: "public",
+          children: [],
+        },
+      ],
+    });
+    const selection = [
+      project("project-a", "첫 프로젝트"),
+      project("project-b", "둘째 프로젝트"),
+      workItem("work-a", "project-a", "work-a-text", "첫 업무 설명입니다"),
+      workItem("work-b", "project-b", "work-b-text", "둘째 업무 설명입니다"),
+      outcome("outcome-a", "work-a", "첫 성과입니다"),
+    ];
+
+    const result = await generateResume(selection, {
+      claims: [
+        {
+          text: "첫 업무를 개선했습니다",
+          sourceIds: ["work-a-text"],
+          formItem: "text",
+        },
+        {
+          text: "둘째 업무를 개선했습니다",
+          sourceIds: ["work-b-text"],
+          formItem: "text",
+        },
+        {
+          text: "첫 성과를 만들었습니다",
+          sourceIds: ["outcome-a-text"],
+          formItem: "text",
+        },
+      ],
+    });
+
+    expect("resume" in result).toBe(true);
+    if (!("resume" in result)) return;
+    expect(result.resume).toBe(
+      [
+        "경력",
+        "첫 프로젝트",
+        "업무 내용",
+        "첫 업무를 개선했습니다",
+        "성과",
+        "첫 성과를 만들었습니다",
+        "둘째 프로젝트",
+        "업무 내용",
+        "둘째 업무를 개선했습니다",
       ].join("\n"),
     );
   });

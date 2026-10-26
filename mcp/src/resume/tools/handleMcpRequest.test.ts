@@ -1,3 +1,5 @@
+/** @jest-environment node */
+
 import { ResumeConnectionError } from "@mcp/resume/connection/resumeConnection";
 import { connectedResume } from "@mcp/resume/testing/resumeFixture";
 import { handleMcpRequest } from "@mcp/resume/tools/handleMcpRequest";
@@ -114,29 +116,18 @@ describe("handleMcpRequest", () => {
             name: "generate_resume",
             description:
               "어떤 AI든 같은 작성자 역할로 양식의 각 섹션을 다시 쓰게 하고, 받은 문장을 검사해 최종 본문을 만든다",
-            inputSchema: {
+            inputSchema: expect.objectContaining({
               type: "object",
-              properties: {
+              properties: expect.objectContaining({
                 template: {
                   type: "string",
                   enum: ["기본형", "경력 중심형", "프로젝트 중심형"],
                 },
                 interpretation: { type: "string" },
-                claims: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      text: { type: "string" },
-                      sourceIds: { type: "array", items: { type: "string" } },
-                      formItem: { type: "string" },
-                    },
-                    required: ["text", "sourceIds"],
-                  },
-                },
-              },
-              required: ["template"],
-            },
+                claims: expect.objectContaining({ type: "array" }),
+              }),
+              required: expect.arrayContaining(["template", "source"]),
+            }),
           }),
         ]),
       },
@@ -158,6 +149,158 @@ describe("handleMcpRequest", () => {
           }),
         ]),
       },
+    });
+  });
+
+  it("도구 입력 스키마가 런타임에 필요한 연결 및 선택 인자를 안내한다", async () => {
+    const response = await handleMcpRequest(
+      { jsonrpc: "2.0", id: 9, method: "tools/list" },
+      connection,
+    );
+    const tools =
+      response && "result" in response
+        ? (
+            response.result as {
+              tools: {
+                name: string;
+                inputSchema: {
+                  properties?: Record<
+                    string,
+                    { type?: string; enum?: string[] }
+                  >;
+                  required?: string[];
+                  allOf?: unknown[];
+                };
+              }[];
+            }
+          ).tools
+        : [];
+    const byName = Object.fromEntries(tools.map((tool) => [tool.name, tool]));
+
+    ["validate_resume_xml", "list_resume_elements"].forEach((name) => {
+      expect(byName[name].inputSchema.properties?.source).toEqual({
+        type: "string",
+        enum: ["repository", "embedded", "file"],
+      });
+      expect(byName[name].inputSchema.required).toContain("source");
+      expect(byName[name].inputSchema.allOf).toEqual([
+        {
+          if: { properties: { source: { enum: ["embedded", "file"] } } },
+          then: { required: ["xml"] },
+        },
+      ]);
+    });
+    [
+      "preview_resume",
+      "read_resume_selection",
+      "check_resume_draft",
+      "generate_resume",
+      "render_resume_template",
+      "render_resume_form",
+    ].forEach((name) => {
+      const schema = byName[name].inputSchema;
+      expect(schema.properties?.source?.enum).toEqual([
+        "repository",
+        "embedded",
+        "file",
+      ]);
+      expect(schema.properties?.elementIds?.type).toBe("array");
+      expect(schema.properties?.sectionOrder?.type).toBe("array");
+      expect(schema.required).toEqual(
+        expect.arrayContaining(["source", "elementIds", "sectionOrder"]),
+      );
+    });
+    expect(byName.convert_resume_to_pdf.inputSchema.required).toEqual(
+      expect.arrayContaining([
+        "generatedResume",
+        "source",
+        "elementIds",
+        "sectionOrder",
+        "template",
+      ]),
+    );
+  });
+
+  it("생성한 이력서 결과를 PDF 변환 도구에 전달하면 바이너리 리소스를 반환한다", async () => {
+    const generated = await handleMcpRequest(
+      {
+        jsonrpc: "2.0",
+        id: 10,
+        method: "tools/call",
+        params: {
+          name: "generate_resume",
+          arguments: {
+            source: "embedded",
+            xml: 'schemaVersion="0.2.0"',
+            elementIds: ["profile-test"],
+            sectionOrder: ["profile"],
+            template: "기본형",
+            claims: [
+              { text: "Frontend engineer", sourceIds: ["profile-test"] },
+            ],
+          },
+        },
+      },
+      connection,
+    );
+    const generatedText =
+      generated && "result" in generated
+        ? (generated.result as { content: { text: string }[] }).content[0].text
+        : "";
+    expect(JSON.parse(generatedText).selection).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "profile-test",
+          section: "profile",
+        }),
+      ]),
+    );
+    const converted = await handleMcpRequest(
+      {
+        jsonrpc: "2.0",
+        id: 11,
+        method: "tools/call",
+        params: {
+          name: "convert_resume_to_pdf",
+          arguments: {
+            generatedResume: generatedText,
+            source: "embedded",
+            xml: 'schemaVersion="0.2.0"',
+            elementIds: ["profile-test"],
+            sectionOrder: ["profile"],
+            template: "기본형",
+          },
+        },
+      },
+      connection,
+    );
+    const content =
+      converted && "result" in converted
+        ? (converted.result as { content: unknown[] }).content
+        : [];
+    const pdfResource = content.find(
+      (
+        item,
+      ): item is {
+        type: "resource";
+        resource: { mimeType: string; blob: string };
+      } =>
+        typeof item === "object" &&
+        item !== null &&
+        "type" in item &&
+        item.type === "resource",
+    );
+
+    expect(pdfResource?.resource.mimeType).toBe("application/pdf");
+    expect(
+      Buffer.from(pdfResource?.resource.blob ?? "", "base64").toString(
+        "ascii",
+        0,
+        5,
+      ),
+    ).toBe("%PDF-");
+    expect(converted).toMatchObject({
+      result: { isError: false },
     });
   });
 

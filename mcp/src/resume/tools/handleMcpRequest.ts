@@ -17,15 +17,30 @@ export type McpJsonRpcRequest = {
 
 const templateInputSchema = {
   type: "object",
+  allOf: [
+    {
+      if: { properties: { source: { enum: ["embedded", "file"] } } },
+      then: { required: ["xml"] },
+    },
+  ],
   properties: {
+    source: { type: "string", enum: ["repository", "embedded", "file"] },
+    xml: { type: "string" },
+    elementIds: { type: "array", items: { type: "string" } },
+    sectionOrder: { type: "array", items: { type: "string" } },
     template: { type: "string", enum: [...resumeTemplateNames] },
   },
-  required: ["template"],
+  required: ["source", "elementIds", "sectionOrder", "template"],
 };
 
 const draftInputSchema = {
   type: "object",
+  allOf: templateInputSchema.allOf,
   properties: {
+    source: templateInputSchema.properties.source,
+    xml: templateInputSchema.properties.xml,
+    elementIds: templateInputSchema.properties.elementIds,
+    sectionOrder: templateInputSchema.properties.sectionOrder,
     template: { type: "string", enum: [...resumeTemplateNames] },
     claims: {
       type: "array",
@@ -40,39 +55,89 @@ const draftInputSchema = {
       },
     },
   },
-  required: ["template", "claims"],
+  required: ["source", "elementIds", "sectionOrder", "template", "claims"],
 };
 
 const generateInputSchema = {
   type: "object",
+  allOf: templateInputSchema.allOf,
   properties: {
+    source: templateInputSchema.properties.source,
+    xml: templateInputSchema.properties.xml,
+    elementIds: templateInputSchema.properties.elementIds,
+    sectionOrder: templateInputSchema.properties.sectionOrder,
     template: { type: "string", enum: [...resumeTemplateNames] },
     interpretation: { type: "string" },
     claims: draftInputSchema.properties.claims,
   },
-  required: ["template"],
+  required: ["source", "elementIds", "sectionOrder", "template"],
+};
+
+const sourceInputSchema = {
+  type: "object",
+  allOf: templateInputSchema.allOf,
+  properties: {
+    source: templateInputSchema.properties.source,
+    xml: templateInputSchema.properties.xml,
+  },
+  required: ["source"],
+};
+
+const composeInputSchema = {
+  type: "object",
+  allOf: templateInputSchema.allOf,
+  properties: {
+    source: templateInputSchema.properties.source,
+    xml: templateInputSchema.properties.xml,
+    elementIds: templateInputSchema.properties.elementIds,
+    sectionOrder: templateInputSchema.properties.sectionOrder,
+  },
+  required: ["source", "elementIds", "sectionOrder"],
+};
+
+const resumePdfInputSchema = {
+  type: "object",
+  allOf: templateInputSchema.allOf,
+  properties: {
+    source: templateInputSchema.properties.source,
+    xml: templateInputSchema.properties.xml,
+    elementIds: templateInputSchema.properties.elementIds,
+    sectionOrder: templateInputSchema.properties.sectionOrder,
+    template: templateInputSchema.properties.template,
+    generatedResume: {
+      type: "string",
+      description: "generate_resume 도구가 반환한 JSON 문자열",
+    },
+  },
+  required: [
+    "source",
+    "elementIds",
+    "sectionOrder",
+    "template",
+    "generatedResume",
+  ],
 };
 
 const tools = [
   {
     name: "validate_resume_xml",
     description: "XML을 공통 이력서 모델로 검증한다",
-    inputSchema: { type: "object" },
+    inputSchema: sourceInputSchema,
   },
   {
     name: "list_resume_elements",
     description: "이력서 원소의 식별자와 출처를 조회한다",
-    inputSchema: { type: "object" },
+    inputSchema: sourceInputSchema,
   },
   {
     name: "preview_resume",
     description: "선택한 원소를 대표 템플릿 미리보기로 만든다",
-    inputSchema: { type: "object" },
+    inputSchema: composeInputSchema,
   },
   {
     name: "read_resume_selection",
     description: "선택한 원소의 식별자, 원문, 출처, 공개 여부를 반환한다",
-    inputSchema: { type: "object" },
+    inputSchema: templateInputSchema,
   },
   {
     name: "check_resume_draft",
@@ -95,6 +160,11 @@ const tools = [
     name: "render_resume_form",
     description: "선택한 원소를 이력서 양식으로 출력한다",
     inputSchema: templateInputSchema,
+  },
+  {
+    name: "convert_resume_to_pdf",
+    description: "generate_resume 결과를 PDF 바이너리 리소스로 변환한다",
+    inputSchema: resumePdfInputSchema,
   },
 ];
 
@@ -136,12 +206,11 @@ export const handleMcpRequest = async (
       jsonrpc: "2.0" as const,
       id,
       result: {
-        content: [
-          {
-            type: "text" as const,
-            text: result.ok ? result.text : result.code,
-          },
-        ],
+        content: result.ok
+          ? "content" in result
+            ? result.content
+            : [{ type: "text" as const, text: result.text }]
+          : [{ type: "text" as const, text: result.code }],
         isError: !result.ok,
       },
     };

@@ -4,6 +4,9 @@ export type ResumeSelectionNode = {
   name: string;
   text: string;
   sourceRefs: readonly string[];
+  employmentRef?: string;
+  projectRef?: string;
+  workItemRef?: string;
   visibility: string;
   children: readonly ResumeSelectionNode[];
 };
