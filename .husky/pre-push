@@ -1,13 +1,13 @@
 #!/bin/sh
 . "$(dirname -- "$0")/_/husky.sh"
 
-pnpm lint
+sh "$(dirname "$0")/pnpm.sh" lint
 if [ $? -ne 0 ]; then
   echo "Lint failed. Push aborted."
   exit 1
 fi
 
-pnpm type-check
+sh "$(dirname "$0")/pnpm.sh" type-check
 if [ $? -ne 0 ]; then
   echo "Type check failed. Push aborted."
   exit 1
