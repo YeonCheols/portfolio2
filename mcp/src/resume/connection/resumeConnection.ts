@@ -15,7 +15,7 @@ export type ResumeConnectionInput = {
 export type ResumeConnectionFetch = (
   url: string,
   init: RequestInit,
-) => Promise<{ json: () => Promise<unknown> }>;
+) => Promise<{ ok?: boolean; json: () => Promise<unknown> }>;
 
 export type ResumeConnectionOptions = {
   url: string;

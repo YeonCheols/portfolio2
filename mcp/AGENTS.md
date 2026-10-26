@@ -84,7 +84,7 @@ mcp/
 
 `generate_resume`의 역할 문구 소유자는 `src/resume/output/runResumeHarness.ts`의 `resumeWriterPersona`입니다. 서버에 외부 AI 연결이 있으면 `render_resume_form`이 만든 양식의 각 섹션마다 해석과 재작성을 순서대로 요청하고, `checkResumeDraft`를 통과한 문장만 섹션 순서대로 최종 본문에 넣습니다. 연결이 없고 `interpretation`이나 `claims`도 없으면 선택 원소와 해석 요청을 돌려줍니다. `interpretation`이 원소를 포함하면 재작성 요청을 돌려주고, 해석이 비어 있으면 본문을 만들지 않습니다. `claims`가 오면 검사한 문장만 최종 본문에 넣습니다.
 
-외부 AI 연결의 소유자는 `src/resume/connection/resumeModelConnection.ts`입니다. `http/server.ts`가 `RESUME_MODEL_URL`과 `RESUME_MODEL_TOKEN`으로 이 연결을 만듭니다. 요청 본문은 `persona`와 `prompt`이고, 응답은 `{ ok: true, text }` 또는 `{ ok: false, code }`입니다. 주소나 토큰이 없으면 `MISSING_MODEL_CONNECTION`만 반환하고 호출하지 않습니다. 이 계약은 특정 업체 API 형식을 쓰지 않습니다. 키는 환경 변수에만 두고 저장소에 넣지 않습니다.
+외부 AI 연결의 소유자는 `src/resume/connection/resumeModelConnection.ts`입니다. `http/server.ts`의 `resumeModelFromEnv`가 `RESUME_MODEL_PROVIDER`로 연결 구현을 고릅니다. 값이 없으면 `RESUME_MODEL_URL`과 `RESUME_MODEL_TOKEN`으로 공통 본문 `{ persona, prompt }`를 보내고 `{ ok: true, text }`의 문장만 받습니다. 주소나 토큰이 없으면 `MISSING_MODEL_CONNECTION`만 반환하고 호출하지 않습니다. 공급자가 `openrouter`이면 `src/resume/connection/openRouterModelConnection.ts`가 `RESUME_MODEL_NAME`을 본문 모델 이름으로 보내고, 성공 상태의 응답 문장만 받습니다. 모델 이름이 없거나 공급자를 모르면 호출하지 않습니다. 키는 환경 변수에만 두고 저장소에 넣지 않습니다.
 
 `check_resume_draft`는 같은 선택 결과로 초안 문장을 검사합니다. 각 문장은 `text`와 `sourceIds`를 가집니다. 근거 id가 모두 선택 안에 있고 그 노드나 자식에 원문이 있으면 문장과 함께 그 원소의 원문, 출처, 공개 여부를 유지합니다. 근거 id가 없거나 선택에 없거나 노드와 자식의 원문이 모두 비어 있으면 그 문장은 누락입니다. 같은 원소 id에 서로 다른 문장이 오면 하나를 고르지 않고 충돌로 둡니다. 공개 여부가 빈 문자열인 근거는 확인 대상이고 값을 공개로 바꾸지 않습니다. 비공개 원문은 지우지 않습니다.
 

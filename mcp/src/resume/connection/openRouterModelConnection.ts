@@ -4,17 +4,20 @@ import {
 } from "@mcp/resume/connection/resumeConnection";
 import type { ResumeModelCall } from "@mcp/resume/connection/resumeModelConnection";
 
-export const openRouterChatCompletionUrl =
-  "https://openrouter.ai/api/v1/chat/completions";
-
-export const isOpenRouterChatCompletionUrl = (url: string) =>
-  url.trim() === openRouterChatCompletionUrl;
+export type OpenRouterModelOptions = ResumeConnectionOptions & {
+  model?: string;
+};
 
 export const fetchOpenRouterModelText = async (
   input: ResumeModelCall,
-  options: ResumeConnectionOptions,
+  options: OpenRouterModelOptions,
 ): Promise<string> => {
-  if (options.url.trim() === "" || options.token.trim() === "") {
+  const model = (options.model ?? "").trim();
+  if (
+    options.url.trim() === "" ||
+    options.token.trim() === "" ||
+    model === ""
+  ) {
     throw new ResumeConnectionError("MISSING_MODEL_CONNECTION");
   }
 
@@ -26,16 +29,25 @@ export const fetchOpenRouterModelText = async (
       "content-type": "application/json",
     },
     body: JSON.stringify({
-      model: "openrouter/free",
+      model,
       messages: [
         { role: "system", content: input.persona },
         { role: "user", content: input.prompt },
       ],
     }),
   });
-  const payload = (await response.json()) as {
-    choices?: { message?: { content?: unknown } }[];
-  };
+  if (response.ok !== true) {
+    throw new ResumeConnectionError("MODEL_REJECTED");
+  }
+  let payload: { choices?: { message?: { content?: unknown } }[] };
+  try {
+    payload = (await response.json()) as {
+      choices?: { message?: { content?: unknown } }[];
+    };
+  } catch (error) {
+    if (error instanceof ResumeConnectionError) throw error;
+    throw new ResumeConnectionError("MODEL_REJECTED");
+  }
   const content = payload.choices?.[0]?.message?.content;
   if (typeof content !== "string" || content.trim() === "") {
     throw new ResumeConnectionError("MODEL_REJECTED");
