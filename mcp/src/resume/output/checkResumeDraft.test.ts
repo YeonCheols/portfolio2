@@ -100,6 +100,23 @@ describe("checkResumeDraft", () => {
     ]);
   });
 
+  it("빈 문장이나 공백만 있는 문장은 근거가 있어도 누락으로 둔다", () => {
+    const result = checkResumeDraft(
+      [profile],
+      [
+        { text: "", sourceIds: ["profile-test"] },
+        { text: "   ", sourceIds: ["profile-test"] },
+      ],
+    );
+
+    expect(result.claims).toEqual([]);
+    expect(result.gaps).toEqual([
+      { text: "", sourceIds: ["profile-test"] },
+      { text: "   ", sourceIds: ["profile-test"] },
+    ]);
+    expect(result.conflicts).toEqual([]);
+  });
+
   it("같은 원소 id의 서로 다른 문장은 하나로 고르지 않고 충돌로 둔다", () => {
     const result = checkResumeDraft(
       [profile],

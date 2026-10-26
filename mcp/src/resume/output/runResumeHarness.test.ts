@@ -79,6 +79,22 @@ describe("runResumeHarness", () => {
     expect(result.resume).toBe("프로필\n테스트 사용자입니다");
   });
 
+  it("공백뿐인 claim은 근거가 있어도 최종 절 제목을 만들지 않는다", async () => {
+    const result = await generateResume(
+      [source("profile-empty-claim", "profile")],
+      {
+        claims: [{ text: "   ", sourceIds: ["profile-empty-claim"] }],
+      },
+    );
+
+    expect("resume" in result).toBe(true);
+    if (!("resume" in result)) return;
+    expect(result.resume).toBe("");
+    expect(result.gaps).toEqual([
+      { text: "   ", sourceIds: ["profile-empty-claim"] },
+    ]);
+  });
+
   it("프로필 항목 문장은 원문에 있는 항목 제목 아래에만 배치한다", async () => {
     const profile: ResumeSelectionNode = {
       id: "profile-items",

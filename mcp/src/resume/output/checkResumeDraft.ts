@@ -117,6 +117,8 @@ const textsBySourceId = (claims: readonly DraftClaim[]) => {
     { sourceId: string; formItem?: string; texts: string[] }
   >();
   claims.forEach((claim) => {
+    if (claim.text.trim() === "") return;
+
     claim.sourceIds.forEach((id) => {
       const key = claimScopeKey(id, claim.formItem);
       const current = texts.get(key) ?? {
@@ -152,6 +154,15 @@ export const checkResumeDraft = (
   const gaps: DraftClaim[] = [];
 
   claims.forEach((claim) => {
+    if (claim.text.trim() === "") {
+      gaps.push({
+        text: claim.text,
+        sourceIds: [...claim.sourceIds],
+        ...(claim.formItem ? { formItem: claim.formItem } : {}),
+      });
+      return;
+    }
+
     if (
       claim.sourceIds.some((id) =>
         conflictIds.has(claimScopeKey(id, claim.formItem)),
