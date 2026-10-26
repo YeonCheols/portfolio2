@@ -1,6 +1,9 @@
 /** @jest-environment node */
 
-import { createResumePdf } from "@mcp/resume/output/createResumePdf";
+import {
+  createResumePdf,
+  resumePdfContinuationLabel,
+} from "@mcp/resume/output/createResumePdf";
 import type { ResumePdfInput } from "@mcp/resume/output/createResumePdf";
 
 const resumeInput = (statementText = ""): ResumePdfInput => ({
@@ -67,6 +70,12 @@ const resumeInput = (statementText = ""): ResumePdfInput => ({
 });
 
 describe("createResumePdf", () => {
+  it("페이지가 넘어가면 섹션과 프로젝트의 이어지는 위치를 표시한다", () => {
+    expect(resumePdfContinuationLabel("경력", ["플랫폼 재구축"])).toBe(
+      "경력 · 플랫폼 재구축 (계속)",
+    );
+  });
+
   it("한글 이력서 본문을 PDF 바이트로 만든다", async () => {
     const pdf = await createResumePdf(resumeInput());
     const header = pdf.subarray(0, 5).toString("ascii");

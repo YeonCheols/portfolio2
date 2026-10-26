@@ -542,6 +542,12 @@ const resumeFont = path.resolve(
   "../../../fonts/NotoSansKR-Regular.otf",
 );
 
+export const resumePdfContinuationLabel = (
+  sectionTitle: string,
+  contextTitles: readonly string[] = [],
+): string =>
+  [sectionTitle, ...contextTitles].filter(Boolean).join(" · ") + " (계속)";
+
 export const createResumePdf = (input: ResumePdfInput): Promise<Buffer> =>
   new Promise((resolve, reject) => {
     const PDFDocument = require("pdfkit") as typeof PDFDocumentType;
@@ -562,6 +568,10 @@ export const createResumePdf = (input: ResumePdfInput): Promise<Buffer> =>
     const bottom = document.page.height - document.page.margins.bottom;
     const textWidth = right - left;
     let y = document.page.margins.top;
+    let activeSectionTitle = "";
+    let activeProjectTitle = "";
+    let activeRecordTitle = "";
+    let activeWorkItemTitle = "";
 
     const colors = {
       ink: "#17191c",
@@ -601,6 +611,23 @@ export const createResumePdf = (input: ResumePdfInput): Promise<Buffer> =>
       if (y + height > bottom) {
         document.addPage();
         y = document.page.margins.top;
+        if (activeSectionTitle) {
+          const contextTitles = [
+            activeProjectTitle || activeRecordTitle,
+            activeWorkItemTitle,
+          ].filter(Boolean);
+          document
+            .font(resumeFont)
+            .fontSize(8)
+            .fillColor(colors.muted)
+            .text(
+              resumePdfContinuationLabel(activeSectionTitle, contextTitles),
+              left,
+              y,
+              { lineBreak: false },
+            );
+          y += 16;
+        }
       }
     };
 
@@ -650,8 +677,9 @@ export const createResumePdf = (input: ResumePdfInput): Promise<Buffer> =>
         .stroke();
     };
 
-    const drawSectionTitle = (title: string) => {
-      ensureSpace(32);
+    const drawSectionTitle = (title: string, firstContentHeight = 44) => {
+      ensureSpace(40 + firstContentHeight);
+      activeSectionTitle = title;
       y += 8;
       document
         .font(resumeFont)
@@ -676,6 +704,7 @@ export const createResumePdf = (input: ResumePdfInput): Promise<Buffer> =>
       const headerHeight = options.compact ? 24 : 30;
       ensureSpace(headerHeight + 12);
       const startY = y;
+      activeRecordTitle = record.title || record.subtitle;
       if (!options.compact && record.period) {
         drawLinesAt(record.period, x, startY, dateWidth, 8.5, colors.muted);
       }
@@ -707,6 +736,7 @@ export const createResumePdf = (input: ResumePdfInput): Promise<Buffer> =>
       y += 7;
       drawRule(x, width);
       y += 8;
+      activeRecordTitle = "";
     };
 
     const drawSummaryCards = () => {
@@ -874,9 +904,11 @@ export const createResumePdf = (input: ResumePdfInput): Promise<Buffer> =>
             );
             y += 14;
           }
+          activeProjectTitle = project.title;
           drawRecord(project, { indent: 82, compact: true });
           project.workItems.forEach((workItem) => {
             ensureSpace(32);
+            activeWorkItemTitle = workItem.title;
             const x = left + 98;
             const width = textWidth - 98;
             if (workItem.title) {
@@ -912,7 +944,9 @@ export const createResumePdf = (input: ResumePdfInput): Promise<Buffer> =>
               );
             });
             y += 3;
+            activeWorkItemTitle = "";
           });
+          activeProjectTitle = "";
         });
       });
       model.unassignedProjects.forEach((project) => drawRecord(project));
