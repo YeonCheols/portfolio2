@@ -29,6 +29,7 @@ export type ResumeModelClient = {
 
 export type GeneratedResume = CheckedDraft & {
   resume: string;
+  selection: readonly ResumeSelectionNode[];
 };
 
 const resumeSectionOrder: {
@@ -36,8 +37,13 @@ const resumeSectionOrder: {
   sources: readonly string[];
 }[] = [
   { title: "프로필", sources: ["profile"] },
+  { title: "핵심 요약", sources: ["summaries"] },
+  { title: "보유 기술", sources: ["technologies"] },
   { title: "학력", sources: ["educationHistory"] },
-  { title: "경력", sources: ["employmentHistory", "projects"] },
+  {
+    title: "경력",
+    sources: ["employmentHistory", "projects", "workItems", "outcomes"],
+  },
   {
     title: "인턴·대외활동",
     sources: ["activities", "contributions", "initiatives"],
@@ -74,7 +80,9 @@ const sectionOfClaim = (
   );
   if (eligibilitySources.length > 0) {
     return eligibilitySources.every(
-      (source) => source.name === "militaryService",
+      (source) =>
+        source.name === "militaryService" ||
+        claim.formItem === "militaryService",
     )
       ? "병역사항"
       : undefined;
@@ -126,6 +134,16 @@ const projectItemLabels: Readonly<Record<string, string>> = {
   domain: "담당 개발 도메인",
 };
 
+const workItemLabels: Readonly<Record<string, string>> = {
+  title: "프로젝트 업무",
+  text: "업무 내용",
+};
+
+const outcomeLabels: Readonly<Record<string, string>> = {
+  text: "성과",
+  metric: "성과 지표",
+};
+
 type ProjectContext = {
   id: string;
   title: string;
@@ -140,6 +158,7 @@ const projectContextsOf = (
 } => {
   const bySourceId = new Map<string, ProjectContext>();
   const projects = new Map<string, ProjectContext>();
+  const workItemProjects = new Map<string, ProjectContext>();
 
   const visit = (
     nodes: readonly ResumeSelectionNode[],
@@ -160,8 +179,15 @@ const projectContextsOf = (
           projects.set(project.id, project);
         }
       }
+      if (node.projectRef) project = projects.get(node.projectRef) ?? project;
+      if (node.workItemRef) {
+        project = workItemProjects.get(node.workItemRef) ?? project;
+      }
 
       if (project && node.id) bySourceId.set(node.id, project);
+      if (node.section === "workItems" && node.id && project) {
+        workItemProjects.set(node.id, project);
+      }
       visit(node.children, project);
     });
   };
@@ -193,10 +219,12 @@ const itemLabelOf = (
 
   if (section === "프로필") return profileItemLabels[item];
   if (section === "경력") {
-    if (claim.sources.some((source) => source.section === "projects")) {
+    if (claim.sources.some((source) => source.section === "projects"))
       return projectItemLabels[item];
-    }
-    return undefined;
+    if (claim.sources.some((source) => source.section === "workItems"))
+      return workItemLabels[item];
+    if (claim.sources.some((source) => source.section === "outcomes"))
+      return outcomeLabels[item];
   }
   if (
     section === "자기소개서" &&
@@ -229,6 +257,10 @@ const itemOrderBySection: Readonly<Record<string, readonly string[]>> = {
     "사이트 URL",
     "프로젝트 진행 방식",
     "담당 개발 도메인",
+    "프로젝트 업무",
+    "업무 내용",
+    "성과",
+    "성과 지표",
   ],
   자기소개서: ["자기소개", "성격의 장단점", "목표 및 포부"],
 };
@@ -275,8 +307,8 @@ const linesOfSection = (
   >();
 
   claims.forEach((claim) => {
-    const projectSource = claim.sources.some(
-      (source) => source.section === "projects",
+    const projectSource = claim.sources.some((source) =>
+      ["projects", "workItems", "outcomes"].includes(source.section),
     );
     const project =
       title === "경력" && projectSource
@@ -428,6 +460,7 @@ export const continueResumeGeneration = (
       ...checked,
       step: "done" as const,
       resume: assembleGeneratedResume(checked.claims, selection),
+      selection,
     };
   }
   return {
@@ -450,6 +483,7 @@ const mergeChecked = (
   return {
     ...checked,
     resume: assembleGeneratedResume(checked.claims, selection),
+    selection,
   };
 };
 
@@ -497,6 +531,7 @@ export const generateResume = async (
       ...checked,
       step: "done" as const,
       resume: assembleGeneratedResume(checked.claims, selection),
+      selection,
     };
   }
   if (input.interpretation !== undefined) {

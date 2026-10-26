@@ -17,6 +17,15 @@ describe("mcp container", () => {
     expect(dockerfile).not.toContain("portfolio-web");
   });
 
+  it("한글 PDF 렌더링 폰트를 MCP 이미지에 포함한다", () => {
+    const dockerfile = fs.readFileSync(
+      path.join(__dirname, "Dockerfile"),
+      "utf8",
+    );
+
+    expect(dockerfile).toContain("COPY fonts ./fonts");
+  });
+
   it("같은 MCP 프로젝트 소스로 OAuth 게이트웨이 이미지를 만든다", () => {
     const dockerfile = fs.readFileSync(
       path.join(__dirname, "Dockerfile.gateway"),

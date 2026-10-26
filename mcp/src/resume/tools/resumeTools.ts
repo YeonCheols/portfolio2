@@ -10,6 +10,7 @@ import {
 } from "@mcp/resume/model/resumeTemplate";
 import {
   checkResumeDraft,
+  type CheckedDraftClaim,
   type DraftClaim,
   type ResumeSelectionNode,
 } from "@mcp/resume/output/checkResumeDraft";
@@ -19,6 +20,7 @@ import {
   renderResumeFormSections,
 } from "@mcp/resume/output/renderResumeForm";
 import { renderResumeTemplate } from "@mcp/resume/output/renderResumeTemplate";
+import { createResumePdf } from "@mcp/resume/output/createResumePdf";
 import {
   generateResume,
   generatedResumePromptTitle,
@@ -27,8 +29,15 @@ import {
 } from "@mcp/resume/output/runResumeHarness";
 import { selectTemplateSections } from "@mcp/resume/output/selectTemplateSections";
 
+export type ResumeToolContent =
+  | { type: "text"; text: string }
+  | {
+      type: "resource";
+      resource: { uri: string; mimeType: string; blob: string };
+    };
+
 export type ResumeToolResult =
-  | { ok: true; text: string }
+  | { ok: true; text: string; content?: ResumeToolContent[] }
   | { ok: false; code: string };
 
 export type ResumeConnection = {
@@ -79,6 +88,78 @@ const readClaims = (value: unknown): DraftClaim[] => {
         : {}),
     };
   });
+};
+
+const isStringArray = (value: unknown): value is string[] =>
+  Array.isArray(value) && value.every((item) => typeof item === "string");
+
+const isResumeSelectionNode = (
+  value: unknown,
+): value is ResumeSelectionNode => {
+  if (typeof value !== "object" || value === null) return false;
+  const node = value as Record<string, unknown>;
+  return (
+    typeof node.section === "string" &&
+    typeof node.name === "string" &&
+    typeof node.text === "string" &&
+    typeof node.visibility === "string" &&
+    isStringArray(node.sourceRefs) &&
+    Array.isArray(node.children) &&
+    node.children.every(isResumeSelectionNode) &&
+    (node.id === undefined || typeof node.id === "string") &&
+    (node.employmentRef === undefined ||
+      typeof node.employmentRef === "string") &&
+    (node.projectRef === undefined || typeof node.projectRef === "string") &&
+    (node.workItemRef === undefined || typeof node.workItemRef === "string")
+  );
+};
+
+const isCheckedDraftClaim = (value: unknown): value is CheckedDraftClaim => {
+  if (typeof value !== "object" || value === null) return false;
+  const claim = value as Record<string, unknown>;
+  return (
+    typeof claim.text === "string" &&
+    isStringArray(claim.sourceIds) &&
+    Array.isArray(claim.sources) &&
+    claim.sources.every(isResumeSelectionNode) &&
+    (claim.formItem === undefined || typeof claim.formItem === "string")
+  );
+};
+
+const readGeneratedResume = (
+  value: unknown,
+): { resume: string; claims: DraftClaim[] } => {
+  if (typeof value !== "string") return fail("INVALID_INPUT");
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value);
+  } catch {
+    return fail("INVALID_INPUT");
+  }
+
+  if (typeof parsed !== "object" || parsed === null) {
+    return fail("INCOMPLETE_RESUME");
+  }
+  const result = parsed as Record<string, unknown>;
+  if (
+    typeof result.resume !== "string" ||
+    result.resume.trim() === "" ||
+    !Array.isArray(result.claims) ||
+    !Array.isArray(result.gaps) ||
+    !Array.isArray(result.conflicts) ||
+    !Array.isArray(result.uncertain) ||
+    !Array.isArray(result.selection) ||
+    !result.claims.every(isCheckedDraftClaim) ||
+    !result.selection.every(isResumeSelectionNode)
+  ) {
+    return fail("INCOMPLETE_RESUME");
+  }
+
+  return {
+    resume: result.resume,
+    claims: readClaims(result.claims),
+  };
 };
 
 const readTemplate = (value: unknown): ResumeTemplate => {
@@ -144,6 +225,15 @@ const selectionNode = (
     children: node.children.map((child) => selectionNode(section, child)),
   };
   if (node.attributes.id) record.id = node.attributes.id;
+  const employmentRef =
+    node.references.employmentRef?.[0] ?? node.attributes.employmentRef;
+  if (employmentRef) record.employmentRef = employmentRef;
+  const projectRef =
+    node.references.projectRef?.[0] ?? node.attributes.projectRef;
+  if (projectRef) record.projectRef = projectRef;
+  const workItemRef =
+    node.references.workItemRef?.[0] ?? node.attributes.workItemRef;
+  if (workItemRef) record.workItemRef = workItemRef;
   return record;
 };
 
@@ -280,6 +370,33 @@ export const callResumeTool = async (
             forms: generatedResumeForms(composed, template),
           }),
         ),
+      };
+    }
+
+    if (name === "convert_resume_to_pdf") {
+      const generated = readGeneratedResume(args.generatedResume);
+      const { template, composed } = await loadTemplateResume(args, connection);
+      const selection = readGeneratedSelection(composed, template);
+      const checked = checkResumeDraft(selection, generated.claims);
+      const pdf = await createResumePdf({
+        resume: generated.resume,
+        claims: checked.claims,
+        selection,
+      });
+      return {
+        ok: true,
+        text: "이력서 PDF를 생성했습니다.",
+        content: [
+          { type: "text", text: "이력서 PDF를 생성했습니다." },
+          {
+            type: "resource",
+            resource: {
+              uri: `resume://generated/${crypto.randomUUID()}.pdf`,
+              mimeType: "application/pdf",
+              blob: pdf.toString("base64"),
+            },
+          },
+        ],
       };
     }
 

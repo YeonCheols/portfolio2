@@ -9,6 +9,7 @@ RUN pnpm install --frozen-lockfile
 COPY tsconfig.json ./tsconfig.json
 COPY src ./src
 COPY scripts ./scripts
+COPY fonts ./fonts
 RUN pnpm build
 
 ENV PORT=8080

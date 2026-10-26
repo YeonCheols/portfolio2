@@ -1,3 +1,5 @@
+/** @jest-environment node */
+
 import { ResumeConnectionError } from "@mcp/resume/connection/resumeConnection";
 import { connectedResume, resumeNode } from "@mcp/resume/testing/resumeFixture";
 import {
@@ -27,6 +29,87 @@ describe("callResumeTool", () => {
 
     expect(result).toEqual({ ok: false, code: "MALFORMED_XML" });
     expect(JSON.stringify(result)).not.toContain("<profile>");
+  });
+
+  it("PDF 변환은 선택 원문이 없는 생성 결과를 거부한다", async () => {
+    const result = await callResumeTool(
+      "convert_resume_to_pdf",
+      {
+        generatedResume: JSON.stringify({
+          resume: "프로필",
+          claims: [],
+          gaps: [],
+          conflicts: [],
+          uncertain: [],
+        }),
+      },
+      connection,
+    );
+
+    expect(result).toEqual({ ok: false, code: "INCOMPLETE_RESUME" });
+  });
+
+  it("PDF 변환은 구조가 잘못된 생성 결과 selection을 렌더링하지 않는다", async () => {
+    const result = await callResumeTool(
+      "convert_resume_to_pdf",
+      {
+        generatedResume: JSON.stringify({
+          resume: "프로필",
+          claims: [],
+          gaps: [],
+          conflicts: [],
+          uncertain: [],
+          selection: [null],
+        }),
+      },
+      connection,
+    );
+
+    expect(result).toEqual({ ok: false, code: "INCOMPLETE_RESUME" });
+  });
+
+  it("PDF 변환은 결과에 동봉된 선택 원문 대신 연결된 XML에서 원문을 다시 읽는다", async () => {
+    const load = jest.fn(async () => connectedResume());
+    const forgedSource = {
+      id: "forged-source",
+      section: "profile",
+      name: "headline",
+      text: "FAKE SOURCE",
+      sourceRefs: [],
+      visibility: "public",
+      children: [],
+    };
+    const result = await callResumeTool(
+      "convert_resume_to_pdf",
+      {
+        source: "embedded",
+        xml: 'schemaVersion="0.2.0"',
+        template: "기본형",
+        elementIds: ["profile-test"],
+        sectionOrder: ["profile"],
+        generatedResume: JSON.stringify({
+          resume: "조작된 초안",
+          claims: [
+            {
+              text: "근거 없는 성과 문장",
+              sourceIds: ["forged-source"],
+              sources: [forgedSource],
+            },
+          ],
+          gaps: [],
+          conflicts: [],
+          uncertain: [],
+          selection: [forgedSource],
+        }),
+      },
+      { load },
+    );
+
+    expect(load).toHaveBeenCalledWith({
+      source: "embedded",
+      xml: 'schemaVersion="0.2.0"',
+    });
+    expect(result.ok).toBe(true);
   });
 
   it("미리보기 도구는 연결로 받은 모델에서 선택한 원소의 원문만 반환한다", async () => {
@@ -687,6 +770,133 @@ describe("callResumeTool", () => {
     ]);
     expect(selection[0].visibility).toBe("private");
     expect(selection[1].visibility).toBe("");
+  });
+
+  it("프로젝트 선택 결과에 연결된 고용 원소 식별자를 보존한다", async () => {
+    const result = await callResumeTool(
+      "read_resume_selection",
+      {
+        source: "embedded",
+        xml: 'schemaVersion="0.2.0"',
+        template: "기본형",
+        elementIds: ["project-selected"],
+        sectionOrder: ["projects"],
+      },
+      {
+        load: async () => ({
+          ...connectedResume(),
+          sections: {
+            projects: [
+              resumeNode("project", {
+                attributes: {
+                  id: "project-selected",
+                  employmentRef: "employment-selected",
+                },
+                references: {
+                  employmentRef: ["employment-selected"],
+                },
+                children: [resumeNode("title", { text: "선택한 프로젝트" })],
+              }),
+            ],
+          },
+        }),
+      },
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(JSON.parse(result.text)).toEqual([
+      expect.objectContaining({
+        id: "project-selected",
+        employmentRef: "employment-selected",
+      }),
+    ]);
+  });
+
+  it("생성 결과에 선택 프로젝트의 업무 항목과 성과 참조를 보존한다", async () => {
+    const result = await callResumeTool(
+      "generate_resume",
+      {
+        source: "embedded",
+        xml: 'schemaVersion="0.2.0"',
+        template: "기본형",
+        elementIds: [
+          "project-selected",
+          "work-item-selected",
+          "outcome-selected",
+        ],
+        sectionOrder: ["projects", "workItems", "outcomes"],
+        claims: [],
+      },
+      {
+        load: async () => ({
+          ...connectedResume(),
+          sections: {
+            projects: [
+              resumeNode("projects", {
+                children: [
+                  resumeNode("project", {
+                    attributes: {
+                      id: "project-selected",
+                      visibility: "public",
+                    },
+                    children: [resumeNode("title", { text: "선택 프로젝트" })],
+                  }),
+                ],
+              }),
+            ],
+            workItems: [
+              resumeNode("workItems", {
+                children: [
+                  resumeNode("workItem", {
+                    attributes: {
+                      id: "work-item-selected",
+                      visibility: "public",
+                    },
+                    references: { projectRef: ["project-selected"] },
+                    children: [resumeNode("title", { text: "목록 개선" })],
+                  }),
+                ],
+              }),
+            ],
+            outcomes: [
+              resumeNode("outcomes", {
+                children: [
+                  resumeNode("outcome", {
+                    attributes: {
+                      id: "outcome-selected",
+                      visibility: "public",
+                    },
+                    references: { workItemRef: ["work-item-selected"] },
+                    children: [
+                      resumeNode("text", { text: "탐색 시간을 줄였습니다" }),
+                    ],
+                  }),
+                ],
+              }),
+            ],
+          },
+        }),
+      },
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const generated = JSON.parse(result.text) as {
+      selection: { id?: string; projectRef?: string; workItemRef?: string }[];
+    };
+    expect(generated.selection).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: "work-item-selected",
+          projectRef: "project-selected",
+        }),
+        expect.objectContaining({
+          id: "outcome-selected",
+          workItemRef: "work-item-selected",
+        }),
+      ]),
+    );
   });
 
   it("선택 조회의 경력 중심형은 선택한 경력과 연결된 프로젝트만 남기고 프로필은 빼 준다", async () => {
