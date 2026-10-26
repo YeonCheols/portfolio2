@@ -69,6 +69,17 @@ export const generatedResumePromptTitle = (
 const sectionOfClaim = (
   claim: CheckedDraft["claims"][number],
 ): string | undefined => {
+  const eligibilitySources = claim.sources.filter(
+    (source) => source.section === "employmentEligibility",
+  );
+  if (eligibilitySources.length > 0) {
+    return eligibilitySources.every(
+      (source) => source.name === "militaryService",
+    )
+      ? "병역사항"
+      : undefined;
+  }
+
   if (
     claim.sources.some(
       (source) =>

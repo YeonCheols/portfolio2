@@ -171,7 +171,7 @@ describe("runResumeHarness", () => {
       source("training", "trainingHistory"),
       source("certificate", "certifications"),
       source("statement", "personalStatements"),
-      source("eligibility", "employmentEligibility"),
+      source("eligibility", "employmentEligibility", "militaryService"),
       source("preferences", "employmentPreferences"),
     ];
     const result = await generateResume(selection, {
@@ -203,7 +203,7 @@ describe("runResumeHarness", () => {
         "포트폴리오",
         "portfolioReferences 문장",
         "병역사항",
-        "employmentEligibility 문장",
+        "militaryService 문장",
         "희망근무조건",
         "employmentPreferences 문장",
         "지원분야",
@@ -211,6 +211,23 @@ describe("runResumeHarness", () => {
       ].join("\n"),
     );
     expect(result.resume).not.toContain("unknownSection");
+  });
+
+  it("병역사항에는 군 복무 claim만 출력한다", async () => {
+    const selection = [
+      source("military", "employmentEligibility", "militaryService"),
+      source("veteran", "employmentEligibility", "veteran"),
+    ];
+    const result = await generateResume(selection, {
+      claims: [
+        { text: "병역은 해당 없음입니다", sourceIds: ["military"] },
+        { text: "보훈 대상입니다", sourceIds: ["veteran"] },
+      ],
+    });
+
+    expect("resume" in result).toBe(true);
+    if (!("resume" in result)) return;
+    expect(result.resume).toBe("병역사항\n병역은 해당 없음입니다");
   });
 
   it("프로젝트 항목과 자기소개서 제목을 확인된 하위 제목으로 배치한다", async () => {
