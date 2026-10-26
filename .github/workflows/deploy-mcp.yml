@@ -54,7 +54,7 @@ jobs:
             --region "${{ vars.GCP_REGION }}" \
             --project "${{ vars.GCP_PROJECT_ID }}" \
             --set-secrets=MCP_AUTH_TOKEN=MCP_AUTH_TOKEN:latest,RESUME_CONNECTION_TOKEN=RESUME_CONNECTION_TOKEN:latest \
-            --set-env-vars=RESUME_CONNECTION_URL="${{ vars.RESUME_CONNECTION_URL }}" \
+            --set-env-vars=RESUME_CONNECTION_URL="${{ vars.RESUME_CONNECTION_URL }}",RESUME_MODEL_URL="${{ vars.RESUME_MODEL_URL }}",RESUME_MODEL_TOKEN="${{ secrets.RESUME_MODEL_TOKEN }}",RESUME_MODEL_PROVIDER="${{ vars.RESUME_MODEL_PROVIDER }}",RESUME_MODEL_NAME="${{ vars.RESUME_MODEL_NAME }}" \
             --service-account=${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }} \
             --no-allow-unauthenticated \
             --quiet

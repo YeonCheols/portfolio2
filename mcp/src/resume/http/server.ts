@@ -1,21 +1,49 @@
+import { fetchOpenRouterModelText } from "@mcp/resume/connection/openRouterModelConnection";
 import {
   fetchResumeModel,
+  ResumeConnectionError,
   type ResumeConnectionFetch,
 } from "@mcp/resume/connection/resumeConnection";
 import { fetchResumeModelText } from "@mcp/resume/connection/resumeModelConnection";
 import { createResumeMcpServer } from "@mcp/resume/http/createResumeMcpServer";
 import type { ResumeModelClient } from "@mcp/resume/output/runResumeHarness";
 
+const resumeModelConnections = {
+  openrouter: fetchOpenRouterModelText,
+} as const;
+
+export type ResumeModelEnv = {
+  RESUME_MODEL_URL?: string;
+  RESUME_MODEL_TOKEN?: string;
+  RESUME_MODEL_PROVIDER?: string;
+  RESUME_MODEL_NAME?: string;
+};
+
 export const resumeModelFromEnv = (
-  env: { RESUME_MODEL_URL?: string; RESUME_MODEL_TOKEN?: string },
+  env: ResumeModelEnv,
   fetchImpl?: ResumeConnectionFetch,
 ): ResumeModelClient => ({
-  generate: (input) =>
-    fetchResumeModelText(input, {
-      url: env.RESUME_MODEL_URL ?? "",
-      token: env.RESUME_MODEL_TOKEN ?? "",
+  generate: (input) => {
+    const url = env.RESUME_MODEL_URL ?? "";
+    const token = env.RESUME_MODEL_TOKEN ?? "";
+    const provider = env.RESUME_MODEL_PROVIDER?.trim() ?? "";
+    if (provider === "") {
+      return fetchResumeModelText(input, { url, token, fetchImpl });
+    }
+    const connect =
+      resumeModelConnections[provider as keyof typeof resumeModelConnections];
+    if (!connect) {
+      return Promise.reject(
+        new ResumeConnectionError("MISSING_MODEL_CONNECTION"),
+      );
+    }
+    return connect(input, {
+      url,
+      token,
       fetchImpl,
-    }),
+      model: env.RESUME_MODEL_NAME?.trim() ?? "",
+    });
+  },
 });
 
 export const startResumeMcpServer = () => {
@@ -40,6 +68,8 @@ export const startResumeMcpServer = () => {
     model: resumeModelFromEnv({
       RESUME_MODEL_URL: process.env.RESUME_MODEL_URL,
       RESUME_MODEL_TOKEN: process.env.RESUME_MODEL_TOKEN,
+      RESUME_MODEL_PROVIDER: process.env.RESUME_MODEL_PROVIDER,
+      RESUME_MODEL_NAME: process.env.RESUME_MODEL_NAME,
     }),
   }).listen(port);
 };
