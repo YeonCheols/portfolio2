@@ -1013,9 +1013,68 @@ describe("callResumeTool", () => {
     expect(requests).toHaveLength(2);
     expect(requests[0]?.persona).toContain("이력서 전문 작성자");
     expect(requests[1]?.prompt).toContain("이름을 소개한다");
-    expect(generated.resume).toBe("테스트 사용자입니다");
+    expect(generated.resume).toBe("프로필\n테스트 사용자입니다");
     expect(generated.resume).not.toContain("없는 성과");
     expect(JSON.stringify(requests)).not.toContain("gemini");
+  });
+
+  it("이력서 생성은 기존 템플릿 양식 밖의 선택된 대외활동도 근거와 함께 생성한다", async () => {
+    const requests: { persona: string; prompt: string }[] = [];
+    const result = await callResumeTool(
+      "generate_resume",
+      {
+        source: "embedded",
+        xml: 'schemaVersion="0.2.0"',
+        template: "기본형",
+        elementIds: ["activity-selected"],
+        sectionOrder: ["activities"],
+      },
+      {
+        load: async () => ({
+          ...connectedResume(),
+          sections: {
+            ...connectedResume().sections,
+            activities: [
+              resumeNode("activities", {
+                children: [
+                  resumeNode("activity", {
+                    attributes: { id: "activity-selected" },
+                    text: "선택한 활동",
+                  }),
+                ],
+              }),
+            ],
+          },
+        }),
+      },
+      {
+        generate: async (input) => {
+          requests.push(input);
+          if (requests.length === 1) {
+            return JSON.stringify({
+              elements: [
+                { id: "activity-selected", interpretation: "외부 활동" },
+              ],
+            });
+          }
+          return JSON.stringify({
+            claims: [
+              {
+                text: "선택한 활동에 참여했습니다",
+                sourceIds: ["activity-selected"],
+              },
+            ],
+          });
+        },
+      },
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const generated = JSON.parse(result.text) as { resume: string };
+    expect(requests).toHaveLength(2);
+    expect(requests[0]?.prompt).toContain("activity-selected");
+    expect(generated.resume).toBe("인턴·대외활동\n선택한 활동에 참여했습니다");
   });
 
   it("이력서 생성은 양식의 각 섹션마다 외부 AI를 호출한다", async () => {
@@ -1070,7 +1129,7 @@ describe("callResumeTool", () => {
     expect(requests[2]?.prompt).toContain("회사 포함되면 안 되는 회사");
     expect(requests[2]?.prompt).not.toContain("이름 테스트 사용자");
     expect(generated.resume).toBe(
-      "테스트 사용자입니다\n포함되면 안 되는 회사에서 일했습니다",
+      "프로필\n테스트 사용자입니다\n경력\n포함되면 안 되는 회사에서 일했습니다",
     );
   });
 
@@ -1167,8 +1226,45 @@ describe("callResumeTool", () => {
       step: string;
     };
     expect(generated.step).toBe("done");
-    expect(generated.resume).toBe("테스트 사용자입니다");
+    expect(generated.resume).toBe("프로필\n테스트 사용자입니다");
     expect(generated.resume).not.toContain("없는 성과");
     expect(result.text).toContain("hidden@example.com");
+  });
+
+  it("직접 전달한 문장도 원문에 있는 양식 항목 제목 아래에 배치한다", async () => {
+    const result = await callResumeTool(
+      "generate_resume",
+      {
+        source: "embedded",
+        xml: 'schemaVersion="0.2.0"',
+        template: "기본형",
+        elementIds: ["profile-test"],
+        sectionOrder: ["profile"],
+        claims: [
+          {
+            text: "테스트 사용자입니다",
+            sourceIds: ["profile-test"],
+            formItem: "name",
+          },
+          {
+            text: "자격증을 보유했습니다",
+            sourceIds: ["profile-test"],
+            formItem: "certification",
+          },
+        ],
+      },
+      connection,
+    );
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const generated = JSON.parse(result.text) as {
+      resume: string;
+      gaps: { formItem?: string }[];
+    };
+    expect(generated.resume).toBe("프로필\n이름\n테스트 사용자입니다");
+    expect(generated.gaps.map(({ formItem }) => formItem)).toEqual([
+      "certification",
+    ]);
   });
 });

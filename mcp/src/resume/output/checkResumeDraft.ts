@@ -11,18 +11,24 @@ export type ResumeSelectionNode = {
 export type DraftClaim = {
   text: string;
   sourceIds: readonly string[];
+  formItem?: string;
 };
 
 export type CheckedDraftClaim = {
   text: string;
   sourceIds: readonly string[];
   sources: readonly ResumeSelectionNode[];
+  formItem?: string;
 };
 
 export type CheckedDraft = {
   claims: readonly CheckedDraftClaim[];
   gaps: readonly DraftClaim[];
-  conflicts: readonly { sourceId: string; texts: readonly string[] }[];
+  conflicts: readonly {
+    sourceId: string;
+    texts: readonly string[];
+    formItem?: string;
+  }[];
   uncertain: readonly { id: string; visibility: string }[];
 };
 
@@ -41,6 +47,55 @@ const findById = (
 const hasText = (node: ResumeSelectionNode): boolean =>
   node.text !== "" || node.children.some(hasText);
 
+const hasFormItem = (
+  nodes: readonly ResumeSelectionNode[],
+  formItem: string,
+): boolean =>
+  nodes.some(
+    (node) =>
+      ((node.name === formItem ||
+        (node.name === "title" && node.text === formItem)) &&
+        hasText(node)) ||
+      hasFormItem(node.children, formItem),
+  );
+
+const projectIdOf = (
+  nodes: readonly ResumeSelectionNode[],
+  id: string,
+  parentProjectId?: string,
+): string | undefined => {
+  for (const node of nodes) {
+    const projectId =
+      node.section === "projects" && node.name === "project"
+        ? node.id
+        : parentProjectId;
+    if (node.id === id) return projectId;
+    const childProjectId = projectIdOf(node.children, id, projectId);
+    if (childProjectId) return childProjectId;
+  }
+
+  return undefined;
+};
+
+const hasSingleProjectScope = (
+  selection: readonly ResumeSelectionNode[],
+  claim: DraftClaim,
+  sources: readonly ResumeSelectionNode[],
+): boolean => {
+  if (!sources.some((source) => source.section === "projects")) return true;
+
+  const projectIds = claim.sourceIds.map((id) => projectIdOf(selection, id));
+  const identifiedProjectIds = projectIds.filter((id): id is string =>
+    Boolean(id),
+  );
+  if (identifiedProjectIds.length === 0) return true;
+
+  return (
+    identifiedProjectIds.length === projectIds.length &&
+    new Set(identifiedProjectIds).size === 1
+  );
+};
+
 const sourcesOf = (
   selection: readonly ResumeSelectionNode[],
   claim: DraftClaim,
@@ -53,13 +108,24 @@ const sourcesOf = (
   );
 };
 
+const claimScopeKey = (sourceId: string, formItem?: string): string =>
+  `${sourceId}\u0000${formItem ?? ""}`;
+
 const textsBySourceId = (claims: readonly DraftClaim[]) => {
-  const texts = new Map<string, string[]>();
+  const texts = new Map<
+    string,
+    { sourceId: string; formItem?: string; texts: string[] }
+  >();
   claims.forEach((claim) => {
     claim.sourceIds.forEach((id) => {
-      const current = texts.get(id) ?? [];
-      if (!current.includes(claim.text)) current.push(claim.text);
-      texts.set(id, current);
+      const key = claimScopeKey(id, claim.formItem);
+      const current = texts.get(key) ?? {
+        sourceId: id,
+        ...(claim.formItem ? { formItem: claim.formItem } : {}),
+        texts: [],
+      };
+      if (!current.texts.includes(claim.text)) current.texts.push(claim.text);
+      texts.set(key, current);
     });
   });
   return texts;
@@ -71,23 +137,46 @@ export const checkResumeDraft = (
 ): CheckedDraft => {
   const texts = textsBySourceId(claims);
   const conflicts = [...texts.entries()]
-    .filter(([, values]) => values.length > 1)
-    .map(([sourceId, values]) => ({ sourceId, texts: values }));
-  const conflictIds = new Set(conflicts.map((conflict) => conflict.sourceId));
+    .filter(([, { texts: values }]) => values.length > 1)
+    .map(([, { sourceId, formItem, texts: values }]) => ({
+      sourceId,
+      texts: values,
+      ...(formItem ? { formItem } : {}),
+    }));
+  const conflictIds = new Set(
+    [...texts.entries()]
+      .filter(([, { texts: values }]) => values.length > 1)
+      .map(([key]) => key),
+  );
   const accepted: CheckedDraftClaim[] = [];
   const gaps: DraftClaim[] = [];
 
   claims.forEach((claim) => {
-    if (claim.sourceIds.some((id) => conflictIds.has(id))) return;
+    if (
+      claim.sourceIds.some((id) =>
+        conflictIds.has(claimScopeKey(id, claim.formItem)),
+      )
+    ) {
+      return;
+    }
     const sources = sourcesOf(selection, claim);
-    if (!sources) {
-      gaps.push({ text: claim.text, sourceIds: [...claim.sourceIds] });
+    if (
+      !sources ||
+      !hasSingleProjectScope(selection, claim, sources) ||
+      (claim.formItem && !hasFormItem(sources, claim.formItem))
+    ) {
+      gaps.push({
+        text: claim.text,
+        sourceIds: [...claim.sourceIds],
+        ...(claim.formItem ? { formItem: claim.formItem } : {}),
+      });
       return;
     }
     accepted.push({
       text: claim.text,
       sourceIds: [...claim.sourceIds],
       sources,
+      ...(claim.formItem ? { formItem: claim.formItem } : {}),
     });
   });
 

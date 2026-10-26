@@ -118,6 +118,93 @@ describe("checkResumeDraft", () => {
     ]);
   });
 
+  it("서로 다른 실제 항목은 각각 검증하고 원문에 없는 항목은 누락으로 둔다", () => {
+    const result = checkResumeDraft(
+      [profile],
+      [
+        {
+          text: "기술을 재사용했습니다",
+          sourceIds: ["profile-test"],
+          formItem: "headline",
+        },
+        {
+          text: "이메일을 사용했습니다",
+          sourceIds: ["profile-test"],
+          formItem: "email",
+        },
+        {
+          text: "자격증을 보유했습니다",
+          sourceIds: ["profile-test"],
+          formItem: "certification",
+        },
+      ],
+    );
+
+    expect(result.claims.map(({ formItem }) => formItem)).toEqual([
+      "headline",
+      "email",
+    ]);
+    expect(result.gaps).toEqual([
+      {
+        text: "자격증을 보유했습니다",
+        sourceIds: ["profile-test"],
+        formItem: "certification",
+      },
+    ]);
+    expect(result.conflicts).toEqual([]);
+  });
+
+  it("서로 다른 프로젝트를 묶은 문장은 누락으로 둔다", () => {
+    const project = (id: string, title: string): ResumeSelectionNode => ({
+      id,
+      section: "projects",
+      name: "project",
+      text: "",
+      sourceRefs: [],
+      visibility: "public",
+      children: [
+        {
+          section: "projects",
+          name: "title",
+          text: title,
+          sourceRefs: [],
+          visibility: "public",
+          children: [],
+        },
+        {
+          section: "projects",
+          name: "technicalStructure",
+          text: `${title} 구조`,
+          sourceRefs: [],
+          visibility: "public",
+          children: [],
+        },
+      ],
+    });
+    const firstProject = project("project-first", "첫 프로젝트");
+    const secondProject = project("project-second", "둘째 프로젝트");
+
+    const result = checkResumeDraft(
+      [firstProject, secondProject],
+      [
+        {
+          text: "두 프로젝트의 구조를 통합했습니다",
+          sourceIds: ["project-first", "project-second"],
+          formItem: "technicalStructure",
+        },
+      ],
+    );
+
+    expect(result.claims).toEqual([]);
+    expect(result.gaps).toEqual([
+      {
+        text: "두 프로젝트의 구조를 통합했습니다",
+        sourceIds: ["project-first", "project-second"],
+        formItem: "technicalStructure",
+      },
+    ]);
+  });
+
   it("공개 여부가 빈 문자열인 근거는 공개로 바꾸지 않고 확인 대상으로 둔다", () => {
     const employment: ResumeSelectionNode = {
       id: "employment-open",

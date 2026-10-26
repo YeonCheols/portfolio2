@@ -21,6 +21,8 @@ import {
 import { renderResumeTemplate } from "@mcp/resume/output/renderResumeTemplate";
 import {
   generateResume,
+  generatedResumePromptTitle,
+  generatedResumeSectionNames,
   type ResumeModelClient,
 } from "@mcp/resume/output/runResumeHarness";
 import { selectTemplateSections } from "@mcp/resume/output/selectTemplateSections";
@@ -66,9 +68,15 @@ const readClaims = (value: unknown): DraftClaim[] => {
     if (typeof item !== "object" || item === null) return fail("INVALID_INPUT");
     const record = item as Record<string, unknown>;
     if (typeof record.text !== "string") return fail("INVALID_INPUT");
+    if (record.formItem !== undefined && typeof record.formItem !== "string") {
+      return fail("INVALID_INPUT");
+    }
     return {
       text: record.text,
       sourceIds: readStringList(record.sourceIds),
+      ...(typeof record.formItem === "string"
+        ? { formItem: record.formItem }
+        : {}),
     };
   });
 };
@@ -181,6 +189,54 @@ const readSelection = (
   return found;
 };
 
+const generatedTemplateSections = new Set([
+  "profile",
+  "educationHistory",
+  "employmentHistory",
+  "projects",
+]);
+
+const readGeneratedSelection = (
+  resume: ResumeModel,
+  template: ResumeTemplate,
+): ResumeSelectionNode[] => {
+  const selectedSections = selectTemplateSections(resume, template);
+  const generatedSections = generatedResumeSectionNames
+    .filter((section) => !generatedTemplateSections.has(section))
+    .flatMap((name) => {
+      const nodes = resume.sections[name] ?? [];
+      return nodes.length > 0 ? [{ name, nodes }] : [];
+    });
+  const found: ResumeSelectionNode[] = [];
+
+  [...selectedSections, ...generatedSections].forEach(({ name, nodes }) => {
+    collectSelection(name, nodes, found);
+  });
+
+  return found;
+};
+
+const generatedResumeForms = (
+  resume: ResumeModel,
+  template: ResumeTemplate,
+) => {
+  const forms = renderResumeFormSections(resume, template);
+  const existingSections = new Set(forms.map(({ section }) => section));
+  const supplementalForms = generatedResumeSectionNames
+    .filter(
+      (section) =>
+        !generatedTemplateSections.has(section) &&
+        !existingSections.has(section) &&
+        (resume.sections[section]?.length ?? 0) > 0,
+    )
+    .flatMap((section) => {
+      const text = generatedResumePromptTitle(section);
+      return text ? [{ section, text }] : [];
+    });
+
+  return [...forms, ...supplementalForms];
+};
+
 export const callResumeTool = async (
   name: string,
   args: Record<string, unknown>,
@@ -213,7 +269,7 @@ export const callResumeTool = async (
       return {
         ok: true,
         text: JSON.stringify(
-          await generateResume(readSelection(composed, template), {
+          await generateResume(readGeneratedSelection(composed, template), {
             claims:
               args.claims === undefined ? undefined : readClaims(args.claims),
             interpretation:
@@ -221,7 +277,7 @@ export const callResumeTool = async (
                 ? args.interpretation
                 : undefined,
             model,
-            forms: renderResumeFormSections(composed, template),
+            forms: generatedResumeForms(composed, template),
           }),
         ),
       };
