@@ -46,7 +46,7 @@ const resumeSectionOrder: {
   { title: "자격증", sources: ["certifications"] },
   { title: "자기소개서", sources: ["personalStatements"] },
   { title: "포트폴리오", sources: ["portfolioReferences"] },
-  { title: "취업우대사항", sources: ["employmentEligibility"] },
+  { title: "병역사항", sources: ["employmentEligibility"] },
   { title: "희망근무조건", sources: ["employmentPreferences"] },
 ];
 

@@ -202,7 +202,7 @@ describe("runResumeHarness", () => {
         "personalStatements 문장",
         "포트폴리오",
         "portfolioReferences 문장",
-        "취업우대사항",
+        "병역사항",
         "employmentEligibility 문장",
         "희망근무조건",
         "employmentPreferences 문장",
