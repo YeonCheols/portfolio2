@@ -1,4 +1,8 @@
 import {
+  fetchOpenRouterModelText,
+  isOpenRouterChatCompletionUrl,
+} from "@mcp/resume/connection/openRouterModelConnection";
+import {
   fetchResumeModel,
   type ResumeConnectionFetch,
 } from "@mcp/resume/connection/resumeConnection";
@@ -10,12 +14,15 @@ export const resumeModelFromEnv = (
   env: { RESUME_MODEL_URL?: string; RESUME_MODEL_TOKEN?: string },
   fetchImpl?: ResumeConnectionFetch,
 ): ResumeModelClient => ({
-  generate: (input) =>
-    fetchResumeModelText(input, {
-      url: env.RESUME_MODEL_URL ?? "",
-      token: env.RESUME_MODEL_TOKEN ?? "",
-      fetchImpl,
-    }),
+  generate: (input) => {
+    const url = env.RESUME_MODEL_URL ?? "";
+    const token = env.RESUME_MODEL_TOKEN ?? "";
+    const options = { url, token, fetchImpl };
+    if (isOpenRouterChatCompletionUrl(url)) {
+      return fetchOpenRouterModelText(input, options);
+    }
+    return fetchResumeModelText(input, options);
+  },
 });
 
 export const startResumeMcpServer = () => {
