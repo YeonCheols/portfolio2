@@ -100,6 +100,23 @@ describe("checkResumeDraft", () => {
     ]);
   });
 
+  it("빈 문장이나 공백만 있는 문장은 근거가 있어도 누락으로 둔다", () => {
+    const result = checkResumeDraft(
+      [profile],
+      [
+        { text: "", sourceIds: ["profile-test"] },
+        { text: "   ", sourceIds: ["profile-test"] },
+      ],
+    );
+
+    expect(result.claims).toEqual([]);
+    expect(result.gaps).toEqual([
+      { text: "", sourceIds: ["profile-test"] },
+      { text: "   ", sourceIds: ["profile-test"] },
+    ]);
+    expect(result.conflicts).toEqual([]);
+  });
+
   it("같은 원소 id의 서로 다른 문장은 하나로 고르지 않고 충돌로 둔다", () => {
     const result = checkResumeDraft(
       [profile],
@@ -114,6 +131,93 @@ describe("checkResumeDraft", () => {
       {
         sourceId: "profile-test",
         texts: ["컴포넌트를 만들었습니다", "화면을 설계했습니다"],
+      },
+    ]);
+  });
+
+  it("서로 다른 실제 항목은 각각 검증하고 원문에 없는 항목은 누락으로 둔다", () => {
+    const result = checkResumeDraft(
+      [profile],
+      [
+        {
+          text: "기술을 재사용했습니다",
+          sourceIds: ["profile-test"],
+          formItem: "headline",
+        },
+        {
+          text: "이메일을 사용했습니다",
+          sourceIds: ["profile-test"],
+          formItem: "email",
+        },
+        {
+          text: "자격증을 보유했습니다",
+          sourceIds: ["profile-test"],
+          formItem: "certification",
+        },
+      ],
+    );
+
+    expect(result.claims.map(({ formItem }) => formItem)).toEqual([
+      "headline",
+      "email",
+    ]);
+    expect(result.gaps).toEqual([
+      {
+        text: "자격증을 보유했습니다",
+        sourceIds: ["profile-test"],
+        formItem: "certification",
+      },
+    ]);
+    expect(result.conflicts).toEqual([]);
+  });
+
+  it("서로 다른 프로젝트를 묶은 문장은 누락으로 둔다", () => {
+    const project = (id: string, title: string): ResumeSelectionNode => ({
+      id,
+      section: "projects",
+      name: "project",
+      text: "",
+      sourceRefs: [],
+      visibility: "public",
+      children: [
+        {
+          section: "projects",
+          name: "title",
+          text: title,
+          sourceRefs: [],
+          visibility: "public",
+          children: [],
+        },
+        {
+          section: "projects",
+          name: "technicalStructure",
+          text: `${title} 구조`,
+          sourceRefs: [],
+          visibility: "public",
+          children: [],
+        },
+      ],
+    });
+    const firstProject = project("project-first", "첫 프로젝트");
+    const secondProject = project("project-second", "둘째 프로젝트");
+
+    const result = checkResumeDraft(
+      [firstProject, secondProject],
+      [
+        {
+          text: "두 프로젝트의 구조를 통합했습니다",
+          sourceIds: ["project-first", "project-second"],
+          formItem: "technicalStructure",
+        },
+      ],
+    );
+
+    expect(result.claims).toEqual([]);
+    expect(result.gaps).toEqual([
+      {
+        text: "두 프로젝트의 구조를 통합했습니다",
+        sourceIds: ["project-first", "project-second"],
+        formItem: "technicalStructure",
       },
     ]);
   });

@@ -477,6 +477,8 @@
         <use ref="tech-jira" visibility="public"/>
       </technologyRefs>
       <responsibilityVariant id="bizcenter-resume-responsibility" sourceRefs="source-resume-page-1" status="needs-review" visibility="public">지원자 관련 페이지 전반을 구축하고, 디자이너/기획자와 협업하여 요구사항을 구체화 및 구현</responsibilityVariant>
+      <technicalStructure id="project-jobkorea-bizcenter-technical-structure" sourceRefs="source-page-4 source-page-5" status="source-reported" visibility="public">FSD와 DDP를 혼합해 views/features/entities/core-data 계층으로 UI·도메인·데이터 책임을 분리했습니다. 데이터는 Repository → Mapper → Domain Service → Hook/UI 흐름으로 단일화하고, Domain Service에서 API 응답을 UI 모델로 변환했습니다. Selection/Kanban/Table/Actions Context와 TanStack Query 캐시 동기화 전략으로 목록·상세 상태를 관리했습니다.</technicalStructure>
+      <projectApproach id="project-jobkorea-bizcenter-project-approach" sourceRefs="source-page-3 source-page-4" status="source-reported" visibility="public">FE 6명 팀에서 지원자 관리(ATS) 및 지원자 관련 전반 프로세스를 개발하고 지원자 화면을 리딩했습니다. 기획자·디자이너와 요구사항을 구체화해 구현했으며, Jira 기반 우선순위·범위 관리와 스프린트 단위 점검으로 진행했습니다.</projectApproach>
     </project>
     <project id="project-albamon-operations" sourceRefs="source-page-5 source-page-6 source-page-7 source-resume-page-2" status="source-reported" employmentRef="employment-worksphere" visibility="public">
       <title visibility="public">알바몬 서비스 (PC/M) 운영</title>
@@ -499,6 +501,8 @@
         <end visibility="public">2026-02</end>
       </periodVariant>
       <alias sourceRefs="source-resume-page-2" visibility="public">알바몬 MSA 운영</alias>
+      <technicalStructure id="project-albamon-operations-technical-structure" sourceRefs="source-page-6" status="source-reported" visibility="public">신규 BE API를 위한 개발·운영 환경과 도메인 인증을 구성하고, Swagger 스키마 타입 자동 생성과 Figma 디자인 토큰 기반 공통 컴포넌트를 적용했습니다.</technicalStructure>
+      <projectApproach id="project-albamon-operations-project-approach" sourceRefs="source-page-6 source-page-7" status="source-reported" visibility="public">이력서 없이 탐색·지원할 수 있는 최소 입력 흐름을 설계·구현하고, 간편·기본 이력서의 작성·저장·지원 진입 정책을 분리했습니다. 기능·노출 단위에 맞춰 이슈 기반 개발·검증·배포를 수행하고, 이벤트 상태 분기·중복 방지·서버 시간 동기화와 입력 예외 검증을 반영했습니다.</projectApproach>
     </project>
     <project id="project-albamon-msa" sourceRefs="source-page-8 source-page-9 source-page-10 source-page-11 source-resume-page-3 source-resume-page-4" status="source-reported" employmentRef="employment-worksphere" visibility="public">
       <title visibility="public">알바몬 MSA(PC/M) 구축</title>
@@ -537,15 +541,19 @@
       <responsibility sourceRefs="source-resume-page-4" visibility="public">개인 서비스에 이력서, 지원, 인재, 도메인 담당, 외주 코드 품질관리, 알바몬 이벤트 페이지 제작</responsibility>
       <link kind="service-desktop" sourceRefs="source-resume-page-3" visibility="public">https://www.albamon.com/</link>
       <link kind="service-mobile" sourceRefs="source-resume-page-3" visibility="public">https://m.albamon.com/</link>
+      <technicalStructure id="project-albamon-msa-technical-structure" sourceRefs="source-page-8 source-page-10 source-page-11" status="source-reported" visibility="public">PC/M 저장소에서 모바일 웹과 앱 웹뷰를 함께 지원하고, Nx 모노레포의 4개 서비스 도메인과 libs/shared 공통 컴포넌트·훅·유틸로 구성했습니다. Swagger 문서 기반 API 타입을 자동 생성해 도메인별 요청에 사용하고, 앱 브릿지와 커스텀 라우터 훅으로 앱 통신과 화면 이동을 관리했습니다.</technicalStructure>
+      <projectApproach id="project-albamon-msa-project-approach" sourceRefs="source-page-8 source-page-9" status="source-reported" visibility="public">ASP.NET 기반 레거시를 React/Next.js 기반 프론트엔드로 전환·고도화하고, 개인 서비스의 마이페이지·이력서·포트폴리오·지원 도메인을 담당해 설계·개발했습니다. PC/M 공통 저장소에서 모바일 웹과 앱 웹뷰를 함께 지원했습니다.</projectApproach>
     </project>
     <project id="project-fujifilm-commerce" sourceRefs="source-page-11 source-page-12 source-resume-page-4" status="source-reported" employmentRef="employment-fujifilm" visibility="public">
-      <title visibility="public">한국후지필름 쇼핑물 운영</title>
+      <title sourceRefs="source-page-11" visibility="public">한국후지필름 쇼핑몰 운영</title>
       <period precision="month" status="source-reported" visibility="public">
         <start visibility="public">2019-03</start>
         <end visibility="public">2021-04</end>
       </period>
       <team status="missing" visibility="public"/>
       <role visibility="public">IT지원담당 부서에서 웹 개발자로 전반적인 커머스 쇼핑몰 운영 및 서버운영, 웹 개발 업무를 전반적으로 담당하였습니다.</role>
+      <technicalStructure id="project-fujifilm-commerce-technical-structure" sourceRefs="source-page-11 source-page-12" status="source-reported" visibility="public">쇼핑몰 기능을 적립금 일괄 지급, 임직원 상품 판매, 회원 가입, 결제, 게시물 조회와 이벤트 영역으로 구성했습니다. 엑셀 업로드 적립금 지급, 임직원 이름 확인 후 상품 주문, 카카오 SNS 가입, KCP 결제 모듈 변경·개편을 수행했습니다.</technicalStructure>
+      <projectApproach id="project-fujifilm-commerce-project-approach" sourceRefs="source-page-11 source-page-12" status="source-reported" visibility="public">IT지원담당 웹 개발자로 쇼핑몰 운영과 서버 운영, 웹 개발을 전반적으로 담당했으며, 적립금 지급·상품 판매·회원 가입·결제·이벤트 기능을 개발하고 운영했습니다.</projectApproach>
     </project>
     <project id="project-happyshopping-platform" employmentRef="employment-happyshopping" sourceRefs="source-resume-page-4" status="source-reported" visibility="public">
       <title visibility="public">가격비교 플랫폼 유지보수 및 프로젝트 개발</title>
@@ -555,6 +563,8 @@
       </period>
       <summary visibility="public">가격비교 플랫폼 사이트 신규 프로젝트 개발, 백오피스 관리자 회원관리, 결제내역, 데이터 시각화(차트) 등 개발</summary>
       <periodNote visibility="public">별도 프로젝트 수행기간은 기재되지 않았으며 회사 재직기간을 대신 사용하지 않습니다.</periodNote>
+      <technicalStructure id="project-happyshopping-platform-technical-structure" status="missing" visibility="public"/>
+      <projectApproach id="project-happyshopping-platform-project-approach" status="missing" visibility="public"/>
     </project>
   </projects>
   <contributions visibility="public">

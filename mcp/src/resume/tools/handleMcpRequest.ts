@@ -34,6 +34,7 @@ const draftInputSchema = {
         properties: {
           text: { type: "string" },
           sourceIds: { type: "array", items: { type: "string" } },
+          formItem: { type: "string" },
         },
         required: ["text", "sourceIds"],
       },

@@ -50,6 +50,45 @@ describe("readResumeModel", () => {
     expect(fs.readFileSync(canonicalResumePath, "utf8")).toBe(before);
   });
 
+  it("저장소 원본의 프로젝트 설명은 근거가 있는 경우에만 채운다", () => {
+    const result = readResumeModel({ source: "repository" });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const projects = (result.model.sections.projects ?? [])
+      .flatMap((section) => section.children)
+      .filter((node) => node.name === "project");
+
+    expect(projects.length).toBeGreaterThan(0);
+    projects.forEach((project) => {
+      const technicalStructure = project.children.find(
+        (child) => child.name === "technicalStructure",
+      );
+      const projectApproach = project.children.find(
+        (child) => child.name === "projectApproach",
+      );
+
+      expect(technicalStructure?.attributes.visibility).toBe("public");
+      expect(projectApproach?.attributes.visibility).toBe("public");
+      if (project.attributes.id === "project-happyshopping-platform") {
+        expect(technicalStructure).toMatchObject({
+          text: "",
+          attributes: { status: "missing" },
+        });
+        expect(projectApproach).toMatchObject({
+          text: "",
+          attributes: { status: "missing" },
+        });
+        return;
+      }
+
+      expect(technicalStructure?.text).not.toBe("");
+      expect(technicalStructure?.attributes.status).toBe("source-reported");
+      expect(projectApproach?.text).not.toBe("");
+      expect(projectApproach?.attributes.status).toBe("source-reported");
+    });
+  });
+
   it("저장소 이력서의 공개 여부는 모두 public이다", () => {
     const result = readResumeModel({ source: "repository" });
 
