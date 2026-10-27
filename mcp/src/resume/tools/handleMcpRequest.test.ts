@@ -236,12 +236,27 @@ describe("handleMcpRequest", () => {
             sectionOrder: ["profile"],
             template: "기본형",
             claims: [
-              { text: "Frontend engineer", sourceIds: ["profile-test"] },
+              { text: "테스트 사용자입니다", sourceIds: ["profile-test"] },
             ],
           },
         },
       },
       connection,
+      {
+        generate: async () =>
+          JSON.stringify({
+            reviews: [
+              {
+                claimIndex: 0,
+                status: "supported",
+                evidence: [
+                  { sourceId: "profile-test", quote: "테스트 사용자" },
+                ],
+                reason: "이름이 원문에 있습니다",
+              },
+            ],
+          }),
+      },
     );
     const generatedText =
       generated && "result" in generated
@@ -273,6 +288,21 @@ describe("handleMcpRequest", () => {
         },
       },
       connection,
+      {
+        generate: async () =>
+          JSON.stringify({
+            reviews: [
+              {
+                claimIndex: 0,
+                status: "supported",
+                evidence: [
+                  { sourceId: "profile-test", quote: "테스트 사용자" },
+                ],
+                reason: "이름이 원문에 있습니다",
+              },
+            ],
+          }),
+      },
     );
     const content =
       converted && "result" in converted

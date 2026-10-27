@@ -25,7 +25,9 @@ import {
   generateResume,
   generatedResumePromptTitle,
   generatedResumeSectionNames,
+  verifyResumeClaims,
   type ResumeModelClient,
+  type ResumeSemanticReview,
 } from "@mcp/resume/output/runResumeHarness";
 import { selectTemplateSections } from "@mcp/resume/output/selectTemplateSections";
 
@@ -355,13 +357,17 @@ export const callResumeTool = async (
     }
 
     if (name === "generate_resume") {
+      const claims =
+        args.claims === undefined ? undefined : readClaims(args.claims);
+      if (claims && claims.length > 0 && !model) {
+        return { ok: false, code: "MISSING_MODEL_CONNECTION" };
+      }
       const { template, composed } = await loadTemplateResume(args, connection);
       return {
         ok: true,
         text: JSON.stringify(
           await generateResume(readGeneratedSelection(composed, template), {
-            claims:
-              args.claims === undefined ? undefined : readClaims(args.claims),
+            claims,
             interpretation:
               typeof args.interpretation === "string"
                 ? args.interpretation
@@ -377,7 +383,23 @@ export const callResumeTool = async (
       const generated = readGeneratedResume(args.generatedResume);
       const { template, composed } = await loadTemplateResume(args, connection);
       const selection = readGeneratedSelection(composed, template);
-      const checked = checkResumeDraft(selection, generated.claims);
+      const checked =
+        generated.claims.length === 0
+          ? checkResumeDraft(selection, generated.claims)
+          : model
+            ? await verifyResumeClaims(selection, generated.claims, model)
+            : fail("MISSING_MODEL_CONNECTION");
+      if (
+        checked.gaps.length > 0 ||
+        checked.conflicts.length > 0 ||
+        ("semanticReviews" in checked &&
+          Array.isArray(checked.semanticReviews) &&
+          checked.semanticReviews.some(
+            (review: ResumeSemanticReview) => review.status !== "supported",
+          ))
+      ) {
+        return { ok: false, code: "UNVERIFIED_CLAIMS" };
+      }
       const pdf = await createResumePdf({
         resume: generated.resume,
         claims: checked.claims,

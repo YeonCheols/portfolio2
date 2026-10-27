@@ -1,8 +1,10 @@
 import type { ResumeSelectionNode } from "@mcp/resume/output/checkResumeDraft";
 import {
   generateResume,
+  resumeClaimVerifierPersona,
   resumeWriterPersona,
   runResumeHarness,
+  verifyResumeClaims,
   type ResumeModelRequest,
 } from "@mcp/resume/output/runResumeHarness";
 
@@ -79,6 +81,46 @@ describe("runResumeHarness", () => {
     expect(result.resume).toBe("프로필\n테스트 사용자입니다");
   });
 
+  it("작성자와 검증자는 같은 원문 사용 원칙을 공유한다", () => {
+    const sharedRule = "연결된 원문에 없는 사실을 만들거나 추론하지 않는다.";
+
+    expect(resumeWriterPersona).toContain(sharedRule);
+    expect(resumeClaimVerifierPersona).toContain(sharedRule);
+  });
+
+  it("여러 원문을 근거로 한 claim은 연결된 모든 원문이 인용되어야 통과한다", async () => {
+    const selection = [
+      source("source-a", "profile", "이름"),
+      source("source-b", "profile", "경력"),
+    ];
+    const result = await verifyResumeClaims(
+      selection,
+      [
+        {
+          text: "테스트 사용자이며 개발 경험이 있습니다",
+          sourceIds: ["source-a", "source-b"],
+        },
+      ],
+      {
+        generate: async () =>
+          JSON.stringify({
+            reviews: [
+              {
+                claimIndex: 0,
+                status: "supported",
+                evidence: [{ sourceId: "source-a", quote: "이름 원문" }],
+                reason: "일부 근거만 인용했습니다",
+              },
+            ],
+          }),
+      },
+    );
+
+    expect(result.claims).toEqual([]);
+    expect(result.gaps).toHaveLength(1);
+    expect(result.semanticReviews[0]?.status).toBe("uncertain");
+  });
+
   it("공백뿐인 claim은 근거가 있어도 최종 절 제목을 만들지 않는다", async () => {
     const result = await generateResume(
       [source("profile-empty-claim", "profile")],
@@ -144,6 +186,24 @@ describe("runResumeHarness", () => {
             text: "존재하지 않는 필드입니다",
             sourceIds: ["profile-items"],
             formItem: "awards",
+          },
+        ],
+      }),
+      JSON.stringify({
+        reviews: [
+          {
+            claimIndex: 0,
+            status: "supported",
+            evidence: [{ sourceId: "profile-items", quote: "테스트 사용자" }],
+            reason: "이름이 원문에 있습니다",
+          },
+          {
+            claimIndex: 1,
+            status: "supported",
+            evidence: [
+              { sourceId: "profile-items", quote: "test@example.com" },
+            ],
+            reason: "이메일이 원문에 있습니다",
           },
         ],
       }),
@@ -709,7 +769,7 @@ describe("runResumeHarness", () => {
 
     expect(client.requests[0]?.persona).toBe(resumeWriterPersona);
     expect(resumeWriterPersona).toContain("이력서 전문 작성자");
-    expect(resumeWriterPersona).toContain("XML에 없는");
+    expect(resumeWriterPersona).toContain("연결된 원문에 없는 사실");
     expect(client.requests[0]?.prompt).toContain("해석");
     expect(client.requests[0]?.prompt).toContain("employment-selected");
     expect(client.requests[0]?.prompt).toContain("선택한 회사");
@@ -734,11 +794,23 @@ describe("runResumeHarness", () => {
           { text: "없는 성과를 냈습니다", sourceIds: ["missing-id"] },
         ],
       }),
+      JSON.stringify({
+        reviews: [
+          {
+            claimIndex: 0,
+            status: "supported",
+            evidence: [
+              { sourceId: "employment-selected", quote: "선택한 회사" },
+            ],
+            reason: "회사명이 원문에 있습니다",
+          },
+        ],
+      }),
     ]);
 
     const result = await runResumeHarness([employment], client);
 
-    expect(client.requests).toHaveLength(2);
+    expect(client.requests).toHaveLength(3);
     expect(client.requests[1]?.persona).toBe(resumeWriterPersona);
     expect(client.requests[1]?.prompt).toContain("재작성");
     expect(client.requests[1]?.prompt).toContain("선택한 회사에서 일했다");
@@ -748,6 +820,38 @@ describe("runResumeHarness", () => {
     expect(result.claims[0]?.sources[0]?.sourceRefs).toEqual(["source-page-1"]);
     expect(result.claims[0]?.sources[0]?.visibility).toBe("private");
     expect(JSON.stringify(result.claims)).toContain("선택한 회사");
+  });
+
+  it("원문 의미가 뒷받침하지 않는 claim은 최종 이력서에서 제외한다", async () => {
+    const claim = {
+      text: "AWS를 10년간 운영했습니다",
+      sourceIds: ["technology-source"],
+    };
+    const client = recordingClient([
+      JSON.stringify({
+        elements: [{ id: "technology-source", interpretation: "React 기술" }],
+      }),
+      JSON.stringify({ claims: [claim] }),
+      JSON.stringify({
+        reviews: [
+          {
+            claimIndex: 0,
+            status: "unsupported",
+            evidence: [],
+            reason: "원문에서 AWS와 10년 운영을 확인할 수 없습니다",
+          },
+        ],
+      }),
+    ]);
+
+    const result = await runResumeHarness(
+      [source("technology-source", "technologies", "React")],
+      client,
+    );
+
+    expect(result.resume).toBe("");
+    expect(result.claims).toEqual([]);
+    expect(result.gaps).toEqual([claim]);
   });
 
   it("양식의 각 섹션을 따로 해석하고 다시 쓴 문장을 양식 절에 배치한다", async () => {
@@ -792,6 +896,24 @@ describe("runResumeHarness", () => {
           },
         ],
       }),
+      JSON.stringify({
+        reviews: [
+          {
+            claimIndex: 0,
+            status: "supported",
+            evidence: [{ sourceId: "profile-test", quote: "테스트 사용자" }],
+            reason: "이름이 원문에 있습니다",
+          },
+          {
+            claimIndex: 1,
+            status: "supported",
+            evidence: [
+              { sourceId: "employment-selected", quote: "선택한 회사" },
+            ],
+            reason: "회사명이 원문에 있습니다",
+          },
+        ],
+      }),
     ]);
 
     const result = await runResumeHarness([profile, employment], client, [
@@ -799,7 +921,7 @@ describe("runResumeHarness", () => {
       { section: "employmentHistory", text: "경력\n회사 선택한 회사" },
     ]);
 
-    expect(client.requests).toHaveLength(4);
+    expect(client.requests).toHaveLength(5);
     expect(client.requests[0]?.prompt).toContain("이름 테스트 사용자");
     expect(client.requests[0]?.prompt).not.toContain("회사 선택한 회사");
     expect(client.requests[2]?.prompt).toContain("회사 선택한 회사");
