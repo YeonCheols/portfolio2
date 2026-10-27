@@ -2,6 +2,7 @@
 
 import { ResumeConnectionError } from "@mcp/resume/connection/resumeConnection";
 import { connectedResume, resumeNode } from "@mcp/resume/testing/resumeFixture";
+import { resumeClaimVerifierPersona } from "@mcp/resume/output/runResumeHarness";
 import {
   callResumeTool,
   type ResumeConnection,
@@ -15,6 +16,52 @@ const connection: ResumeConnection = {
 
     return connectedResume();
   },
+};
+
+type ReviewSource = {
+  id?: string;
+  text: string;
+  children: ReviewSource[];
+};
+
+type ReviewPromptEntry = {
+  claimIndex: number;
+  claim: { sourceIds: string[] };
+  sources: ReviewSource[];
+};
+
+const firstSourceText = (source: ReviewSource): string =>
+  source.text.trim() ||
+  source.children.map(firstSourceText).find(Boolean) ||
+  "";
+
+const supportedReviewResponse = (prompt: string): string => {
+  const input = JSON.parse(
+    prompt.slice(prompt.indexOf("\n") + 1),
+  ) as ReviewPromptEntry[];
+  return JSON.stringify({
+    reviews: input.map(({ claimIndex, claim, sources }) => {
+      const source = sources.find((item) => item.id);
+      return {
+        claimIndex,
+        status: "supported",
+        evidence: source
+          ? [
+              {
+                sourceId: source.id ?? claim.sourceIds[0] ?? "",
+                quote: firstSourceText(source),
+              },
+            ]
+          : [],
+        reason: "테스트용 원문 근거를 확인했습니다",
+      };
+    }),
+  });
+};
+
+const supportingVerifier = {
+  generate: async ({ prompt }: { persona: string; prompt: string }) =>
+    supportedReviewResponse(prompt),
 };
 
 describe("callResumeTool", () => {
@@ -49,6 +96,46 @@ describe("callResumeTool", () => {
     expect(result).toEqual({ ok: false, code: "INCOMPLETE_RESUME" });
   });
 
+  it("의미 검증기 없이 직접 제출한 claim으로 이력서를 완성하지 않는다", async () => {
+    const result = await callResumeTool(
+      "generate_resume",
+      {
+        source: "embedded",
+        xml: 'schemaVersion="0.2.0"',
+        template: "기본형",
+        elementIds: ["profile-test"],
+        sectionOrder: ["profile"],
+        claims: [
+          {
+            text: "AWS를 10년간 운영했습니다",
+            sourceIds: ["profile-test"],
+          },
+        ],
+      },
+      connection,
+    );
+
+    expect(result).toEqual({ ok: false, code: "MISSING_MODEL_CONNECTION" });
+  });
+
+  it("의미 검증기가 잘못된 응답을 주면 이력서 생성을 실패 처리한다", async () => {
+    const result = await callResumeTool(
+      "generate_resume",
+      {
+        source: "embedded",
+        xml: 'schemaVersion="0.2.0"',
+        template: "기본형",
+        elementIds: ["profile-test"],
+        sectionOrder: ["profile"],
+        claims: [{ text: "테스트 사용자입니다", sourceIds: ["profile-test"] }],
+      },
+      connection,
+      { generate: async () => "invalid verifier response" },
+    );
+
+    expect(result).toEqual({ ok: false, code: "MODEL_REJECTED" });
+  });
+
   it("PDF 변환은 구조가 잘못된 생성 결과 selection을 렌더링하지 않는다", async () => {
     const result = await callResumeTool(
       "convert_resume_to_pdf",
@@ -68,7 +155,53 @@ describe("callResumeTool", () => {
     expect(result).toEqual({ ok: false, code: "INCOMPLETE_RESUME" });
   });
 
-  it("PDF 변환은 결과에 동봉된 선택 원문 대신 연결된 XML에서 원문을 다시 읽는다", async () => {
+  it("PDF 변환은 원문이 뒷받침하지 않는 claim을 포함하지 않는다", async () => {
+    const model = {
+      generate: jest.fn(async () =>
+        JSON.stringify({
+          reviews: [
+            {
+              claimIndex: 0,
+              status: "unsupported",
+              evidence: [],
+              reason: "원문에서 AWS와 10년 운영을 확인할 수 없습니다",
+            },
+          ],
+        }),
+      ),
+    };
+    const result = await callResumeTool(
+      "convert_resume_to_pdf",
+      {
+        source: "embedded",
+        xml: 'schemaVersion="0.2.0"',
+        template: "기본형",
+        elementIds: ["profile-test"],
+        sectionOrder: ["profile"],
+        generatedResume: JSON.stringify({
+          resume: "AWS를 10년간 운영했습니다",
+          claims: [
+            {
+              text: "AWS를 10년간 운영했습니다",
+              sourceIds: ["profile-test"],
+              sources: [],
+            },
+          ],
+          gaps: [],
+          conflicts: [],
+          uncertain: [],
+          selection: [],
+        }),
+      },
+      connection,
+      model,
+    );
+
+    expect(model.generate).toHaveBeenCalledTimes(1);
+    expect(result).toEqual({ ok: false, code: "UNVERIFIED_CLAIMS" });
+  });
+
+  it("PDF 변환은 결과에 동봉된 선택 원문 대신 연결된 XML에서 구조 검증한다", async () => {
     const load = jest.fn(async () => connectedResume());
     const forgedSource = {
       id: "forged-source",
@@ -103,13 +236,14 @@ describe("callResumeTool", () => {
         }),
       },
       { load },
+      supportingVerifier,
     );
 
     expect(load).toHaveBeenCalledWith({
       source: "embedded",
       xml: 'schemaVersion="0.2.0"',
     });
-    expect(result.ok).toBe(true);
+    expect(result).toEqual({ ok: false, code: "UNVERIFIED_CLAIMS" });
   });
 
   it("미리보기 도구는 연결로 받은 모델에서 선택한 원소의 원문만 반환한다", async () => {
@@ -1200,6 +1334,9 @@ describe("callResumeTool", () => {
       {
         generate: async (input) => {
           requests.push(input);
+          if (input.persona === resumeClaimVerifierPersona) {
+            return supportedReviewResponse(input.prompt);
+          }
           if (requests.length === 1) {
             return JSON.stringify({
               elements: [
@@ -1220,7 +1357,7 @@ describe("callResumeTool", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const generated = JSON.parse(result.text) as { resume: string };
-    expect(requests).toHaveLength(2);
+    expect(requests).toHaveLength(3);
     expect(requests[0]?.persona).toContain("이력서 전문 작성자");
     expect(requests[1]?.prompt).toContain("이름을 소개한다");
     expect(generated.resume).toBe("프로필\n테스트 사용자입니다");
@@ -1260,6 +1397,9 @@ describe("callResumeTool", () => {
       {
         generate: async (input) => {
           requests.push(input);
+          if (input.persona === resumeClaimVerifierPersona) {
+            return supportedReviewResponse(input.prompt);
+          }
           if (requests.length === 1) {
             return JSON.stringify({
               elements: [
@@ -1282,14 +1422,14 @@ describe("callResumeTool", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const generated = JSON.parse(result.text) as { resume: string };
-    expect(requests).toHaveLength(2);
+    expect(requests).toHaveLength(3);
     expect(requests[0]?.prompt).toContain("activity-selected");
     expect(generated.resume).toBe("인턴·대외활동\n선택한 활동에 참여했습니다");
   });
 
   it("이력서 생성은 양식의 각 섹션마다 외부 AI를 호출한다", async () => {
     const requests: { persona: string; prompt: string }[] = [];
-    const responses = [
+    const generationResponses = [
       JSON.stringify({
         elements: [{ id: "profile-test", interpretation: "이름을 소개한다" }],
       }),
@@ -1323,7 +1463,10 @@ describe("callResumeTool", () => {
       {
         generate: async (input) => {
           requests.push(input);
-          return responses[requests.length - 1] ?? "";
+          if (input.persona === resumeClaimVerifierPersona) {
+            return supportedReviewResponse(input.prompt);
+          }
+          return generationResponses.shift() ?? "";
         },
       },
     );
@@ -1331,7 +1474,7 @@ describe("callResumeTool", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const generated = JSON.parse(result.text) as { resume: string };
-    expect(requests).toHaveLength(4);
+    expect(requests).toHaveLength(5);
     expect(requests[0]?.prompt).toContain("프로필");
     expect(requests[0]?.prompt).toContain("이름 테스트 사용자");
     expect(requests[0]?.prompt).not.toContain("포함되면 안 되는 회사");
@@ -1427,6 +1570,7 @@ describe("callResumeTool", () => {
         ],
       },
       connection,
+      supportingVerifier,
     );
 
     expect(result.ok).toBe(true);
@@ -1464,6 +1608,7 @@ describe("callResumeTool", () => {
         ],
       },
       connection,
+      supportingVerifier,
     );
 
     expect(result.ok).toBe(true);

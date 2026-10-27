@@ -1,6 +1,7 @@
 import http from "http";
 
 import { createResumeMcpServer } from "@mcp/resume/http/createResumeMcpServer";
+import { resumeClaimVerifierPersona } from "@mcp/resume/output/runResumeHarness";
 import { connectedResume } from "@mcp/resume/testing/resumeFixture";
 
 const validResumeXml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -55,6 +56,20 @@ describe("createResumeMcpServer", () => {
       model: {
         generate: async (input) => {
           requests.push(input);
+          if (input.persona === resumeClaimVerifierPersona) {
+            return JSON.stringify({
+              reviews: [
+                {
+                  claimIndex: 0,
+                  status: "supported",
+                  evidence: [
+                    { sourceId: "profile-test", quote: "테스트 사용자" },
+                  ],
+                  reason: "이름이 원문에 있습니다",
+                },
+              ],
+            });
+          }
           if (requests.length === 1) {
             return JSON.stringify({
               elements: [
@@ -104,7 +119,7 @@ describe("createResumeMcpServer", () => {
       });
 
       expect(response.status).toBe(200);
-      expect(requests).toHaveLength(2);
+      expect(requests).toHaveLength(3);
       expect(response.body).toContain("테스트 사용자입니다");
       expect(response.body).not.toContain("gemini");
     } finally {
