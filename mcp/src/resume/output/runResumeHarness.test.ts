@@ -121,6 +121,129 @@ describe("runResumeHarness", () => {
     expect(result.semanticReviews[0]?.status).toBe("uncertain");
   });
 
+  it("양식 섹션을 한 번의 초안 호출에 모으고 의미 검증은 한 번 수행한다", async () => {
+    const profile: ResumeSelectionNode = {
+      id: "profile-test",
+      section: "profile",
+      name: "profile",
+      text: "테스트 사용자",
+      sourceRefs: [],
+      visibility: "public",
+      children: [],
+    };
+    const client = recordingClient([
+      JSON.stringify({
+        claims: [
+          { text: "테스트 사용자입니다", sourceIds: ["profile-test"] },
+          {
+            text: "선택한 회사에서 일했습니다",
+            sourceIds: ["employment-selected"],
+          },
+        ],
+      }),
+      JSON.stringify({
+        reviews: [
+          {
+            claimIndex: 0,
+            status: "supported",
+            evidence: [{ sourceId: "profile-test", quote: "테스트 사용자" }],
+            reason: "프로필 원문이 뒷받침합니다",
+          },
+          {
+            claimIndex: 1,
+            status: "supported",
+            evidence: [
+              { sourceId: "employment-selected", quote: "선택한 회사" },
+            ],
+            reason: "경력 원문이 뒷받침합니다",
+          },
+        ],
+      }),
+    ]);
+
+    const result = await runResumeHarness([profile, employment], client, [
+      { section: "profile", text: "프로필\n이름 테스트 사용자" },
+      { section: "employmentHistory", text: "경력\n회사 선택한 회사" },
+    ]);
+
+    expect(client.requests).toHaveLength(2);
+    expect(client.requests[0]?.persona).toBe(resumeWriterPersona);
+    expect(client.requests[0]?.prompt).toContain('"formTitle":"프로필"');
+    expect(client.requests[0]?.prompt).toContain('"formTitle":"경력"');
+    expect(client.requests[0]?.prompt).toContain("profile-test");
+    expect(client.requests[0]?.prompt).toContain("employment-selected");
+    expect(client.requests[1]?.persona).toBe(resumeClaimVerifierPersona);
+    expect(result.resume).toBe(
+      "프로필\n테스트 사용자입니다\n경력\n선택한 회사에서 일했습니다",
+    );
+  });
+
+  it("배치 요청에서 희망근무조건의 하위 양식 제목을 유지한다", async () => {
+    const preference: ResumeSelectionNode = {
+      id: "employment-preferences-test",
+      section: "employmentPreferences",
+      name: "employmentPreferences",
+      text: "",
+      sourceRefs: [],
+      visibility: "public",
+      children: [
+        {
+          section: "employmentPreferences",
+          name: "role",
+          text: "프론트엔드",
+          sourceRefs: [],
+          visibility: "public",
+          children: [],
+        },
+      ],
+    };
+    const client = recordingClient([
+      JSON.stringify({
+        claims: [
+          {
+            text: "프론트엔드 직무를 희망합니다",
+            sourceIds: ["employment-preferences-test"],
+            formItem: "role",
+          },
+        ],
+      }),
+      JSON.stringify({
+        reviews: [
+          {
+            claimIndex: 0,
+            status: "supported",
+            evidence: [
+              {
+                sourceId: "employment-preferences-test",
+                quote: "프론트엔드",
+              },
+            ],
+            reason: "희망 직무가 원문에 있습니다",
+          },
+        ],
+      }),
+    ]);
+
+    await runResumeHarness([preference], client, [
+      {
+        section: "employmentPreferences",
+        text: "희망근무조건\n지원분야\n직무 프론트엔드",
+      },
+    ]);
+
+    expect(client.requests[0]?.prompt).toContain("지원분야");
+  });
+
+  it("선택할 양식 섹션이 없으면 AI를 호출하지 않는다", async () => {
+    const client = recordingClient([]);
+
+    const result = await runResumeHarness([], client, []);
+
+    expect(client.requests).toEqual([]);
+    expect(result.resume).toBe("");
+    expect(result.claims).toEqual([]);
+  });
+
   it("공백뿐인 claim은 근거가 있어도 최종 절 제목을 만들지 않는다", async () => {
     const result = await generateResume(
       [source("profile-empty-claim", "profile")],
@@ -166,11 +289,6 @@ describe("runResumeHarness", () => {
     };
     const client = recordingClient([
       JSON.stringify({
-        elements: [
-          { id: "profile-items", interpretation: "프로필을 소개한다" },
-        ],
-      }),
-      JSON.stringify({
         claims: [
           {
             text: "테스트 사용자입니다",
@@ -211,8 +329,9 @@ describe("runResumeHarness", () => {
 
     const result = await runResumeHarness([profile], client);
 
-    expect(client.requests[1]?.prompt).toContain('"name"');
-    expect(client.requests[1]?.prompt).not.toContain("test@example.com");
+    expect(client.requests).toHaveLength(2);
+    expect(client.requests[0]?.prompt).toContain('"name"');
+    expect(client.requests[0]?.prompt).toContain("test@example.com");
     expect(result.resume).toBe(
       "프로필\n이름\n테스트 사용자입니다\n이메일\n이메일은 test@example.com입니다",
     );
@@ -753,13 +872,25 @@ describe("runResumeHarness", () => {
     );
   });
 
-  it("생성 요청의 첫 단계는 이력서 전문 작성자 역할로 원소를 해석한다", async () => {
+  it("전체 원소를 이력서 작성자에게 한 번에 전달한다", async () => {
     const client = recordingClient([
       JSON.stringify({
-        elements: [
+        claims: [
           {
-            id: "employment-selected",
-            interpretation: "선택한 회사에서 일했다",
+            text: "선택한 회사에서 일했습니다",
+            sourceIds: ["employment-selected"],
+          },
+        ],
+      }),
+      JSON.stringify({
+        reviews: [
+          {
+            claimIndex: 0,
+            status: "supported",
+            evidence: [
+              { sourceId: "employment-selected", quote: "선택한 회사" },
+            ],
+            reason: "회사명이 원문에 있습니다",
           },
         ],
       }),
@@ -770,21 +901,14 @@ describe("runResumeHarness", () => {
     expect(client.requests[0]?.persona).toBe(resumeWriterPersona);
     expect(resumeWriterPersona).toContain("이력서 전문 작성자");
     expect(resumeWriterPersona).toContain("연결된 원문에 없는 사실");
-    expect(client.requests[0]?.prompt).toContain("해석");
+    expect(client.requests[0]?.prompt).toContain("한 번에");
     expect(client.requests[0]?.prompt).toContain("employment-selected");
     expect(client.requests[0]?.prompt).toContain("선택한 회사");
+    expect(client.requests).toHaveLength(2);
   });
 
-  it("해석 뒤에 다시 쓴 문장 중 검사를 통과한 것만 최종 이력서에 남긴다", async () => {
+  it("한 번에 생성한 문장 중 의미 검사를 통과한 것만 최종 이력서에 남긴다", async () => {
     const client = recordingClient([
-      JSON.stringify({
-        elements: [
-          {
-            id: "employment-selected",
-            interpretation: "선택한 회사에서 일했다",
-          },
-        ],
-      }),
       JSON.stringify({
         claims: [
           {
@@ -810,11 +934,11 @@ describe("runResumeHarness", () => {
 
     const result = await runResumeHarness([employment], client);
 
-    expect(client.requests).toHaveLength(3);
-    expect(client.requests[1]?.persona).toBe(resumeWriterPersona);
-    expect(client.requests[1]?.prompt).toContain("재작성");
-    expect(client.requests[1]?.prompt).toContain("선택한 회사에서 일했다");
-    expect(client.requests[1]?.prompt).toContain("서로 다른 프로젝트");
+    expect(client.requests).toHaveLength(2);
+    expect(client.requests[0]?.persona).toBe(resumeWriterPersona);
+    expect(client.requests[0]?.prompt).toContain("한 번에");
+    expect(client.requests[0]?.prompt).toContain("서로 다른 프로젝트");
+    expect(client.requests[1]?.persona).toBe(resumeClaimVerifierPersona);
     expect(result.resume).toBe("경력\n선택한 회사에서 일했습니다");
     expect(result.resume).not.toContain("없는 성과");
     expect(result.claims[0]?.sources[0]?.sourceRefs).toEqual(["source-page-1"]);
@@ -828,9 +952,6 @@ describe("runResumeHarness", () => {
       sourceIds: ["technology-source"],
     };
     const client = recordingClient([
-      JSON.stringify({
-        elements: [{ id: "technology-source", interpretation: "React 기술" }],
-      }),
       JSON.stringify({ claims: [claim] }),
       JSON.stringify({
         reviews: [
@@ -852,9 +973,10 @@ describe("runResumeHarness", () => {
     expect(result.resume).toBe("");
     expect(result.claims).toEqual([]);
     expect(result.gaps).toEqual([claim]);
+    expect(client.requests).toHaveLength(2);
   });
 
-  it("양식의 각 섹션을 따로 해석하고 다시 쓴 문장을 양식 절에 배치한다", async () => {
+  it("양식의 여러 섹션을 한 번에 생성하고 각 양식 절에 배치한다", async () => {
     const profile: ResumeSelectionNode = {
       id: "profile-test",
       section: "profile",
@@ -875,21 +997,8 @@ describe("runResumeHarness", () => {
     };
     const client = recordingClient([
       JSON.stringify({
-        elements: [{ id: "profile-test", interpretation: "이름을 소개한다" }],
-      }),
-      JSON.stringify({
-        claims: [{ text: "테스트 사용자입니다", sourceIds: ["profile-test"] }],
-      }),
-      JSON.stringify({
-        elements: [
-          {
-            id: "employment-selected",
-            interpretation: "선택한 회사에서 일했다",
-          },
-        ],
-      }),
-      JSON.stringify({
         claims: [
+          { text: "테스트 사용자입니다", sourceIds: ["profile-test"] },
           {
             text: "선택한 회사에서 일했습니다",
             sourceIds: ["employment-selected"],
@@ -921,28 +1030,20 @@ describe("runResumeHarness", () => {
       { section: "employmentHistory", text: "경력\n회사 선택한 회사" },
     ]);
 
-    expect(client.requests).toHaveLength(5);
-    expect(client.requests[0]?.prompt).toContain("이름 테스트 사용자");
-    expect(client.requests[0]?.prompt).not.toContain("회사 선택한 회사");
-    expect(client.requests[2]?.prompt).toContain("회사 선택한 회사");
-    expect(client.requests[2]?.prompt).not.toContain("이름 테스트 사용자");
+    expect(client.requests).toHaveLength(2);
+    expect(client.requests[0]?.prompt).toContain(
+      '"name":"name","text":"테스트 사용자"',
+    );
+    expect(client.requests[0]?.prompt).toContain(
+      '"name":"organization","text":"선택한 회사"',
+    );
     expect(result.resume).toBe(
       "프로필\n테스트 사용자입니다\n경력\n선택한 회사에서 일했습니다",
     );
   });
 
-  it("해석 결과가 없으면 문장을 다시 쓰지 않는다", async () => {
-    const client = recordingClient([
-      JSON.stringify({ elements: [] }),
-      JSON.stringify({
-        claims: [
-          {
-            text: "없는 성과를 냈습니다",
-            sourceIds: ["employment-selected"],
-          },
-        ],
-      }),
-    ]);
+  it("배치 응답에 claim이 없으면 이력서 본문을 비워둔다", async () => {
+    const client = recordingClient([JSON.stringify({ claims: [] })]);
 
     const result = await runResumeHarness([employment], client);
 
