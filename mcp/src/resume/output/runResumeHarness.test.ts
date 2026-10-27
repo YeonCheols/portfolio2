@@ -178,6 +178,62 @@ describe("runResumeHarness", () => {
     );
   });
 
+  it("배치 요청에서 희망근무조건의 하위 양식 제목을 유지한다", async () => {
+    const preference: ResumeSelectionNode = {
+      id: "employment-preferences-test",
+      section: "employmentPreferences",
+      name: "employmentPreferences",
+      text: "",
+      sourceRefs: [],
+      visibility: "public",
+      children: [
+        {
+          section: "employmentPreferences",
+          name: "role",
+          text: "프론트엔드",
+          sourceRefs: [],
+          visibility: "public",
+          children: [],
+        },
+      ],
+    };
+    const client = recordingClient([
+      JSON.stringify({
+        claims: [
+          {
+            text: "프론트엔드 직무를 희망합니다",
+            sourceIds: ["employment-preferences-test"],
+            formItem: "role",
+          },
+        ],
+      }),
+      JSON.stringify({
+        reviews: [
+          {
+            claimIndex: 0,
+            status: "supported",
+            evidence: [
+              {
+                sourceId: "employment-preferences-test",
+                quote: "프론트엔드",
+              },
+            ],
+            reason: "희망 직무가 원문에 있습니다",
+          },
+        ],
+      }),
+    ]);
+
+    await runResumeHarness([preference], client, [
+      {
+        section: "employmentPreferences",
+        text: "희망근무조건\n지원분야\n직무 프론트엔드",
+      },
+    ]);
+
+    expect(client.requests[0]?.prompt).toContain("지원분야");
+  });
+
   it("선택할 양식 섹션이 없으면 AI를 호출하지 않는다", async () => {
     const client = recordingClient([]);
 

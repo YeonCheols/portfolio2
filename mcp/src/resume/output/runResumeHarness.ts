@@ -486,7 +486,10 @@ const resumeDraftPrompt = (
   `모든 이력서 섹션을 한 번에 처리하고 섹션별 구분을 유지한다. 원문을 해석하고 그 해석을 이력서 문장으로 재작성해 JSON만 반환한다. 형식은 {"claims":[{"text":"","sourceIds":[""],"formItem":""}]} 이다. 각 claim에는 근거 원소 id를 붙인다. formItem은 문장이 하나의 양식 항목에 해당할 때 선택 원소 트리의 정확한 항목 이름을 사용한다. 자기소개서 문장은 확인된 제목 값을 formItem으로 사용한다. 여러 항목을 한 문장으로 합치거나 원문에서 항목을 확인할 수 없으면 formItem을 생략한다. 서로 다른 프로젝트를 한 claim으로 합치지 않고 프로젝트별 문장을 구분한다. 근거가 없거나 원문이 비어 있는 내용은 만들지 않는다.\n${JSON.stringify(
     sections.map(({ section, text, nodes }) => ({
       section,
-      formTitle: text.split("\n", 1)[0] ?? section,
+      formTitle:
+        generatedResumePromptTitle(section) ??
+        text.split("\n", 1)[0] ??
+        section,
       elements: nodes,
     })),
   )}`;
