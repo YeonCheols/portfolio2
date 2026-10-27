@@ -414,21 +414,24 @@ const hasInterpretation = (text: string): boolean => {
 };
 
 const parseClaims = (text: string): DraftClaim[] => {
+  let parsed: unknown;
   try {
-    const parsed: unknown = JSON.parse(text);
-    if (
-      typeof parsed !== "object" ||
-      parsed === null ||
-      !("claims" in parsed)
-    ) {
-      return [];
-    }
-    const { claims } = parsed;
-    if (!Array.isArray(claims) || !claims.every(isClaim)) return [];
-    return claims;
+    parsed = JSON.parse(text);
   } catch {
-    return [];
+    throw new ResumeConnectionError("MODEL_REJECTED");
   }
+
+  if (
+    typeof parsed !== "object" ||
+    parsed === null ||
+    !("claims" in parsed) ||
+    !Array.isArray(parsed.claims) ||
+    !parsed.claims.every(isClaim)
+  ) {
+    throw new ResumeConnectionError("MODEL_REJECTED");
+  }
+
+  return parsed.claims;
 };
 
 export type ResumeFormSection = {
@@ -473,6 +476,21 @@ export const rewriteResumePrompt = (
     },
   )}`;
 
+const resumeDraftPrompt = (
+  sections: readonly {
+    section: string;
+    text: string;
+    nodes: readonly ResumeSelectionNode[];
+  }[],
+) =>
+  `모든 이력서 섹션을 한 번에 처리하고 섹션별 구분을 유지한다. 원문을 해석하고 그 해석을 이력서 문장으로 재작성해 JSON만 반환한다. 형식은 {"claims":[{"text":"","sourceIds":[""],"formItem":""}]} 이다. 각 claim에는 근거 원소 id를 붙인다. formItem은 문장이 하나의 양식 항목에 해당할 때 선택 원소 트리의 정확한 항목 이름을 사용한다. 자기소개서 문장은 확인된 제목 값을 formItem으로 사용한다. 여러 항목을 한 문장으로 합치거나 원문에서 항목을 확인할 수 없으면 formItem을 생략한다. 서로 다른 프로젝트를 한 claim으로 합치지 않고 프로젝트별 문장을 구분한다. 근거가 없거나 원문이 비어 있는 내용은 만들지 않는다.\n${JSON.stringify(
+    sections.map(({ section, text, nodes }) => ({
+      section,
+      formTitle: text.split("\n", 1)[0] ?? section,
+      elements: nodes,
+    })),
+  )}`;
+
 export const continueResumeGeneration = (
   selection: readonly ResumeSelectionNode[],
   interpretation: string,
@@ -490,24 +508,6 @@ export const continueResumeGeneration = (
     persona: resumeWriterPersona,
     step: "rewrite" as const,
     prompt: rewriteResumePrompt(interpretation, selection),
-  };
-};
-
-const mergeChecked = (
-  parts: readonly CheckedDraft[],
-  selection: readonly ResumeSelectionNode[],
-): GeneratedResume => {
-  const checked = {
-    claims: parts.flatMap((part) => part.claims),
-    gaps: parts.flatMap((part) => part.gaps),
-    conflicts: parts.flatMap((part) => part.conflicts),
-    uncertain: parts.flatMap((part) => part.uncertain),
-  };
-  return {
-    ...checked,
-    resume: assembleGeneratedResume(checked.claims, selection),
-    selection,
-    semanticReviews: [],
   };
 };
 
@@ -720,30 +720,36 @@ export const runResumeHarness = async (
         return nodes.length === 0 ? [] : [{ text: form.text, nodes }];
       })
     : [{ text: "", nodes: selection }];
-  const checked: CheckedDraft[] = [];
-
-  for (const group of groups) {
-    const interpretation = await client.generate({
-      persona: resumeWriterPersona,
-      prompt: interpretResumePrompt(group.nodes, group.text),
-    });
-    if (!hasInterpretation(interpretation)) continue;
-    const rewritten = await client.generate({
-      persona: resumeWriterPersona,
-      prompt: rewriteResumePrompt(interpretation, group.nodes),
-    });
-    checked.push(checkResumeDraft(selection, parseClaims(rewritten)));
+  if (groups.length === 0) {
+    const checked = checkResumeDraft(selection, []);
+    return {
+      ...checked,
+      resume: assembleGeneratedResume(checked.claims, selection),
+      selection,
+      semanticReviews: [],
+    };
   }
 
-  const merged = mergeChecked(checked, selection);
-  const verified = await verifyResumeClaims(selection, merged.claims, client);
+  const generated = await client.generate({
+    persona: resumeWriterPersona,
+    prompt: resumeDraftPrompt(
+      groups.map((group) => ({
+        section: group.nodes[0]?.section ?? "resume",
+        text: group.text,
+        nodes: group.nodes,
+      })),
+    ),
+  });
+  const checked = checkResumeDraft(selection, parseClaims(generated));
+  const verified = await verifyResumeClaims(selection, checked.claims, client);
 
   return {
-    ...merged,
+    ...checked,
     claims: verified.claims,
-    gaps: [...merged.gaps, ...verified.gaps],
+    gaps: [...checked.gaps, ...verified.gaps],
     semanticReviews: verified.semanticReviews,
     resume: assembleGeneratedResume(verified.claims, selection),
+    selection,
   };
 };
 

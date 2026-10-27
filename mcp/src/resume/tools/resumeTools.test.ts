@@ -136,6 +136,23 @@ describe("callResumeTool", () => {
     expect(result).toEqual({ ok: false, code: "MODEL_REJECTED" });
   });
 
+  it("배치 생성 응답이 claim 형식이 아니면 이력서 생성을 실패 처리한다", async () => {
+    const result = await callResumeTool(
+      "generate_resume",
+      {
+        source: "embedded",
+        xml: 'schemaVersion="0.2.0"',
+        template: "기본형",
+        elementIds: ["profile-test"],
+        sectionOrder: ["profile"],
+      },
+      connection,
+      { generate: async () => JSON.stringify({ elements: [] }) },
+    );
+
+    expect(result).toEqual({ ok: false, code: "MODEL_REJECTED" });
+  });
+
   it("PDF 변환은 구조가 잘못된 생성 결과 selection을 렌더링하지 않는다", async () => {
     const result = await callResumeTool(
       "convert_resume_to_pdf",
@@ -1319,7 +1336,7 @@ describe("callResumeTool", () => {
     expect(result).toEqual({ ok: false, code: "UNKNOWN_TEMPLATE" });
   });
 
-  it("이력서 생성은 외부 AI 연결이 다시 쓴 문장 중 검사를 통과한 본문을 반환한다", async () => {
+  it("이력서 생성은 외부 AI의 배치 claim 중 검사를 통과한 본문을 반환한다", async () => {
     const requests: { persona: string; prompt: string }[] = [];
     const result = await callResumeTool(
       "generate_resume",
@@ -1337,13 +1354,6 @@ describe("callResumeTool", () => {
           if (input.persona === resumeClaimVerifierPersona) {
             return supportedReviewResponse(input.prompt);
           }
-          if (requests.length === 1) {
-            return JSON.stringify({
-              elements: [
-                { id: "profile-test", interpretation: "이름을 소개한다" },
-              ],
-            });
-          }
           return JSON.stringify({
             claims: [
               { text: "테스트 사용자입니다", sourceIds: ["profile-test"] },
@@ -1357,9 +1367,11 @@ describe("callResumeTool", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const generated = JSON.parse(result.text) as { resume: string };
-    expect(requests).toHaveLength(3);
+    expect(requests).toHaveLength(2);
     expect(requests[0]?.persona).toContain("이력서 전문 작성자");
-    expect(requests[1]?.prompt).toContain("이름을 소개한다");
+    expect(requests[0]?.prompt).toContain(
+      '"name":"name","text":"테스트 사용자"',
+    );
     expect(generated.resume).toBe("프로필\n테스트 사용자입니다");
     expect(generated.resume).not.toContain("없는 성과");
     expect(JSON.stringify(requests)).not.toContain("gemini");
@@ -1400,13 +1412,6 @@ describe("callResumeTool", () => {
           if (input.persona === resumeClaimVerifierPersona) {
             return supportedReviewResponse(input.prompt);
           }
-          if (requests.length === 1) {
-            return JSON.stringify({
-              elements: [
-                { id: "activity-selected", interpretation: "외부 활동" },
-              ],
-            });
-          }
           return JSON.stringify({
             claims: [
               {
@@ -1422,34 +1427,22 @@ describe("callResumeTool", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const generated = JSON.parse(result.text) as { resume: string };
-    expect(requests).toHaveLength(3);
+    expect(requests).toHaveLength(2);
     expect(requests[0]?.prompt).toContain("activity-selected");
     expect(generated.resume).toBe("인턴·대외활동\n선택한 활동에 참여했습니다");
   });
 
-  it("이력서 생성은 양식의 각 섹션마다 외부 AI를 호출한다", async () => {
+  it("이력서 생성은 모든 양식 섹션을 한 번에 외부 AI에 전달한다", async () => {
     const requests: { persona: string; prompt: string }[] = [];
-    const generationResponses = [
-      JSON.stringify({
-        elements: [{ id: "profile-test", interpretation: "이름을 소개한다" }],
-      }),
-      JSON.stringify({
-        claims: [{ text: "테스트 사용자입니다", sourceIds: ["profile-test"] }],
-      }),
-      JSON.stringify({
-        elements: [
-          { id: "employment-test", interpretation: "회사에서 일했다" },
-        ],
-      }),
-      JSON.stringify({
-        claims: [
-          {
-            text: "포함되면 안 되는 회사에서 일했습니다",
-            sourceIds: ["employment-test"],
-          },
-        ],
-      }),
-    ];
+    const generationResponse = JSON.stringify({
+      claims: [
+        { text: "테스트 사용자입니다", sourceIds: ["profile-test"] },
+        {
+          text: "포함되면 안 되는 회사에서 일했습니다",
+          sourceIds: ["employment-test"],
+        },
+      ],
+    });
     const result = await callResumeTool(
       "generate_resume",
       {
@@ -1466,7 +1459,7 @@ describe("callResumeTool", () => {
           if (input.persona === resumeClaimVerifierPersona) {
             return supportedReviewResponse(input.prompt);
           }
-          return generationResponses.shift() ?? "";
+          return generationResponse;
         },
       },
     );
@@ -1474,13 +1467,16 @@ describe("callResumeTool", () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     const generated = JSON.parse(result.text) as { resume: string };
-    expect(requests).toHaveLength(5);
+    expect(requests).toHaveLength(2);
     expect(requests[0]?.prompt).toContain("프로필");
-    expect(requests[0]?.prompt).toContain("이름 테스트 사용자");
-    expect(requests[0]?.prompt).not.toContain("포함되면 안 되는 회사");
-    expect(requests[2]?.prompt).toContain("경력");
-    expect(requests[2]?.prompt).toContain("회사 포함되면 안 되는 회사");
-    expect(requests[2]?.prompt).not.toContain("이름 테스트 사용자");
+    expect(requests[0]?.prompt).toContain(
+      '"name":"name","text":"테스트 사용자"',
+    );
+    expect(requests[0]?.prompt).toContain("경력");
+    expect(requests[0]?.prompt).toContain(
+      '"name":"organization","text":"포함되면 안 되는 회사"',
+    );
+    expect(requests[1]?.persona).toBe(resumeClaimVerifierPersona);
     expect(generated.resume).toBe(
       "프로필\n테스트 사용자입니다\n경력\n포함되면 안 되는 회사에서 일했습니다",
     );

@@ -70,13 +70,6 @@ describe("createResumeMcpServer", () => {
               ],
             });
           }
-          if (requests.length === 1) {
-            return JSON.stringify({
-              elements: [
-                { id: "profile-test", interpretation: "이름을 소개한다" },
-              ],
-            });
-          }
           return JSON.stringify({
             claims: [
               { text: "테스트 사용자입니다", sourceIds: ["profile-test"] },
@@ -119,7 +112,7 @@ describe("createResumeMcpServer", () => {
       });
 
       expect(response.status).toBe(200);
-      expect(requests).toHaveLength(3);
+      expect(requests).toHaveLength(2);
       expect(response.body).toContain("테스트 사용자입니다");
       expect(response.body).not.toContain("gemini");
     } finally {
