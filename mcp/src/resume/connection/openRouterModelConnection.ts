@@ -30,6 +30,12 @@ export const fetchOpenRouterModelText = async (
     },
     body: JSON.stringify({
       model,
+      ...(input.responseFormat
+        ? {
+            provider: { require_parameters: true },
+            response_format: input.responseFormat,
+          }
+        : {}),
       messages: [
         { role: "system", content: input.persona },
         { role: "user", content: input.prompt },
