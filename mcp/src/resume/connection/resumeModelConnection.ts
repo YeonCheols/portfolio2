@@ -7,6 +7,16 @@ import {
 export type ResumeModelCall = {
   persona: string;
   prompt: string;
+  responseFormat?: ResumeJsonSchemaResponseFormat;
+};
+
+export type ResumeJsonSchemaResponseFormat = {
+  type: "json_schema";
+  json_schema: {
+    name: string;
+    strict: true;
+    schema: Record<string, unknown>;
+  };
 };
 
 export const fetchResumeModelText = async (

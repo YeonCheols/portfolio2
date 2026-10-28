@@ -24,9 +24,27 @@ export type CheckedDraftClaim = {
   formItem?: string;
 };
 
+export type DraftValidationIssueCode =
+  | "EMPTY_TEXT"
+  | "NO_SOURCE_IDS"
+  | "CONFLICTING_SOURCE_CLAIM"
+  | "SOURCE_REF_IS_NOT_ELEMENT_ID"
+  | "UNKNOWN_SOURCE_ID"
+  | "SOURCE_HAS_NO_TEXT"
+  | "MULTIPLE_PROJECT_SCOPE"
+  | "FORM_ITEM_NOT_FOUND"
+  | "SEMANTICALLY_UNSUPPORTED"
+  | "SEMANTICALLY_UNCERTAIN";
+
+export type DraftValidationIssue = {
+  code: DraftValidationIssueCode;
+  sourceIds: readonly string[];
+};
+
 export type CheckedDraft = {
   claims: readonly CheckedDraftClaim[];
   gaps: readonly DraftClaim[];
+  validationIssues: readonly DraftValidationIssue[];
   conflicts: readonly {
     sourceId: string;
     texts: readonly string[];
@@ -49,6 +67,33 @@ const findById = (
 
 const hasText = (node: ResumeSelectionNode): boolean =>
   node.text !== "" || node.children.some(hasText);
+
+export const resumeFormItemOptions = (
+  selection: readonly ResumeSelectionNode[],
+): string[] => {
+  const options = new Set<string>();
+  const visit = (nodes: readonly ResumeSelectionNode[]) => {
+    nodes.forEach((node) => {
+      if (hasText(node)) {
+        options.add(node.name);
+        if (node.name === "title" && node.text !== "") {
+          options.add(node.text);
+        }
+      }
+      visit(node.children);
+    });
+  };
+  visit(selection);
+  return ["", ...options];
+};
+
+const isSourceRef = (
+  nodes: readonly ResumeSelectionNode[],
+  id: string,
+): boolean =>
+  nodes.some(
+    (node) => node.sourceRefs.includes(id) || isSourceRef(node.children, id),
+  );
 
 const hasFormItem = (
   nodes: readonly ResumeSelectionNode[],
@@ -99,18 +144,6 @@ const hasSingleProjectScope = (
   );
 };
 
-const sourcesOf = (
-  selection: readonly ResumeSelectionNode[],
-  claim: DraftClaim,
-): ResumeSelectionNode[] | undefined => {
-  if (claim.sourceIds.length === 0) return undefined;
-  const sources = claim.sourceIds.map((id) => findById(selection, id));
-  if (sources.some((source) => !source || !hasText(source))) return undefined;
-  return sources.filter((source): source is ResumeSelectionNode =>
-    Boolean(source),
-  );
-};
-
 const claimScopeKey = (sourceId: string, formItem?: string): string =>
   `${sourceId}\u0000${formItem ?? ""}`;
 
@@ -155,14 +188,24 @@ export const checkResumeDraft = (
   );
   const accepted: CheckedDraftClaim[] = [];
   const gaps: DraftClaim[] = [];
+  const validationIssues: DraftValidationIssue[] = conflicts.map(
+    ({ sourceId }) => ({
+      code: "CONFLICTING_SOURCE_CLAIM",
+      sourceIds: [sourceId],
+    }),
+  );
+  const addGap = (claim: DraftClaim, code: DraftValidationIssueCode) => {
+    gaps.push({
+      text: claim.text,
+      sourceIds: [...claim.sourceIds],
+      ...(claim.formItem ? { formItem: claim.formItem } : {}),
+    });
+    validationIssues.push({ code, sourceIds: [...claim.sourceIds] });
+  };
 
   claims.forEach((claim) => {
     if (claim.text.trim() === "") {
-      gaps.push({
-        text: claim.text,
-        sourceIds: [...claim.sourceIds],
-        ...(claim.formItem ? { formItem: claim.formItem } : {}),
-      });
+      addGap(claim, "EMPTY_TEXT");
       return;
     }
 
@@ -173,17 +216,32 @@ export const checkResumeDraft = (
     ) {
       return;
     }
-    const sources = sourcesOf(selection, claim);
-    if (
-      !sources ||
-      !hasSingleProjectScope(selection, claim, sources) ||
-      (claim.formItem && !hasFormItem(sources, claim.formItem))
-    ) {
-      gaps.push({
-        text: claim.text,
-        sourceIds: [...claim.sourceIds],
-        ...(claim.formItem ? { formItem: claim.formItem } : {}),
-      });
+    if (claim.sourceIds.length === 0) {
+      addGap(claim, "NO_SOURCE_IDS");
+      return;
+    }
+    if (claim.sourceIds.some((id) => isSourceRef(selection, id))) {
+      addGap(claim, "SOURCE_REF_IS_NOT_ELEMENT_ID");
+      return;
+    }
+    const foundSources = claim.sourceIds.map((id) => findById(selection, id));
+    if (foundSources.some((source) => !source)) {
+      addGap(claim, "UNKNOWN_SOURCE_ID");
+      return;
+    }
+    const sources = foundSources.filter(
+      (source): source is ResumeSelectionNode => Boolean(source),
+    );
+    if (sources.some((source) => !hasText(source))) {
+      addGap(claim, "SOURCE_HAS_NO_TEXT");
+      return;
+    }
+    if (!hasSingleProjectScope(selection, claim, sources)) {
+      addGap(claim, "MULTIPLE_PROJECT_SCOPE");
+      return;
+    }
+    if (claim.formItem && !hasFormItem(sources, claim.formItem)) {
+      addGap(claim, "FORM_ITEM_NOT_FOUND");
       return;
     }
     accepted.push({
@@ -204,7 +262,7 @@ export const checkResumeDraft = (
     });
   });
 
-  return { claims: accepted, gaps, conflicts, uncertain };
+  return { claims: accepted, gaps, validationIssues, conflicts, uncertain };
 };
 
 export const checkedResumeText = (draft: CheckedDraft): string =>

@@ -69,6 +69,21 @@ describe("checkResumeDraft", () => {
     ]);
   });
 
+  it("PDF 페이지 sourceRef를 claim 근거 id로 쓰면 오용 사유를 반환한다", () => {
+    const result = checkResumeDraft(
+      [profile],
+      [{ text: "컴포넌트를 재사용했습니다", sourceIds: ["source-page-1"] }],
+    );
+
+    expect(result.claims).toEqual([]);
+    expect(result.validationIssues).toEqual([
+      {
+        code: "SOURCE_REF_IS_NOT_ELEMENT_ID",
+        sourceIds: ["source-page-1"],
+      },
+    ]);
+  });
+
   it("노드와 자식의 원문이 모두 비어 있으면 그 문장을 누락으로 둔다", () => {
     const empty: ResumeSelectionNode = {
       id: "employment-empty",
@@ -131,6 +146,12 @@ describe("checkResumeDraft", () => {
       {
         sourceId: "profile-test",
         texts: ["컴포넌트를 만들었습니다", "화면을 설계했습니다"],
+      },
+    ]);
+    expect(result.validationIssues).toEqual([
+      {
+        code: "CONFLICTING_SOURCE_CLAIM",
+        sourceIds: ["profile-test"],
       },
     ]);
   });

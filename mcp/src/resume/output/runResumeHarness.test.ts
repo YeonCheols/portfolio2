@@ -904,6 +904,70 @@ describe("runResumeHarness", () => {
     expect(client.requests[0]?.prompt).toContain("한 번에");
     expect(client.requests[0]?.prompt).toContain("employment-selected");
     expect(client.requests[0]?.prompt).toContain("선택한 회사");
+    expect(client.requests[0]).toHaveProperty(
+      "responseFormat.json_schema.name",
+      "resume_claims",
+    );
+    expect(client.requests[0]).toHaveProperty(
+      "responseFormat.json_schema.strict",
+      true,
+    );
+    expect(client.requests[0]).toHaveProperty(
+      "responseFormat.json_schema.schema.properties.claims.items.required",
+      ["text", "sourceIds", "formItem"],
+    );
+    expect(client.requests[0]).toHaveProperty(
+      "responseFormat.json_schema.schema.properties.claims.items.properties.sourceIds.items.enum",
+      ["employment-selected"],
+    );
+    expect(client.requests[0]).toHaveProperty(
+      "responseFormat.json_schema.schema.properties.claims.items.properties.formItem.enum",
+      ["", "employment", "organization"],
+    );
+    expect(client.requests[0]?.persona).toContain(
+      "같은 sourceId와 formItem 조합은 claim을 한 개만 만든다",
+    );
+    expect(client.requests[0]?.persona).toContain(
+      "회사명·고유명사·기술 용어·영문 표기·수치·기간은 XML 표기를 임의로 번역하거나 바꾸지 않는다.",
+    );
+    expect(client.requests[0]?.persona).toContain(
+      "서로 다른 정보는 각각 해당 원소의 근거에 연결하고, 여러 독립 사실을 하나의 claim으로 뭉뚱그리지 않는다.",
+    );
+    expect(client.requests[0]?.persona).toContain(
+      "formItem은 각 sourceId 원소 또는 그 하위 원소의 정확한 이름을 사용하고, sourceId 범위 밖의 항목명은 쓰지 않는다.",
+    );
+    expect(client.requests[0]?.persona).toContain(
+      "sourceIds에는 입력 원소의 id 값만 사용한다",
+    );
+    const promptData = JSON.parse(
+      client.requests[0]?.prompt.slice(
+        (client.requests[0]?.prompt.indexOf("\n") ?? -1) + 1,
+      ) ?? "[]",
+    ) as {
+      elements: {
+        sourceRefs?: string[];
+        children: { sourceRefs?: string[]; children: unknown[] }[];
+      }[];
+    }[];
+    expect(promptData[0]?.elements[0]).not.toHaveProperty("sourceRefs");
+    expect(promptData[0]?.elements[0]?.children[0]).not.toHaveProperty(
+      "sourceRefs",
+    );
+    expect(client.requests[0]?.prompt).toContain("마크다운 코드 펜스 없이");
+    expect(client.requests[0]?.prompt).toContain("formItem은 빈 문자열");
+    expect(client.requests[1]).toHaveProperty(
+      "responseFormat.json_schema.name",
+      "resume_claim_reviews",
+    );
+    expect(client.requests[1]).toHaveProperty(
+      "responseFormat.json_schema.strict",
+      true,
+    );
+    expect(client.requests[1]).toHaveProperty(
+      "responseFormat.json_schema.schema.properties.reviews.items.required",
+      ["claimIndex", "status", "evidence", "reason"],
+    );
+    expect(client.requests[1]?.prompt).toContain("마크다운 코드 펜스 없이");
     expect(client.requests).toHaveLength(2);
   });
 
