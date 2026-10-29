@@ -49,12 +49,17 @@ jobs:
 
       - name: 비공개 MCP 서버 배포
         run: |
+          SECRETS="MCP_AUTH_TOKEN=MCP_AUTH_TOKEN:latest,RESUME_CONNECTION_TOKEN=RESUME_CONNECTION_TOKEN:latest"
+          # 런타임 계정의 시크릿 읽기 권한은 미리 설정하므로, 동적 설정 모드를 켤 때만 조회 토큰을 주입한다
+          if [ -n "${{ vars.RESUME_MODEL_SETTING_URL }}" ]; then
+            SECRETS="${SECRETS},RESUME_MODEL_SETTING_TOKEN=RESUME_MODEL_SETTING_TOKEN:latest"
+          fi
           gcloud run deploy portfolio-mcp \
             --image "${IMAGE}" \
             --region "${{ vars.GCP_REGION }}" \
             --project "${{ vars.GCP_PROJECT_ID }}" \
-            --set-secrets=MCP_AUTH_TOKEN=MCP_AUTH_TOKEN:latest,RESUME_CONNECTION_TOKEN=RESUME_CONNECTION_TOKEN:latest \
-            --set-env-vars=RESUME_CONNECTION_URL="${{ vars.RESUME_CONNECTION_URL }}",RESUME_MODEL_URL="${{ vars.RESUME_MODEL_URL }}",RESUME_MODEL_TOKEN="${{ secrets.RESUME_MODEL_TOKEN }}",RESUME_MODEL_PROVIDER="${{ vars.RESUME_MODEL_PROVIDER }}",RESUME_MODEL_NAME="${{ vars.RESUME_MODEL_NAME }}" \
+            --set-secrets="${SECRETS}" \
+            --set-env-vars=RESUME_CONNECTION_URL="${{ vars.RESUME_CONNECTION_URL }}",RESUME_MODEL_SETTING_URL="${{ vars.RESUME_MODEL_SETTING_URL }}",RESUME_MODEL_ENVIRONMENT="${{ vars.RESUME_MODEL_ENVIRONMENT }}",RESUME_MODEL_URL="${{ vars.RESUME_MODEL_URL }}",RESUME_MODEL_TOKEN="${{ secrets.RESUME_MODEL_TOKEN }}",RESUME_MODEL_PROVIDER="${{ vars.RESUME_MODEL_PROVIDER }}",RESUME_MODEL_NAME="${{ vars.RESUME_MODEL_NAME }}" \
             --service-account=${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }} \
             --no-allow-unauthenticated \
             --quiet

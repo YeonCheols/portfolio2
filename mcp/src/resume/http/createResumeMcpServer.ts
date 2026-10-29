@@ -18,10 +18,13 @@ const sendJson = (res: ServerResponse, status: number, body: unknown): void => {
   res.end(JSON.stringify(body));
 };
 
+// 팩토리를 주면 MCP 요청마다 새 클라이언트를 만들어, 한 요청의 모델 호출이 같은 설정 스냅샷을 쓰게 한다
+export type ResumeModelSource = ResumeModelClient | (() => ResumeModelClient);
+
 export const createResumeMcpServer = (options: {
   token: string;
   connection: ResumeConnection;
-  model?: ResumeModelClient;
+  model?: ResumeModelSource;
   log?: (message: string) => void;
 }) =>
   http.createServer(async (req, res) => {
@@ -52,7 +55,7 @@ export const createResumeMcpServer = (options: {
       const response = await handleMcpRequest(
         JSON.parse(raw),
         options.connection,
-        options.model,
+        typeof options.model === "function" ? options.model() : options.model,
       );
       if (response === null) {
         res.writeHead(202);

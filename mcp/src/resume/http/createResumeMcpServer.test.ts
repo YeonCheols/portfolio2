@@ -122,6 +122,92 @@ describe("createResumeMcpServer", () => {
     }
   });
 
+  it("모델 팩토리는 MCP 요청마다 한 번 호출하고 그 요청의 모든 모델 호출이 같은 클라이언트를 쓴다", async () => {
+    const clients: { calls: string[] }[] = [];
+    const createModel = jest.fn(() => {
+      const client = { calls: [] as string[] };
+      clients.push(client);
+
+      return {
+        generate: async (input: { persona: string; prompt: string }) => {
+          client.calls.push(input.persona);
+          if (input.persona === resumeClaimVerifierPersona) {
+            return JSON.stringify({
+              reviews: [
+                {
+                  claimIndex: 0,
+                  status: "supported",
+                  evidence: [
+                    { sourceId: "profile-test", quote: "테스트 사용자" },
+                  ],
+                  reason: "이름이 원문에 있습니다",
+                },
+              ],
+            });
+          }
+          return JSON.stringify({
+            claims: [
+              { text: "테스트 사용자입니다", sourceIds: ["profile-test"] },
+            ],
+          });
+        },
+      };
+    });
+    const server = createResumeMcpServer({
+      token: "test-token",
+      connection: { load: async () => connectedResume() },
+      model: createModel,
+    });
+    await new Promise<void>((resolve) =>
+      server.listen(0, "127.0.0.1", resolve),
+    );
+    const address = server.address();
+    if (!address || typeof address === "string") {
+      throw new Error("port missing");
+    }
+    const generate = () =>
+      request(address.port, {
+        method: "POST",
+        path: "/mcp",
+        headers: {
+          authorization: "Bearer test-token",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 2,
+          method: "tools/call",
+          params: {
+            name: "generate_resume",
+            arguments: {
+              source: "embedded",
+              xml: validResumeXml,
+              template: "기본형",
+              elementIds: ["profile-test"],
+              sectionOrder: ["profile"],
+            },
+          },
+        }),
+      });
+
+    try {
+      const first = await generate();
+      const second = await generate();
+
+      expect(first.status).toBe(200);
+      expect(second.status).toBe(200);
+      expect(first.body).toContain("테스트 사용자입니다");
+      expect(createModel).toHaveBeenCalledTimes(2);
+      expect(clients).toHaveLength(2);
+      expect(clients[0].calls).toHaveLength(2);
+      expect(clients[1].calls).toHaveLength(2);
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        server.close((error) => (error ? reject(error) : resolve()));
+      });
+    }
+  });
+
   it("헬스 확인은 열고 인증 없는 도구 호출은 본문 없이 거부한다", async () => {
     const log = jest.fn();
     const server = createResumeMcpServer({
