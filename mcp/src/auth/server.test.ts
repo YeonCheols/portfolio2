@@ -35,10 +35,16 @@ const privateKeyPem = privateKey
 const get = (
   port: number,
   path: string,
-): Promise<{ status: number; body: string; location?: string }> =>
+  headers: Record<string, string> = {},
+): Promise<{
+  status: number;
+  body: string;
+  location?: string;
+  headers: http.IncomingHttpHeaders;
+}> =>
   new Promise((resolve, reject) => {
     http
-      .get({ hostname: "127.0.0.1", port, path }, (response) => {
+      .get({ hostname: "127.0.0.1", port, path, headers }, (response) => {
         const chunks: string[] = [];
         response.setEncoding("utf8");
         response.on("data", (chunk: string) => chunks.push(chunk));
@@ -47,6 +53,7 @@ const get = (
             status: response.statusCode ?? 0,
             body: chunks.join(""),
             location: response.headers.location,
+            headers: response.headers,
           }),
         );
       })
@@ -591,6 +598,276 @@ describe("MCP OAuth authorization server", () => {
     } finally {
       authorization.restoreFetch();
     }
+  });
+
+  it("웹 관리자 로그인을 기존 GitHub OAuth 앱으로 시작한다", async () => {
+    if (!server) throw new Error("server missing");
+    const address = server.address();
+    if (!address || typeof address === "string")
+      throw new Error("port missing");
+
+    const response = await get(address.port, "/admin/login");
+
+    expect(response.status).toBe(302);
+    const location = new URL(response.location ?? "");
+    expect(location.origin).toBe("https://github.com");
+    expect(location.pathname).toBe("/login/oauth/authorize");
+    expect(location.searchParams.get("client_id")).toBe(
+      "test-github-client-id",
+    );
+    expect(location.searchParams.get("redirect_uri")).toBe(
+      `${issuer}/github/callback`,
+    );
+    expect(location.searchParams.get("state")).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(response.headers["set-cookie"]?.[0]).toContain(
+      "__Host-mcp-admin-oauth=",
+    );
+    expect(response.headers["set-cookie"]?.[0]).toContain("HttpOnly");
+    expect(response.headers["set-cookie"]?.[0]).toContain("SameSite=Lax");
+  });
+
+  it("허용된 관리자 GitHub 콜백은 웹 세션용 일회성 코드로 연결한다", async () => {
+    if (!server) throw new Error("server missing");
+    const address = server.address();
+    if (!address || typeof address === "string")
+      throw new Error("port missing");
+    const login = await get(address.port, "/admin/login");
+    const state = new URL(login.location ?? "").searchParams.get("state");
+    const cookie = login.headers["set-cookie"]?.[0]?.split(";")[0];
+    const originalFetch = Object.getOwnPropertyDescriptor(globalThis, "fetch");
+    Object.defineProperty(globalThis, "fetch", {
+      configurable: true,
+      value: jest
+        .fn()
+        .mockResolvedValueOnce(mockResponse({ access_token: "github-token" }))
+        .mockResolvedValueOnce(mockResponse({ id: 91575756 })),
+    });
+
+    try {
+      const callback = await get(
+        address.port,
+        `/github/callback?${new URLSearchParams({ code: "github-code", state: state ?? "" })}`,
+        { cookie },
+      );
+      const destination = new URL(callback.location ?? "");
+
+      expect(callback.status).toBe(302);
+      expect(destination.origin).toBe(issuer);
+      expect(destination.pathname).toBe("/admin/callback");
+      expect(destination.searchParams.get("code")).toMatch(
+        /^[A-Za-z0-9_-]{43}$/,
+      );
+      expect(callback.location).not.toContain("github-token");
+    } finally {
+      if (originalFetch) {
+        Object.defineProperty(globalThis, "fetch", originalFetch);
+      } else {
+        Reflect.deleteProperty(globalThis, "fetch");
+      }
+    }
+  });
+
+  it("관리자 세션 콜백은 1시간짜리 HttpOnly 쿠키를 발급하고 관리화면을 보호한다", async () => {
+    if (!server) throw new Error("server missing");
+    const address = server.address();
+    if (!address || typeof address === "string")
+      throw new Error("port missing");
+    const login = await get(address.port, "/admin/login");
+    const state = new URL(login.location ?? "").searchParams.get("state");
+    const stateCookie = login.headers["set-cookie"]?.[0]?.split(";")[0];
+    const originalFetch = Object.getOwnPropertyDescriptor(globalThis, "fetch");
+    Object.defineProperty(globalThis, "fetch", {
+      configurable: true,
+      value: jest
+        .fn()
+        .mockResolvedValueOnce(mockResponse({ access_token: "github-token" }))
+        .mockResolvedValueOnce(mockResponse({ id: 91575756 })),
+    });
+
+    try {
+      const callback = await get(
+        address.port,
+        `/github/callback?${new URLSearchParams({ code: "github-code", state: state ?? "" })}`,
+        { cookie: stateCookie ?? "" },
+      );
+      const code = new URL(callback.location ?? "").searchParams.get("code");
+      const session = await get(
+        address.port,
+        `/admin/callback?${new URLSearchParams({ code: code ?? "" })}`,
+      );
+      const sessionCookie = session.headers["set-cookie"]?.[0] ?? "";
+      const token = sessionCookie.match(
+        /^__Secure-mcp-admin-session=([^;]+)/,
+      )?.[1];
+
+      expect(session.status).toBe(303);
+      expect(session.headers.location).toBe(`${issuer}/admin`);
+      expect(sessionCookie).toContain("HttpOnly");
+      expect(sessionCookie).toContain("Secure");
+      expect(sessionCookie).toContain("SameSite=Lax");
+      expect(sessionCookie).toContain("Path=/admin");
+      expect(sessionCookie).toContain("Max-Age=3600");
+      expect(token).toBeTruthy();
+
+      const [encodedHeader, encodedClaims, encodedSignature] = (
+        token ?? ""
+      ).split(".");
+      const claims = JSON.parse(base64UrlText(encodedClaims)) as {
+        aud: string;
+        exp: number;
+        iat: number;
+        scope: string;
+        sub: string;
+      };
+      expect(claims).toMatchObject({
+        aud: `${issuer}/admin`,
+        scope: "resume:admin",
+        sub: "91575756",
+      });
+      expect(claims.exp - claims.iat).toBe(3600);
+      expect(
+        verify(
+          "RSA-SHA256",
+          asciiBytes(`${encodedHeader}.${encodedClaims}`),
+          publicKey,
+          base64UrlBytes(encodedSignature),
+        ),
+      ).toBe(true);
+
+      const page = await get(address.port, "/admin", {
+        cookie: `__Secure-mcp-admin-session=${token}`,
+      });
+      expect(page.status).toBe(200);
+      expect(page.body).toContain("AI 모델 설정 관리");
+      expect(page.body).toContain("관리자 인증을 완료했습니다");
+      expect(page.headers["cache-control"]).toBe("no-store");
+
+      const replay = await get(
+        address.port,
+        `/admin/callback?${new URLSearchParams({ code: code ?? "" })}`,
+      );
+      expect(replay.status).toBe(302);
+      expect(replay.headers.location).toBe(
+        `${issuer}/admin?error=invalid_callback`,
+      );
+      expect(replay.headers["set-cookie"]).toBeUndefined();
+    } finally {
+      if (originalFetch) {
+        Object.defineProperty(globalThis, "fetch", originalFetch);
+      } else {
+        Reflect.deleteProperty(globalThis, "fetch");
+      }
+    }
+  });
+
+  it("관리자 계정 파일에 없는 GitHub ID에는 웹 세션을 발급하지 않는다", async () => {
+    if (!server) throw new Error("server missing");
+    const address = server.address();
+    if (!address || typeof address === "string")
+      throw new Error("port missing");
+    process.env.MCP_AUTHORIZED_GITHUB_USER_IDS = "91575756,12345678";
+    const login = await get(address.port, "/admin/login");
+    const state = new URL(login.location ?? "").searchParams.get("state");
+    const stateCookie = login.headers["set-cookie"]?.[0]?.split(";")[0];
+    const originalFetch = Object.getOwnPropertyDescriptor(globalThis, "fetch");
+    Object.defineProperty(globalThis, "fetch", {
+      configurable: true,
+      value: jest
+        .fn()
+        .mockResolvedValueOnce(mockResponse({ access_token: "github-token" }))
+        .mockResolvedValueOnce(mockResponse({ id: 12345678 })),
+    });
+
+    try {
+      const callback = await get(
+        address.port,
+        `/github/callback?${new URLSearchParams({ code: "github-code", state: state ?? "" })}`,
+        { cookie: stateCookie ?? "" },
+      );
+
+      expect(callback.status).toBe(302);
+      expect(callback.headers.location).toBe(
+        `${issuer}/admin?error=access_denied`,
+      );
+      expect(callback.headers["set-cookie"]?.[0]).toContain("Max-Age=0");
+    } finally {
+      if (originalFetch) {
+        Object.defineProperty(globalThis, "fetch", originalFetch);
+      } else {
+        Reflect.deleteProperty(globalThis, "fetch");
+      }
+    }
+  });
+
+  it("관리자 GitHub 콜백은 시작 요청의 HttpOnly state 쿠키를 요구한다", async () => {
+    if (!server) throw new Error("server missing");
+    const address = server.address();
+    if (!address || typeof address === "string")
+      throw new Error("port missing");
+    const login = await get(address.port, "/admin/login");
+    const state = new URL(login.location ?? "").searchParams.get("state");
+
+    const callback = await get(
+      address.port,
+      `/github/callback?${new URLSearchParams({ code: "github-code", state: state ?? "" })}`,
+    );
+
+    expect(callback.status).toBe(400);
+    expect(callback.body).toContain('"error":"invalid_admin_login_state"');
+  });
+
+  it("관리자 세션 로그아웃은 세션 쿠키를 폐기한다", async () => {
+    if (!server) throw new Error("server missing");
+    const address = server.address();
+    if (!address || typeof address === "string")
+      throw new Error("port missing");
+
+    const response = await new Promise<{
+      status: number;
+      headers: http.IncomingHttpHeaders;
+    }>((resolve, reject) => {
+      const request = http.request(
+        {
+          hostname: "127.0.0.1",
+          port: address.port,
+          path: "/admin/logout",
+          method: "POST",
+        },
+        (result) => {
+          result.resume();
+          result.on("end", () =>
+            resolve({
+              status: result.statusCode ?? 0,
+              headers: result.headers,
+            }),
+          );
+        },
+      );
+      request.on("error", reject);
+      request.end();
+    });
+
+    expect(response.status).toBe(303);
+    expect(response.headers.location).toBe(`${issuer}/admin`);
+    expect(response.headers["set-cookie"]?.[0]).toContain(
+      "__Secure-mcp-admin-session=;",
+    );
+    expect(response.headers["set-cookie"]?.[0]).toContain("Path=/admin");
+    expect(response.headers["set-cookie"]?.[0]).toContain("Max-Age=0");
+  });
+
+  it("유효한 관리자 세션이 없으면 설정 관리 화면 대신 로그인 화면을 표시한다", async () => {
+    if (!server) throw new Error("server missing");
+    const address = server.address();
+    if (!address || typeof address === "string")
+      throw new Error("port missing");
+
+    const response = await get(address.port, "/admin");
+
+    expect(response.status).toBe(200);
+    expect(response.body).toContain("MCP 관리자 로그인");
+    expect(response.body).toContain('href="/admin/login"');
+    expect(response.body).not.toContain("설정 API 연결은 별도 인증 구현 후");
   });
 });
 

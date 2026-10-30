@@ -11,9 +11,13 @@ MCP client ── OAuth 2.1 + PKCE ──> portfolio-mcp-oauth-auth
     └── Bearer access token ──> portfolio-mcp-oauth-gateway
                                     │ issuer·audience·scope·서명 검증(JWKS)
                                     └── Cloud Run ID token + 내부 MCP token ──> 비공개 portfolio-mcp
+
+Browser ── GitHub OAuth ──> portfolio-mcp-oauth-auth /admin
+    │                         │ 관리자 GitHub ID allowlist 확인
+    └── 1시간 HttpOnly 세션 쿠키 ──> /admin 관리 화면
 ```
 
-인증서버는 GitHub access token을 서버 내부에서 사용자 확인에만 사용하고, MCP client나 게이트웨이에 전달하거나 저장하지 않습니다. 허용된 GitHub 사용자만 `resume:use` scope의 MCP access token을 받습니다. 사용자 DB, 관리 UI, refresh token은 현재 범위에 포함하지 않습니다.
+인증서버는 GitHub access token을 서버 내부에서 사용자 확인에만 사용하고, MCP client나 게이트웨이에 전달하거나 저장하지 않습니다. 허용된 GitHub 사용자는 `resume:use` scope의 MCP access token을 받습니다. 관리자 웹 로그인은 별도 GitHub ID allowlist로 검사하고 1시간 유효한 `resume:admin` 세션을 보호된 HttpOnly 쿠키로 발급합니다. 현재 `/admin`은 인증 경계와 안내 화면이며 portfolio-api 모델 설정 CRUD 연결은 포함하지 않습니다.
 
 ## OAuth 흐름
 
@@ -23,6 +27,8 @@ MCP client ── OAuth 2.1 + PKCE ──> portfolio-mcp-oauth-auth
 4. `/github/callback`이 GitHub code를 서버 측에서 교환하고 GitHub `/user`의 숫자 ID를 허용목록과 비교합니다. 허용된 경우에만 client redirect URI로 짧은 수명의 authorization code를 돌려보냅니다.
 5. client가 PKCE verifier를 `/token`에 제출하면 인증서버가 MCP resource용 RS256 access token을 발급합니다.
 6. 게이트웨이는 인증서버 JWKS의 키로 토큰 서명, issuer, audience, 만료 및 scope를 검증합니다. 통과한 요청만 비공개 `portfolio-mcp`로 전달합니다.
+
+웹 관리자는 인증서버의 `/admin/login`에서 같은 GitHub OAuth App 로그인을 시작합니다. 기존 GitHub App callback(`/github/callback`)에서 관리자 GitHub ID를 확인한 뒤 짧은 수명의 일회용 코드를 `/admin/callback`으로 전달합니다. `/admin/callback`은 코드를 한 번만 사용해 1시간 유효한 세션 쿠키를 발급하고 `/admin`으로 이동합니다. 로그인 state와 일회용 코드는 인증서버 메모리에만 보관하며, 세션 쿠키는 `HttpOnly`, `Secure`, `SameSite=Lax`로 설정합니다. OAuth 로그인과 세션 발급 경계는 재사용하되 MCP client용 access token을 브라우저에 전달하지 않습니다.
 
 메타데이터 경로는 `/.well-known/oauth-authorization-server`, 공개 키는 `/.well-known/jwks.json`, 헬스체크는 `/health`입니다. 게이트웨이는 `/.well-known/oauth-protected-resource/mcp`에 보호 리소스 metadata를 제공합니다.
 
@@ -66,6 +72,8 @@ Secret Manager secrets:
 | `MCP_OAUTH_SIGNING_PRIVATE_KEY` | 인증서버 런타임 계정   | MCP access token 서명용 PKCS#8 RSA private key |
 | `MCP_AUTH_TOKEN`                | 게이트웨이 런타임 계정 | 기존 MCP 내부 bearer token                     |
 | `RESUME_CONNECTION_TOKEN`       | 기존 MCP 런타임 계정   | 기존 이력서 연결 기능                          |
+
+관리자 웹 허용 계정은 `src/auth/adminGithubUsers.ts`에서 별도 관리합니다. MCP 사용 허용 목록과 관리자 설정 권한 목록은 서로 독립적이며, 관리화면 로그인은 관리자 목록에 등록된 숫자 GitHub ID만 허용합니다.
 
 인증서버 전용 서비스 계정은 위 두 인증서버 secret만 읽습니다. 게이트웨이 전용 서비스 계정은 `MCP_AUTH_TOKEN`과 비공개 MCP 호출 권한만 갖습니다. 두 계정을 하나로 합치지 않습니다. 런타임 계정의 Secret IAM 바인딩은 GCP에서 사전 설정하며, 반복 배포 권한에는 Secret IAM 정책 변경 권한을 포함하지 않습니다. Cloud Run 인증서버와 게이트웨이는 공개 OAuth 요청을 받아야 하므로 unauthenticated ingress로 배포하며, 실제 MCP 서비스는 비공개로 유지합니다.
 

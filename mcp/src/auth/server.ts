@@ -6,9 +6,12 @@ import {
   randomBytes,
   sign,
   timingSafeEqual,
+  verify,
   type JsonWebKey,
 } from "crypto";
 import http, { type IncomingMessage, type ServerResponse } from "http";
+
+import { isAdminGithubUser } from "@mcp/auth/adminGithubUsers";
 
 const requiredEnv = (name: string): string => {
   const value = process.env[name]?.trim();
@@ -92,6 +95,20 @@ type PendingAuthorization = {
   expiresAt: number;
 };
 type AuthorizationCode = PendingAuthorization & { subject: string };
+type AdminSessionCode = { subject: string; expiresAt: number };
+
+const readCookie = (req: IncomingMessage, name: string): string | null => {
+  const cookieHeader = req.headers.cookie;
+  if (!cookieHeader) return null;
+  for (const cookie of cookieHeader.split(";")) {
+    const [key, ...parts] = cookie.trim().split("=");
+    if (key === name) return parts.join("=") || null;
+  }
+  return null;
+};
+
+const adminLoginCookie = "__Host-mcp-admin-oauth";
+const adminSessionCookie = "__Secure-mcp-admin-session";
 
 const validGrantTypes = (value: unknown): boolean => {
   if (value === undefined) return true;
@@ -233,12 +250,155 @@ export const startMcpOAuthAuthorizationServer = () => {
   const signingKey = createSigningKey(privateKey);
   const clients = createClientIdCodec(privateKey);
   const pendingAuthorizations = new Map<string, PendingAuthorization>();
+  const pendingAdminLogins = new Map<string, number>();
   const authorizationCodes = new Map<string, AuthorizationCode>();
+  const adminSessionCodes = new Map<string, AdminSessionCode>();
+  const verifyAdminSession = (token: string): string | null => {
+    try {
+      const [encodedHeader, encodedClaims, encodedSignature, extra] =
+        token.split(".");
+      if (!encodedHeader || !encodedClaims || !encodedSignature || extra)
+        return null;
+      const header = JSON.parse(
+        Buffer.from(encodedHeader, "base64url").toString("utf8"),
+      ) as { alg?: string; kid?: string };
+      const claims = JSON.parse(
+        Buffer.from(encodedClaims, "base64url").toString("utf8"),
+      ) as {
+        aud?: unknown;
+        exp?: unknown;
+        iat?: unknown;
+        iss?: unknown;
+        scope?: unknown;
+        sub?: unknown;
+      };
+      const validSignature = verify(
+        "RSA-SHA256",
+        Buffer.from(`${encodedHeader}.${encodedClaims}`),
+        createPublicKey(privateKey.replace(/\\n/g, "\n")),
+        Buffer.from(encodedSignature, "base64url"),
+      );
+      const now = Math.floor(Date.now() / 1000);
+      if (
+        !validSignature ||
+        header.alg !== "RS256" ||
+        header.kid !== signingKey.kid ||
+        claims.iss !== issuer ||
+        claims.aud !== `${issuer}/admin` ||
+        typeof claims.exp !== "number" ||
+        claims.exp <= now ||
+        typeof claims.iat !== "number" ||
+        claims.iat > now + 60 ||
+        claims.scope !== "resume:admin" ||
+        typeof claims.sub !== "string" ||
+        !isAdminGithubUser(claims.sub)
+      ) {
+        return null;
+      }
+      return claims.sub;
+    } catch {
+      return null;
+    }
+  };
   const server = http.createServer(
     (req: IncomingMessage, res: ServerResponse) => {
       const path = req.url?.split("?")[0];
       if (req.method === "GET" && path === "/health") {
         sendJson(res, 200, { ok: true });
+        return;
+      }
+      if (req.method === "GET" && path === "/admin/login") {
+        const state = randomBytes(32).toString("base64url");
+        pendingAdminLogins.set(state, Date.now() + 10 * 60 * 1000);
+        const githubAuthorizationUrl = new URL(
+          "https://github.com/login/oauth/authorize",
+        );
+        githubAuthorizationUrl.searchParams.set("client_id", githubClientId);
+        githubAuthorizationUrl.searchParams.set(
+          "redirect_uri",
+          `${issuer}/github/callback`,
+        );
+        githubAuthorizationUrl.searchParams.set("scope", "read:user");
+        githubAuthorizationUrl.searchParams.set("state", state);
+        res.writeHead(302, {
+          location: githubAuthorizationUrl.toString(),
+          "cache-control": "no-store",
+          "referrer-policy": "no-referrer",
+          "set-cookie": `__Host-mcp-admin-oauth=${state}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=600`,
+        });
+        res.end();
+        return;
+      }
+      if (req.method === "GET" && path === "/admin/callback") {
+        const url = new URL(req.url ?? "/admin/callback", issuer);
+        const code = url.searchParams.get("code") ?? "";
+        const authorization = adminSessionCodes.get(code);
+        adminSessionCodes.delete(code);
+        if (!authorization || authorization.expiresAt <= Date.now()) {
+          res.writeHead(302, {
+            location: `${issuer}/admin?error=invalid_callback`,
+            "cache-control": "no-store",
+            "referrer-policy": "no-referrer",
+          });
+          res.end();
+          return;
+        }
+        const now = Math.floor(Date.now() / 1000);
+        const encodedHeader = Buffer.from(
+          JSON.stringify({ alg: "RS256", typ: "JWT", kid: signingKey.kid }),
+        ).toString("base64url");
+        const encodedClaims = Buffer.from(
+          JSON.stringify({
+            iss: issuer,
+            sub: authorization.subject,
+            aud: `${issuer}/admin`,
+            iat: now,
+            exp: now + 3600,
+            scope: "resume:admin",
+          }),
+        ).toString("base64url");
+        const signingInput = `${encodedHeader}.${encodedClaims}`;
+        const signature = sign(
+          "RSA-SHA256",
+          Buffer.from(signingInput),
+          createPrivateKey(privateKey.replace(/\\n/g, "\n")),
+        ).toString("base64url");
+        const sessionToken = `${signingInput}.${signature}`;
+        res.writeHead(303, {
+          location: `${issuer}/admin`,
+          "cache-control": "no-store",
+          "referrer-policy": "no-referrer",
+          "set-cookie": `${adminSessionCookie}=${sessionToken}; Path=/admin; HttpOnly; Secure; SameSite=Lax; Max-Age=3600`,
+        });
+        res.end();
+        return;
+      }
+      if (req.method === "GET" && path === "/admin") {
+        const userId = verifyAdminSession(
+          readCookie(req, adminSessionCookie) ?? "",
+        );
+        const authenticatedContent = userId
+          ? `<h1>AI 모델 설정 관리</h1><p>관리자 인증을 완료했습니다. 설정 API 연결은 별도 인증 구현 후 사용할 수 있습니다.</p><form action="/admin/logout" method="post"><button type="submit">로그아웃</button></form>`
+          : `<h1>MCP 관리자 로그인</h1><p>허용된 GitHub 계정으로 인증해야 관리화면을 이용할 수 있습니다.</p><a href="/admin/login">GitHub로 로그인</a>`;
+        res.writeHead(200, {
+          "cache-control": "no-store",
+          "content-security-policy":
+            "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
+          "content-type": "text/html; charset=utf-8",
+          "x-content-type-options": "nosniff",
+        });
+        res.end(
+          `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>MCP 관리자</title></head><body>${authenticatedContent}</body></html>`,
+        );
+        return;
+      }
+      if (req.method === "POST" && path === "/admin/logout") {
+        res.writeHead(303, {
+          location: `${issuer}/admin`,
+          "cache-control": "no-store",
+          "set-cookie": `${adminSessionCookie}=; Path=/admin; HttpOnly; Secure; SameSite=Lax; Max-Age=0`,
+        });
+        res.end();
         return;
       }
       if (
@@ -372,13 +532,43 @@ export const startMcpOAuthAuthorizationServer = () => {
         const url = new URL(req.url ?? "/github/callback", issuer);
         const state = url.searchParams.get("state") ?? "";
         const pending = pendingAuthorizations.get(state);
-        if (!pending || pending.expiresAt <= Date.now()) {
+        const isAdminLogin = pendingAdminLogins.has(state);
+        const adminLoginExpiresAt = pendingAdminLogins.get(state);
+        if (
+          (!pending || pending.expiresAt <= Date.now()) &&
+          (!isAdminLogin ||
+            adminLoginExpiresAt === undefined ||
+            adminLoginExpiresAt <= Date.now())
+        ) {
           pendingAuthorizations.delete(state);
+          pendingAdminLogins.delete(state);
           sendJson(res, 400, { error: "invalid_authorization_state" });
           return;
         }
-        pendingAuthorizations.delete(state);
+        if (isAdminLogin) {
+          pendingAdminLogins.delete(state);
+          if (readCookie(req, adminLoginCookie) !== state) {
+            sendJson(res, 400, { error: "invalid_admin_login_state" });
+            return;
+          }
+        } else {
+          pendingAuthorizations.delete(state);
+        }
         if (url.searchParams.has("error") || !url.searchParams.get("code")) {
+          if (isAdminLogin) {
+            res.writeHead(302, {
+              location: `${issuer}/admin?error=access_denied`,
+              "cache-control": "no-store",
+              "referrer-policy": "no-referrer",
+              "set-cookie": `${adminLoginCookie}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`,
+            });
+            res.end();
+            return;
+          }
+          if (!pending) {
+            sendJson(res, 400, { error: "invalid_authorization_state" });
+            return;
+          }
           redirectToClient(res, pending, { error: "access_denied" }, issuer);
           return;
         }
@@ -428,7 +618,41 @@ export const startMcpOAuthAuthorizationServer = () => {
               return;
             }
             const subject = String(profile.id);
+            if (isAdminLogin) {
+              const clearStateCookie = `${adminLoginCookie}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`;
+              if (!isAdminGithubUser(subject)) {
+                res.writeHead(302, {
+                  location: `${issuer}/admin?error=access_denied`,
+                  "cache-control": "no-store",
+                  "referrer-policy": "no-referrer",
+                  "set-cookie": clearStateCookie,
+                });
+                res.end();
+                return;
+              }
+              const now = Date.now();
+              for (const [key, value] of adminSessionCodes) {
+                if (value.expiresAt <= now) adminSessionCodes.delete(key);
+              }
+              const code = randomBytes(32).toString("base64url");
+              adminSessionCodes.set(code, {
+                subject,
+                expiresAt: now + 60 * 1000,
+              });
+              res.writeHead(302, {
+                location: `${issuer}/admin/callback?${new URLSearchParams({ code })}`,
+                "cache-control": "no-store",
+                "referrer-policy": "no-referrer",
+                "set-cookie": clearStateCookie,
+              });
+              res.end();
+              return;
+            }
             if (!authorizedUserIds.has(subject)) {
+              if (!pending) {
+                sendJson(res, 400, { error: "invalid_authorization_state" });
+                return;
+              }
               redirectToClient(
                 res,
                 pending,
@@ -442,6 +666,10 @@ export const startMcpOAuthAuthorizationServer = () => {
               if (value.expiresAt <= now) authorizationCodes.delete(key);
             }
             const authorizationCode = randomBytes(32).toString("base64url");
+            if (!pending) {
+              sendJson(res, 400, { error: "invalid_authorization_state" });
+              return;
+            }
             authorizationCodes.set(authorizationCode, {
               ...pending,
               subject,
