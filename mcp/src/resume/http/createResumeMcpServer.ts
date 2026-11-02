@@ -3,6 +3,7 @@ import http, { type IncomingMessage, type ServerResponse } from "http";
 import type { PortfolioAdminApi } from "@mcp/auth/adminApi";
 import type { createPortfolioAdminOAuth } from "@mcp/auth/adminOAuth";
 import { handleAdminRequest } from "@mcp/auth/adminRoutes";
+import type { IntrospectedSession } from "@mcp/resume/http/portfolioApiIntrospector";
 
 import type { ResumeModelClient } from "@mcp/resume/output/runResumeHarness";
 import { handleMcpRequest } from "@mcp/resume/tools/handleMcpRequest";
@@ -56,12 +57,18 @@ export const createResumeMcpServer = (options: {
     publicUrl: string;
     oauthResource: string;
     authorizationOrigin: string;
-    introspect: (token: string) => Promise<boolean>;
+    introspect: (token: string) => Promise<IntrospectedSession>;
   };
   log?: (message: string) => void;
 }) =>
   http.createServer(async (req, res) => {
-    if (options.admin && (await handleAdminRequest(req, res, options.admin))) {
+    if (
+      options.admin &&
+      (await handleAdminRequest(req, res, {
+        ...options.admin,
+        log: options.log,
+      }))
+    ) {
       return;
     }
     const url = req.url?.split("?")[0];

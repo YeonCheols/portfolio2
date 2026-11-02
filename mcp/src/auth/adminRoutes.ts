@@ -4,6 +4,7 @@ import { extname, join } from "path";
 
 import type { PortfolioAdminApi } from "@mcp/auth/adminApi";
 import type { createPortfolioAdminOAuth } from "@mcp/auth/adminOAuth";
+import type { IntrospectedSession } from "@mcp/resume/http/portfolioApiIntrospector";
 
 const cookieName = "__Host-portfolio-admin-session";
 const oauthCookieName = "__Host-portfolio-admin-oauth-state";
@@ -109,6 +110,10 @@ const assetContentTypes: Record<string, string> = {
   ".css": "text/css; charset=utf-8",
 };
 
+// sub는 외부 응답 값이라 줄바꿈 등으로 로그 줄을 위조하지 못하도록 안전한 문자만 허용한다
+const logSubject = (sub: string | undefined): string =>
+  sub !== undefined && /^[A-Za-z0-9_-]{1,64}$/.test(sub) ? sub : "unknown";
+
 const readApiPath = (pathname: string): string | null => {
   if (pathname === "/admin/ai-models/api/settings") {
     return "/service/resume-model-setting";
@@ -130,7 +135,8 @@ export const handleAdminRequest = async (
     publicUrl: string;
     oauthResource: string;
     authorizationOrigin: string;
-    introspect: (token: string) => Promise<boolean>;
+    introspect: (token: string) => Promise<IntrospectedSession>;
+    log?: (message: string) => void;
     appRoot?: string;
   },
 ): Promise<boolean> => {
@@ -253,15 +259,15 @@ export const handleAdminRequest = async (
       redirect(res, "/admin/ai-models/connect");
       return true;
     }
-    let active: boolean;
+    let session: IntrospectedSession;
     try {
-      active = await options.introspect(token);
+      session = await options.introspect(token);
     } catch {
       // 확인 호출이 실패한 것이지 세션이 무효인 것이 아니므로 로그아웃시키지 않는다
       sendJson(res, 503, { ok: false, code: "AUTH_UNAVAILABLE" });
       return true;
     }
-    if (!active) {
+    if (!session.active) {
       redirect(
         res,
         "/admin/ai-models/connect",
@@ -299,14 +305,14 @@ export const handleAdminRequest = async (
       sendJson(res, 405, { ok: false, code: "METHOD_NOT_ALLOWED" });
       return true;
     }
-    let active: boolean;
+    let session: IntrospectedSession;
     try {
-      active = await options.introspect(token);
+      session = await options.introspect(token);
     } catch {
       sendJson(res, 503, { ok: false, code: "AUTH_UNAVAILABLE" });
       return true;
     }
-    if (!active) {
+    if (!session.active) {
       sendJson(res, 401, { ok: false, code: "UNAUTHORIZED" });
       return true;
     }
@@ -319,10 +325,20 @@ export const handleAdminRequest = async (
         method,
         ...(body ? { body } : {}),
       });
+      if (mutating) {
+        options.log?.(
+          `ADMIN_SETTING_CHANGE sub=${logSubject(session.sub)} method=${method} path=${apiPath} result=ok`,
+        );
+      }
       sendJson(res, 200, value);
     } catch (error) {
       const tooLarge =
         error instanceof Error && error.message === "BODY_TOO_LARGE";
+      if (mutating) {
+        options.log?.(
+          `ADMIN_SETTING_CHANGE sub=${logSubject(session.sub)} method=${method} path=${apiPath} result=failed`,
+        );
+      }
       // 세션은 위에서 확인했으므로 여기서의 실패는 요청 크기 또는 portfolio-api 쪽 문제다
       sendJson(res, tooLarge ? 413 : 502, {
         ok: false,

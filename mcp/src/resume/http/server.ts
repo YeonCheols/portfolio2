@@ -9,11 +9,15 @@ import {
 import { fetchResumeModelText } from "@mcp/resume/connection/resumeModelConnection";
 import { fetchActiveResumeModelSetting } from "@mcp/resume/connection/resumeModelSetting";
 import { accessSecret } from "@mcp/resume/connection/secretManager";
+import { withSessionCache } from "@mcp/resume/http/cachedSessionIntrospector";
 import {
   createResumeMcpServer,
   type ResumeModelSource,
 } from "@mcp/resume/http/createResumeMcpServer";
-import { createPortfolioApiIntrospector } from "@mcp/resume/http/portfolioApiIntrospector";
+import {
+  createPortfolioApiIntrospector,
+  createPortfolioApiSessionIntrospector,
+} from "@mcp/resume/http/portfolioApiIntrospector";
 import type { ResumeModelClient } from "@mcp/resume/output/runResumeHarness";
 
 const resumeModelConnections = {
@@ -160,15 +164,22 @@ export const startResumeMcpServer = () => {
     process.env.PORTFOLIO_API_AUTH_ISSUER?.trim() || `${portfolioApiUrl}/auth`;
   new URL(publicUrl);
   new URL(authorizationServer);
-  const introspect = createPortfolioApiIntrospector({
+  const introspectOptions = {
     apiUrl: portfolioApiUrl,
     serviceToken: process.env.MCP_AUTH_SERVICE_TOKEN ?? "",
-  });
+  };
+  const introspect = createPortfolioApiIntrospector(introspectOptions);
+  // 관리 화면은 활성 결과만 30초 캐시한다. /mcp 도구 요청은 폐기를 즉시 반영하도록 캐시하지 않는다
+  const introspectSession = withSessionCache(
+    createPortfolioApiSessionIntrospector(introspectOptions),
+    { ttlMs: 30_000 },
+  );
 
   const port = Number(process.env.PORT ?? 8080);
 
   return createResumeMcpServer({
     introspect,
+    log: (message) => console.log(message),
     protectedResourceMetadata: {
       resource: publicUrl,
       authorization_servers: [authorizationServer],
@@ -184,7 +195,7 @@ export const startResumeMcpServer = () => {
         baseUrl: portfolioApiUrl,
         serviceToken: process.env.MCP_AUTH_SERVICE_TOKEN ?? "",
       }),
-      introspect,
+      introspect: introspectSession,
       oauth: createPortfolioAdminOAuth({ issuer: authorizationServer }),
       publicUrl,
       oauthResource:

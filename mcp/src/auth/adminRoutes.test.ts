@@ -5,6 +5,7 @@ import { join } from "path";
 
 import { createPortfolioAdminApi } from "@mcp/auth/adminApi";
 import { handleAdminRequest } from "@mcp/auth/adminRoutes";
+import type { IntrospectedSession } from "@mcp/resume/http/portfolioApiIntrospector";
 
 const request = (
   port: number,
@@ -89,9 +90,10 @@ describe("portfolio-api 관리자 라우트", () => {
     fetchImpl: typeof fetch,
     oauth = defaultOAuth,
     root = appRoot,
-    introspect: (token: string) => Promise<boolean> = jest
+    introspect: (token: string) => Promise<IntrospectedSession> = jest
       .fn()
-      .mockResolvedValue(true),
+      .mockResolvedValue({ active: true, sub: "7" }),
+    log?: (message: string) => void,
   ) =>
     http.createServer((req, res) => {
       handleAdminRequest(req, res, {
@@ -101,6 +103,7 @@ describe("portfolio-api 관리자 라우트", () => {
           fetchImpl,
         }),
         introspect,
+        log,
         oauth,
         publicUrl: "https://mcp.example.test/mcp",
         oauthResource: "https://mcp.example.test/mcp",
@@ -405,7 +408,7 @@ describe("portfolio-api 관리자 라우트", () => {
   });
 
   it("인증된 대시보드는 세션 토큰을 introspect로 확인하고 동일 출처 설정 API 요청을 허용한다", async () => {
-    const introspect = jest.fn().mockResolvedValue(true);
+    const introspect = jest.fn().mockResolvedValue({ active: true, sub: "7" });
     const server = createServer(jest.fn(), defaultOAuth, appRoot, introspect);
     await new Promise<void>((resolve) =>
       server.listen(0, "127.0.0.1", resolve),
@@ -453,7 +456,7 @@ describe("portfolio-api 관리자 라우트", () => {
   });
 
   it("비활성 세션 토큰은 로그인으로 보내고 쿠키를 지운다", async () => {
-    const introspect = jest.fn().mockResolvedValue(false);
+    const introspect = jest.fn().mockResolvedValue({ active: false });
     const server = createServer(jest.fn(), defaultOAuth, appRoot, introspect);
     await new Promise<void>((resolve) =>
       server.listen(0, "127.0.0.1", resolve),
@@ -478,7 +481,7 @@ describe("portfolio-api 관리자 라우트", () => {
     const fetchImpl = jest
       .fn()
       .mockResolvedValue({ ok: true, status: 200, json: async () => [] });
-    const introspect = jest.fn().mockResolvedValue(true);
+    const introspect = jest.fn().mockResolvedValue({ active: true, sub: "7" });
     const server = createServer(fetchImpl, defaultOAuth, appRoot, introspect);
     await new Promise<void>((resolve) =>
       server.listen(0, "127.0.0.1", resolve),
@@ -558,7 +561,7 @@ describe("portfolio-api 관리자 라우트", () => {
 
   it("비활성 세션의 프록시 요청은 401로 거절하고 portfolio-api를 호출하지 않는다", async () => {
     const fetchImpl = jest.fn();
-    const introspect = jest.fn().mockResolvedValue(false);
+    const introspect = jest.fn().mockResolvedValue({ active: false });
     const server = createServer(fetchImpl, defaultOAuth, appRoot, introspect);
     await new Promise<void>((resolve) =>
       server.listen(0, "127.0.0.1", resolve),
@@ -627,6 +630,133 @@ describe("portfolio-api 관리자 라우트", () => {
       ]);
       expect(fetchImpl.mock.calls[0][1].body).toBe(payload);
       expect(JSON.stringify(fetchImpl.mock.calls)).not.toContain("api-jwt");
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
+  });
+
+  it("설정을 바꾸는 요청이 성공하면 변경자 sub와 요청 정보를 로그로 남기고 토큰·본문은 남기지 않는다", async () => {
+    const fetchImpl = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ id: 3 }),
+    });
+    const log = jest.fn();
+    const server = createServer(
+      fetchImpl,
+      defaultOAuth,
+      appRoot,
+      jest.fn().mockResolvedValue({ active: true, sub: "7" }),
+      log,
+    );
+    await new Promise<void>((resolve) =>
+      server.listen(0, "127.0.0.1", resolve),
+    );
+    const port = (server.address() as { port: number }).port;
+    try {
+      await request(port, "/admin/ai-models/api/settings/3", {
+        method: "PUT",
+        body: JSON.stringify({ modelName: "secret-model-name" }),
+        headers: {
+          cookie: "__Host-portfolio-admin-session=api-jwt",
+          origin: "https://mcp.example.test",
+          "content-type": "application/json",
+        },
+      });
+
+      expect(log).toHaveBeenCalledTimes(1);
+      const line = log.mock.calls[0][0] as string;
+      expect(line).toContain("ADMIN_SETTING_CHANGE");
+      expect(line).toContain("sub=7");
+      expect(line).toContain("method=PUT");
+      expect(line).toContain("path=/service/resume-model-setting/3");
+      expect(line).toContain("result=ok");
+      expect(line).not.toContain("api-jwt");
+      expect(line).not.toContain("secret-model-name");
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
+  });
+
+  it("portfolio-api 호출이 실패한 변경 시도도 로그로 남기고 읽기 요청은 남기지 않는다", async () => {
+    const fetchImpl = jest.fn().mockResolvedValue({
+      ok: false,
+      status: 500,
+      json: async () => ({ message: "internal" }),
+    });
+    const log = jest.fn();
+    const server = createServer(
+      fetchImpl,
+      defaultOAuth,
+      appRoot,
+      jest.fn().mockResolvedValue({ active: true, sub: "7" }),
+      log,
+    );
+    await new Promise<void>((resolve) =>
+      server.listen(0, "127.0.0.1", resolve),
+    );
+    const port = (server.address() as { port: number }).port;
+    const headers = {
+      cookie: "__Host-portfolio-admin-session=api-jwt",
+      origin: "https://mcp.example.test",
+    };
+    try {
+      await request(port, "/admin/ai-models/api/settings", { headers });
+      expect(log).not.toHaveBeenCalled();
+
+      await request(port, "/admin/ai-models/api/settings/3", {
+        method: "DELETE",
+        headers,
+      });
+      expect(log).toHaveBeenCalledTimes(1);
+      const line = log.mock.calls[0][0] as string;
+      expect(line).toContain("sub=7");
+      expect(line).toContain("method=DELETE");
+      expect(line).toContain("result=failed");
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
+  });
+
+  it("sub에 줄바꿈 같은 문자가 있으면 로그에 그대로 쓰지 않고 unknown으로 기록한다", async () => {
+    const fetchImpl = jest.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ id: 3 }),
+    });
+    const log = jest.fn();
+    const server = createServer(
+      fetchImpl,
+      defaultOAuth,
+      appRoot,
+      jest.fn().mockResolvedValue({
+        active: true,
+        sub: "7\nADMIN_SETTING_CHANGE sub=1 result=ok",
+      }),
+      log,
+    );
+    await new Promise<void>((resolve) =>
+      server.listen(0, "127.0.0.1", resolve),
+    );
+    const port = (server.address() as { port: number }).port;
+    try {
+      await request(port, "/admin/ai-models/api/settings/3/activate", {
+        method: "POST",
+        headers: {
+          cookie: "__Host-portfolio-admin-session=api-jwt",
+          origin: "https://mcp.example.test",
+        },
+      });
+
+      const line = log.mock.calls[0][0] as string;
+      expect(line).toContain("sub=unknown");
+      expect(line).not.toMatch(/[\r\n]/);
     } finally {
       await new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),

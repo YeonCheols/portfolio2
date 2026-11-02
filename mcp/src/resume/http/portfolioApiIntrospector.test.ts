@@ -1,4 +1,7 @@
-import { createPortfolioApiIntrospector } from "@mcp/resume/http/portfolioApiIntrospector";
+import {
+  createPortfolioApiIntrospector,
+  createPortfolioApiSessionIntrospector,
+} from "@mcp/resume/http/portfolioApiIntrospector";
 
 describe("createPortfolioApiIntrospector", () => {
   it("portfolio-api에 service token과 사용자 access token을 전달한다", async () => {
@@ -65,5 +68,24 @@ describe("createPortfolioApiIntrospector", () => {
         }),
       }),
     ).toThrow("PORTFOLIO_API_URL must be an HTTPS origin");
+  });
+});
+
+describe("createPortfolioApiSessionIntrospector", () => {
+  const create = (body: unknown) =>
+    createPortfolioApiSessionIntrospector({
+      apiUrl: "https://api.example.test",
+      serviceToken: "service-secret",
+      fetchImpl: jest.fn(async () => ({
+        ok: true,
+        status: 200,
+        json: async () => body,
+      })),
+    });
+
+  it("활성 토큰이면 사용자 식별자 sub를 함께 돌려준다", async () => {
+    await expect(
+      create({ active: true, sub: "7", scope: "resume:use" })("token"),
+    ).resolves.toEqual({ active: true, sub: "7" });
   });
 });
