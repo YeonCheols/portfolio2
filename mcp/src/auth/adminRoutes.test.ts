@@ -66,6 +66,7 @@ describe("portfolio-api 관리자 라우트", () => {
         oauth,
         publicUrl: "https://mcp.example.test/mcp",
         oauthResource: "https://mcp.example.test/mcp",
+        authorizationOrigin: "https://api.example.test",
       }).then((handled) => {
         if (!handled) {
           res.writeHead(404);
@@ -77,6 +78,43 @@ describe("portfolio-api 관리자 라우트", () => {
   beforeEach(() => {
     defaultOAuth.startAuthorization.mockClear();
     defaultOAuth.exchangeCode.mockClear();
+  });
+
+  it("관리 페이지 응답은 같은 출처 POST에 Origin이 가도록 same-origin 리퍼러 정책을 보낸다", async () => {
+    const server = createServer(jest.fn());
+    await new Promise<void>((resolve) =>
+      server.listen(0, "127.0.0.1", resolve),
+    );
+    const port = (server.address() as { port: number }).port;
+    try {
+      const response = await request(port, "/admin/ai-models/connect");
+
+      expect(response.status).toBe(200);
+      expect(response.headers["referrer-policy"]).toBe("same-origin");
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
+  });
+
+  it("로그인 페이지는 인증 서버와 GitHub로 이어지는 리다이렉트를 form-action CSP에서 허용한다", async () => {
+    const server = createServer(jest.fn());
+    await new Promise<void>((resolve) =>
+      server.listen(0, "127.0.0.1", resolve),
+    );
+    const port = (server.address() as { port: number }).port;
+    try {
+      const response = await request(port, "/admin/ai-models/connect");
+
+      expect(response.headers["content-security-policy"]).toContain(
+        "form-action 'self' https://api.example.test https://github.com;",
+      );
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
   });
 
   it("모델 관리 로그인은 same-origin POST로 portfolio-api OAuth에 시작한다", async () => {

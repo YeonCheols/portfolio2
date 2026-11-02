@@ -78,14 +78,17 @@ const sendJson = (res: ServerResponse, status: number, body: unknown) => {
   res.end(JSON.stringify(body));
 };
 
-const sendHtml = (res: ServerResponse, html: string) => {
+// portfolio-api의 인증 서버가 GitHub 로그인으로 다시 넘기며, Chrome은 폼 제출 뒤 리다이렉트 목적지도 form-action으로 검사한다
+const identityProviderOrigin = "https://github.com";
+
+const sendHtml = (res: ServerResponse, html: string, formAction = "'self'") => {
   res.writeHead(200, {
     "cache-control": "no-store",
-    "content-security-policy":
-      "default-src 'none'; style-src 'self'; script-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
+    "content-security-policy": `default-src 'none'; style-src 'self'; script-src 'self'; connect-src 'self'; form-action ${formAction}; frame-ancestors 'none'; base-uri 'none'`,
     "content-type": "text/html; charset=utf-8",
     "x-content-type-options": "nosniff",
-    "referrer-policy": "no-referrer",
+    // no-referrer면 브라우저가 폼 POST에 Origin: null을 보내 로그인 시작의 출처 검사가 항상 실패한다
+    "referrer-policy": "same-origin",
   });
   res.end(html);
 };
@@ -110,6 +113,7 @@ export const handleAdminRequest = async (
     oauth: ReturnType<typeof createPortfolioAdminOAuth>;
     publicUrl: string;
     oauthResource: string;
+    authorizationOrigin: string;
   },
 ): Promise<boolean> => {
   const url = new URL(req.url ?? "/", options.publicUrl);
@@ -150,6 +154,7 @@ export const handleAdminRequest = async (
           ? "로그인에 실패했습니다. 계정 정보를 확인해 주세요."
           : "",
       ),
+      `'self' ${options.authorizationOrigin} ${identityProviderOrigin}`,
     );
     return true;
   }

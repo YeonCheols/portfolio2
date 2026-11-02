@@ -1,6 +1,6 @@
 # portfolio-api가 소유하는 MCP 인증
 
-OAuth 인증 흐름과 토큰 수명주기는 portfolio-api가 소유합니다. MCP 도구 요청은 portfolio-api introspection을 사용합니다. AI 모델 관리 화면은 별도 `resume:manage` 흐름으로 MCP 서버가 OAuth callback의 authorization code를 portfolio-api에 전달하며, refresh token은 발급받거나 보관하지 않습니다.
+OAuth 인증 흐름과 토큰 수명주기는 portfolio-api가 소유합니다. MCP 도구 요청은 portfolio-api introspection을 사용합니다. AI 모델 관리 화면은 별도 로그인 흐름으로 MCP 서버가 OAuth callback의 authorization code를 portfolio-api에 전달하며, refresh token은 발급받거나 보관하지 않습니다.
 
 ```text
 MCP client ── OAuth 2.1 + PKCE ──> portfolio-api
@@ -51,7 +51,7 @@ OAuth 인증서버와 게이트웨이의 소스 및 배포 단계는 제거했�
 
 ## AI 모델 관리 화면 로그인
 
-AI 모델 관리 화면(`/admin/ai-models`)은 portfolio-api OAuth의 `resume:manage` scope를 사용합니다. 로그인 화면은 GitHub 로그인을 시작하고, portfolio-api가 GitHub 인증 후 운영 DB에 이미 연결된 GitHub identity인지 확인합니다. 이 흐름은 새 MCP 도구를 추가하지 않으며 일반 MCP 도구용 `resume:use` scope와 분리됩니다.
+AI 모델 관리 화면(`/admin/ai-models`)은 portfolio-api OAuth의 `resume:use` scope를 사용합니다. portfolio-api가 이 scope의 토큰을 허용된 GitHub 계정에만 발급하므로 접근 제한은 scope가 아니라 계정이 맡습니다. 로그인 화면은 GitHub 로그인을 시작하고, portfolio-api가 GitHub 인증 후 운영 DB에 이미 연결된 GitHub identity인지 확인합니다. 이 흐름은 새 MCP 도구를 추가하지 않습니다.
 
 MCP 서버는 동적 OAuth client를 등록하고 authorization code + PKCE를 시작합니다. OAuth state와 verifier는 10분짜리 host-only `HttpOnly`, `Secure`, `SameSite=Lax` 쿠키에 저장합니다. callback에서 state를 검증하고 code를 portfolio-api에 교환한 뒤 access token을 1시간 이내의 `__Host-portfolio-admin-session` 쿠키에 둡니다. refresh token은 요청하지 않고 브라우저 세션은 access token 만료 시 다시 로그인해야 합니다.
 

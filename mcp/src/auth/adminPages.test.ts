@@ -19,6 +19,15 @@ describe("MCP 관리자 페이지", () => {
     );
   });
 
+  it("브라우저가 같은 출처 POST에 Origin을 보내도록 두 페이지 모두 same-origin 리퍼러 정책을 쓴다", () => {
+    const pages = [renderAdminConnectPage(""), renderAdminPage()];
+
+    for (const page of pages) {
+      expect(page).toContain('<meta name="referrer" content="same-origin" />');
+      expect(page).not.toContain("no-referrer");
+    }
+  });
+
   it("개발·운영 환경 설정을 보여주는 관리 페이지를 렌더링한다", () => {
     const page = renderAdminPage();
 

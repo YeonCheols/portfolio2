@@ -1,7 +1,7 @@
 import { createPortfolioAdminOAuth } from "@mcp/auth/adminOAuth";
 
 describe("createPortfolioAdminOAuth", () => {
-  it("portfolio-api에 MCP 모델 관리자 OAuth client를 등록하고 관리 scope로 로그인한다", async () => {
+  it("portfolio-api에 MCP 모델 관리자 OAuth client를 등록하고 portfolio-api가 허용하는 resume:use scope로 로그인한다", async () => {
     const fetchImpl = jest.fn().mockResolvedValue({
       ok: true,
       status: 201,
@@ -23,7 +23,7 @@ describe("createPortfolioAdminOAuth", () => {
     expect(authorization.searchParams.get("client_id")).toBe(
       "signed-oauth-client",
     );
-    expect(authorization.searchParams.get("scope")).toBe("resume:manage");
+    expect(authorization.searchParams.get("scope")).toBe("resume:use");
     expect(authorization.searchParams.get("response_type")).toBe("code");
     expect(authorization.searchParams.get("resource")).toBe(
       "https://mcp.example.test/mcp",
@@ -43,7 +43,7 @@ describe("createPortfolioAdminOAuth", () => {
       json: async () => ({
         access_token: "oauth-access-token",
         expires_in: 3600,
-        scope: "resume:manage",
+        scope: "resume:use",
       }),
     });
     const oauth = createPortfolioAdminOAuth({
@@ -89,7 +89,7 @@ describe("createPortfolioAdminOAuth", () => {
         json: async () => ({
           access_token: "oauth-access-token",
           expires_in: 0,
-          scope: "resume:manage",
+          scope: "resume:use",
         }),
       }),
     });

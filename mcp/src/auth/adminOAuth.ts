@@ -54,7 +54,7 @@ export const createPortfolioAdminOAuth = (options: {
       authorizationUrl.searchParams.set("state", state);
       authorizationUrl.searchParams.set("code_challenge", codeChallenge);
       authorizationUrl.searchParams.set("code_challenge_method", "S256");
-      authorizationUrl.searchParams.set("scope", "resume:manage");
+      authorizationUrl.searchParams.set("scope", "resume:use");
       authorizationUrl.searchParams.set("resource", input.resource);
 
       return {
@@ -97,7 +97,7 @@ export const createPortfolioAdminOAuth = (options: {
         typeof token.expires_in !== "number" ||
         !Number.isSafeInteger(token.expires_in) ||
         token.expires_in <= 0 ||
-        token.scope !== "resume:manage"
+        token.scope !== "resume:use"
       ) {
         throw new Error("PORTFOLIO_ADMIN_OAUTH_CODE_FAILED");
       }

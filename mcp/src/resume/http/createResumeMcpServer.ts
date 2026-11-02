@@ -55,6 +55,7 @@ export const createResumeMcpServer = (options: {
     oauth: ReturnType<typeof createPortfolioAdminOAuth>;
     publicUrl: string;
     oauthResource: string;
+    authorizationOrigin: string;
   };
   log?: (message: string) => void;
 }) =>
