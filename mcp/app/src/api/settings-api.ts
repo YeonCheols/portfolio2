@@ -17,8 +17,13 @@ const request = async (path: string, init: RequestInit): Promise<unknown> => {
   return response.json();
 };
 
-export const listSettings = async (): Promise<ModelSetting[]> =>
-  (await request(settingsUrl, { method: "GET" })) as ModelSetting[];
+export const listSettings = async (): Promise<ModelSetting[]> => {
+  const settings = await request(settingsUrl, { method: "GET" });
+  if (!Array.isArray(settings)) {
+    throw new Error("설정 목록 형식이 올바르지 않습니다.");
+  }
+  return settings as ModelSetting[];
+};
 
 const jsonInit = (method: string, input: ModelSettingInput): RequestInit => ({
   method,

@@ -19,18 +19,22 @@ const errorText = (error: unknown, fallback: string) =>
 
 export const SettingsPage = () => {
   const [settings, setSettings] = useState<ModelSetting[]>([]);
+  const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<Message | null>(null);
   const [editing, setEditing] = useState<ModelSetting | null>(null);
   const mounted = useRef(true);
 
   const reload = useCallback(async () => {
     const loaded = await listSettings();
-    if (mounted.current) setSettings(loaded);
+    if (!mounted.current) return;
+    setSettings(loaded);
+    setLoading(false);
   }, []);
 
   const reloadWithMessage = useCallback(() => {
     reload().catch((error: unknown) => {
       if (!mounted.current) return;
+      setLoading(false);
       setMessage({
         text: errorText(error, "설정을 불러오지 못했습니다."),
         isError: true,
@@ -49,6 +53,7 @@ export const SettingsPage = () => {
   const handleActivate = async (setting: ModelSetting) => {
     try {
       await activateSetting(setting.id);
+      setEditing((current) => (current?.id === setting.id ? null : current));
       await reload();
       setMessage({ text: "모델 설정을 활성화했습니다.", isError: false });
     } catch (error) {
@@ -63,6 +68,7 @@ export const SettingsPage = () => {
     if (!window.confirm("이 비활성 설정을 삭제할까요?")) return;
     try {
       await deleteSetting(setting.id);
+      setEditing((current) => (current?.id === setting.id ? null : current));
       await reload();
       setMessage({ text: "모델 설정을 삭제했습니다.", isError: false });
     } catch (error) {
@@ -149,6 +155,7 @@ export const SettingsPage = () => {
             id="environment-development"
             title="개발 환경"
             settings={settings.filter((s) => s.environment === "development")}
+            loading={loading}
             onActivate={handleActivate}
             onEdit={setEditing}
             onDelete={handleDelete}
@@ -157,6 +164,7 @@ export const SettingsPage = () => {
             id="environment-production"
             title="운영 환경"
             settings={settings.filter((s) => s.environment === "production")}
+            loading={loading}
             onActivate={handleActivate}
             onEdit={setEditing}
             onDelete={handleDelete}

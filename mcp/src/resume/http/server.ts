@@ -180,7 +180,11 @@ export const startResumeMcpServer = () => {
         fetchResumeModel(input, { url: resumeUrl, token: resumeToken }),
     },
     admin: {
-      api: createPortfolioAdminApi({ baseUrl: portfolioApiUrl }),
+      api: createPortfolioAdminApi({
+        baseUrl: portfolioApiUrl,
+        serviceToken: process.env.MCP_AUTH_SERVICE_TOKEN ?? "",
+      }),
+      introspect,
       oauth: createPortfolioAdminOAuth({ issuer: authorizationServer }),
       publicUrl,
       oauthResource:

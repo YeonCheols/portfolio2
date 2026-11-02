@@ -92,6 +92,18 @@ const sendHtml = (res: ServerResponse, html: string, formAction = "'self'") => {
   res.end(html);
 };
 
+// 빌드 산출물이 없을 때 오류를 던지면 요청 핸들러가 죽어 MCP 서버 전체가 종료된다
+const sendApp = (res: ServerResponse, appRoot: string, formAction?: string) => {
+  let html: string;
+  try {
+    html = readFileSync(join(appRoot, "index.html"), "utf8");
+  } catch {
+    sendJson(res, 503, { ok: false, code: "APP_UNAVAILABLE" });
+    return;
+  }
+  sendHtml(res, html, formAction);
+};
+
 const assetContentTypes: Record<string, string> = {
   ".js": "text/javascript; charset=utf-8",
   ".css": "text/css; charset=utf-8",
@@ -99,13 +111,13 @@ const assetContentTypes: Record<string, string> = {
 
 const readApiPath = (pathname: string): string | null => {
   if (pathname === "/admin/ai-models/api/settings") {
-    return "/mcp/admin/resume-model-setting";
+    return "/service/resume-model-setting";
   }
   const match = pathname.match(
     /^\/admin\/ai-models\/api\/settings\/(\d+)(\/activate)?$/,
   );
   return match
-    ? `/mcp/admin/resume-model-setting/${match[1]}${match[2] ?? ""}`
+    ? `/service/resume-model-setting/${match[1]}${match[2] ?? ""}`
     : null;
 };
 
@@ -118,6 +130,7 @@ export const handleAdminRequest = async (
     publicUrl: string;
     oauthResource: string;
     authorizationOrigin: string;
+    introspect: (token: string) => Promise<boolean>;
     appRoot?: string;
   },
 ): Promise<boolean> => {
@@ -149,9 +162,9 @@ export const handleAdminRequest = async (
   }
 
   if (req.method === "GET" && pathname === "/admin/ai-models/connect") {
-    sendHtml(
+    sendApp(
       res,
-      readFileSync(join(appRoot, "index.html"), "utf8"),
+      appRoot,
       `'self' ${options.authorizationOrigin} ${identityProviderOrigin}`,
     );
     return true;
@@ -240,16 +253,23 @@ export const handleAdminRequest = async (
       redirect(res, "/admin/ai-models/connect");
       return true;
     }
+    let active: boolean;
     try {
-      await options.api.request(token, "/mcp/admin/user/auth/check");
-      sendHtml(res, readFileSync(join(appRoot, "index.html"), "utf8"));
+      active = await options.introspect(token);
     } catch {
+      // 확인 호출이 실패한 것이지 세션이 무효인 것이 아니므로 로그아웃시키지 않는다
+      sendJson(res, 503, { ok: false, code: "AUTH_UNAVAILABLE" });
+      return true;
+    }
+    if (!active) {
       redirect(
         res,
         "/admin/ai-models/connect",
         `${cookieName}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`,
       );
+      return true;
     }
+    sendApp(res, appRoot);
     return true;
   }
 
@@ -269,14 +289,25 @@ export const handleAdminRequest = async (
     const apiPath = readApiPath(pathname)!;
     const method = req.method ?? "GET";
     const validMethod =
-      (apiPath === "/mcp/admin/resume-model-setting" &&
+      (apiPath === "/service/resume-model-setting" &&
         ["GET", "POST"].includes(method)) ||
-      (apiPath !== "/mcp/admin/resume-model-setting" &&
+      (apiPath !== "/service/resume-model-setting" &&
         ((apiPath.endsWith("/activate") && method === "POST") ||
-          (/^\/mcp\/admin\/resume-model-setting\/\d+$/.test(apiPath) &&
+          (/^\/service\/resume-model-setting\/\d+$/.test(apiPath) &&
             ["PUT", "DELETE"].includes(method))));
     if (!validMethod) {
       sendJson(res, 405, { ok: false, code: "METHOD_NOT_ALLOWED" });
+      return true;
+    }
+    let active: boolean;
+    try {
+      active = await options.introspect(token);
+    } catch {
+      sendJson(res, 503, { ok: false, code: "AUTH_UNAVAILABLE" });
+      return true;
+    }
+    if (!active) {
+      sendJson(res, 401, { ok: false, code: "UNAUTHORIZED" });
       return true;
     }
     try {
@@ -284,7 +315,7 @@ export const handleAdminRequest = async (
         method === "GET" || method === "DELETE"
           ? undefined
           : await readBody(req);
-      const value = await options.api.request(token, apiPath, {
+      const value = await options.api.request(apiPath, {
         method,
         ...(body ? { body } : {}),
       });
@@ -292,9 +323,10 @@ export const handleAdminRequest = async (
     } catch (error) {
       const tooLarge =
         error instanceof Error && error.message === "BODY_TOO_LARGE";
-      sendJson(res, tooLarge ? 413 : 401, {
+      // 세션은 위에서 확인했으므로 여기서의 실패는 요청 크기 또는 portfolio-api 쪽 문제다
+      sendJson(res, tooLarge ? 413 : 502, {
         ok: false,
-        code: tooLarge ? "BODY_TOO_LARGE" : "UNAUTHORIZED",
+        code: tooLarge ? "BODY_TOO_LARGE" : "UPSTREAM_FAILED",
       });
     }
     return true;

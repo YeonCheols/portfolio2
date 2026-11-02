@@ -6,6 +6,7 @@ type EnvironmentSectionProps = {
   id: string;
   title: string;
   settings: ModelSetting[];
+  loading: boolean;
   onActivate: (setting: ModelSetting) => void;
   onEdit: (setting: ModelSetting) => void;
   onDelete: (setting: ModelSetting) => void;
@@ -15,6 +16,7 @@ export const EnvironmentSection = ({
   id,
   title,
   settings,
+  loading,
   onActivate,
   onEdit,
   onDelete,
@@ -27,7 +29,9 @@ export const EnvironmentSection = ({
       {title}
     </h2>
     <div className="space-y-3">
-      {settings.length === 0 ? (
+      {loading ? (
+        <p className="text-sm text-slate-500">설정을 불러오는 중입니다.</p>
+      ) : settings.length === 0 ? (
         <p className="text-sm text-slate-500">등록된 설정이 없습니다.</p>
       ) : (
         settings.map((setting) => (

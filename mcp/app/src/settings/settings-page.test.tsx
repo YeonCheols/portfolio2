@@ -300,4 +300,75 @@ describe("SettingsPage", () => {
     ).toBeTruthy();
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
+
+  it("목록을 불러오는 동안 로딩 문구를 보여주고 빈 상태 문구를 숨긴다", async () => {
+    let resolveFetch!: (response: Response) => void;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockReturnValue(
+        new Promise<Response>((resolve) => {
+          resolveFetch = resolve;
+        }),
+      ),
+    );
+    render(<SettingsPage />);
+
+    expect(screen.getAllByText("설정을 불러오는 중입니다.")).toHaveLength(2);
+    expect(screen.queryByText("등록된 설정이 없습니다.")).toBeNull();
+
+    resolveFetch(jsonResponse([]));
+
+    expect(await screen.findAllByText("등록된 설정이 없습니다.")).toHaveLength(
+      2,
+    );
+    expect(screen.queryByText("설정을 불러오는 중입니다.")).toBeNull();
+  });
+
+  it("수정 중인 설정을 삭제하면 폼이 추가 모드로 돌아간다", async () => {
+    const setting = { ...developmentSetting, isActive: false };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse([setting]))
+      .mockResolvedValueOnce({ ok: true, status: 204 } as Response)
+      .mockResolvedValueOnce(jsonResponse([]));
+    vi.stubGlobal("fetch", fetchMock);
+    vi.stubGlobal(
+      "confirm",
+      vi.fn(() => true),
+    );
+    const user = userEvent.setup();
+    render(<SettingsPage />);
+    await user.click(await screen.findByRole("button", { name: "수정" }));
+    expect(
+      screen.getByRole("heading", { name: "모델 설정 수정" }),
+    ).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "삭제" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "모델 설정 추가" }),
+    ).toBeTruthy();
+  });
+
+  it("수정 중인 설정을 활성화하면 폼이 추가 모드로 돌아간다", async () => {
+    const setting = { ...developmentSetting, isActive: false };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse([setting]))
+      .mockResolvedValueOnce(jsonResponse({ id: 11 }))
+      .mockResolvedValueOnce(jsonResponse([{ ...setting, isActive: true }]));
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    render(<SettingsPage />);
+    await user.click(await screen.findByRole("button", { name: "수정" }));
+    expect(
+      screen.getByRole("heading", { name: "모델 설정 수정" }),
+    ).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "활성화" }));
+
+    expect(
+      await screen.findByRole("heading", { name: "모델 설정 추가" }),
+    ).toBeTruthy();
+  });
 });

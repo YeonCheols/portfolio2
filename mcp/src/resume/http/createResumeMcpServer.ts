@@ -56,6 +56,7 @@ export const createResumeMcpServer = (options: {
     publicUrl: string;
     oauthResource: string;
     authorizationOrigin: string;
+    introspect: (token: string) => Promise<boolean>;
   };
   log?: (message: string) => void;
 }) =>

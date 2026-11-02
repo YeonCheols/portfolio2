@@ -2,6 +2,7 @@ export type PortfolioAdminApi = ReturnType<typeof createPortfolioAdminApi>;
 
 export const createPortfolioAdminApi = (options: {
   baseUrl: string;
+  serviceToken: string;
   fetchImpl?: typeof fetch;
 }) => {
   const baseUrl = options.baseUrl.replace(/\/+$/, "");
@@ -18,21 +19,19 @@ export const createPortfolioAdminApi = (options: {
   };
 
   const request = async (
-    token: string,
     path: string,
     init: RequestInit = {},
   ): Promise<unknown> => {
     if (
-      path !== "/mcp/admin/user/auth/check" &&
-      path !== "/mcp/admin/resume-model-setting" &&
-      !/^\/mcp\/admin\/resume-model-setting\/\d+(?:\/activate)?$/.test(path)
+      path !== "/service/resume-model-setting" &&
+      !/^\/service\/resume-model-setting\/\d+(?:\/activate)?$/.test(path)
     ) {
       throw new Error("PORTFOLIO_API_ADMIN_PATH_NOT_ALLOWED");
     }
     const response = await timedFetch(`${baseUrl}${path}`, {
       ...init,
       headers: {
-        authorization: `Bearer ${token}`,
+        authorization: `Bearer ${options.serviceToken}`,
         ...(init.body ? { "content-type": "application/json" } : {}),
         ...init.headers,
       },

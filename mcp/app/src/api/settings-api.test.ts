@@ -38,6 +38,17 @@ describe("settingsApi", () => {
     expect(settings).toEqual([setting]);
   });
 
+  it("목록 응답이 배열이 아니면 형식 오류로 던진다", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(jsonResponse({ items: [] })),
+    );
+
+    await expect(listSettings()).rejects.toThrow(
+      "설정 목록 형식이 올바르지 않습니다.",
+    );
+  });
+
   it("서버가 오류를 반환하면 응답 본문 없이 안내 문구로 던진다", async () => {
     vi.stubGlobal(
       "fetch",
