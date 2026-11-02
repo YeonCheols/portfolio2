@@ -45,6 +45,7 @@ jobs:
         run: |
           pnpm --dir mcp install --frozen-lockfile
           pnpm --dir mcp build
+          pnpm --dir mcp test
 
       - name: Lint
         run: pnpm lint

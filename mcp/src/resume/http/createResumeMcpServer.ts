@@ -1,5 +1,10 @@
 import http, { type IncomingMessage, type ServerResponse } from "http";
 
+import type { PortfolioAdminApi } from "@mcp/auth/adminApi";
+import type { createPortfolioAdminOAuth } from "@mcp/auth/adminOAuth";
+import { handleAdminRequest } from "@mcp/auth/adminRoutes";
+import type { IntrospectedSession } from "@mcp/resume/http/portfolioApiIntrospector";
+
 import type { ResumeModelClient } from "@mcp/resume/output/runResumeHarness";
 import { handleMcpRequest } from "@mcp/resume/tools/handleMcpRequest";
 import type { ResumeConnection } from "@mcp/resume/tools/resumeTools";
@@ -33,6 +38,9 @@ const sendJson = (res: ServerResponse, status: number, body: unknown): void => {
   res.end(JSON.stringify(body));
 };
 
+// 팩토리를 주면 MCP 요청마다 새 클라이언트를 만들어, 한 요청의 모델 호출이 같은 설정 스냅샷을 쓰게 한다
+export type ResumeModelSource = ResumeModelClient | (() => ResumeModelClient);
+
 export const createResumeMcpServer = (options: {
   introspect: (token: string) => Promise<boolean>;
   protectedResourceMetadata?: {
@@ -42,10 +50,27 @@ export const createResumeMcpServer = (options: {
     bearer_methods_supported?: string[];
   };
   connection: ResumeConnection;
-  model?: ResumeModelClient;
+  model?: ResumeModelSource;
+  admin?: {
+    api: PortfolioAdminApi;
+    oauth: ReturnType<typeof createPortfolioAdminOAuth>;
+    publicUrl: string;
+    oauthResource: string;
+    authorizationOrigin: string;
+    introspect: (token: string) => Promise<IntrospectedSession>;
+  };
   log?: (message: string) => void;
 }) =>
   http.createServer(async (req, res) => {
+    if (
+      options.admin &&
+      (await handleAdminRequest(req, res, {
+        ...options.admin,
+        log: options.log,
+      }))
+    ) {
+      return;
+    }
     const url = req.url?.split("?")[0];
 
     if (req.method === "GET" && url === "/health") {
@@ -117,7 +142,7 @@ export const createResumeMcpServer = (options: {
       const response = await handleMcpRequest(
         JSON.parse(raw),
         options.connection,
-        options.model,
+        typeof options.model === "function" ? options.model() : options.model,
       );
       if (response === null) {
         res.writeHead(202);

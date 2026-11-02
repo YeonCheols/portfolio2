@@ -9,11 +9,18 @@ type Fetch = (
   init: RequestInit,
 ) => Promise<IntrospectionResponse>;
 
-export const createPortfolioApiIntrospector = (options: {
+type IntrospectorOptions = {
   apiUrl: string;
   serviceToken: string;
   fetchImpl?: Fetch;
-}) => {
+};
+
+export type IntrospectedSession = { active: boolean; sub?: string };
+
+// 활성 여부와 사용자 식별자(sub)를 함께 돌려준다
+export const createPortfolioApiSessionIntrospector = (
+  options: IntrospectorOptions,
+) => {
   const apiUrl = options.apiUrl.replace(/\/+$/, "");
   if (!apiUrl || !options.serviceToken) {
     throw new Error(
@@ -31,7 +38,7 @@ export const createPortfolioApiIntrospector = (options: {
   }
   const fetchImpl = options.fetchImpl;
 
-  return async (token: string): Promise<boolean> => {
+  return async (token: string): Promise<IntrospectedSession> => {
     const response = await (fetchImpl ?? (fetch as Fetch))(
       `${apiUrl}/auth/introspect`,
       {
@@ -47,7 +54,19 @@ export const createPortfolioApiIntrospector = (options: {
       },
     );
     if (!response.ok) throw new Error("AUTH_INTROSPECTION_FAILED");
-    const body = (await response.json()) as { active?: unknown };
-    return body.active === true;
+    const body = (await response.json()) as { active?: unknown; sub?: unknown };
+    if (body.active !== true) return { active: false };
+    return {
+      active: true,
+      ...(typeof body.sub === "string" ? { sub: body.sub } : {}),
+    };
   };
+};
+
+export const createPortfolioApiIntrospector = (
+  options: IntrospectorOptions,
+) => {
+  const introspect = createPortfolioApiSessionIntrospector(options);
+  return async (token: string): Promise<boolean> =>
+    (await introspect(token)).active;
 };
