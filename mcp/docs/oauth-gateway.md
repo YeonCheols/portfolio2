@@ -1,6 +1,6 @@
 # portfolio-api가 소유하는 MCP 인증
 
-OAuth 인증 흐름과 토큰 수명주기는 portfolio-api가 소유합니다. MCP 서버는 OAuth authorization code나 refresh token을 받거나 갱신하지 않습니다.
+OAuth 인증 흐름과 토큰 수명주기는 portfolio-api가 소유합니다. MCP 도구 요청은 portfolio-api introspection을 사용합니다. AI 모델 관리 화면은 별도 `resume:manage` 흐름으로 MCP 서버가 OAuth callback의 authorization code를 portfolio-api에 전달하며, refresh token은 발급받거나 보관하지 않습니다.
 
 ```text
 MCP client ── OAuth 2.1 + PKCE ──> portfolio-api
@@ -49,8 +49,12 @@ MCP 배포는 다음 Actions variables와 Secret Manager secret을 사용합니�
 
 OAuth 인증서버와 게이트웨이의 소스 및 배포 단계는 제거했습니다. 기존 Cloud Run 서비스는 이 저장소 변경만으로 삭제되지 않으며, 새 MCP 경로의 로그인과 introspection을 검증한 뒤 별도로 정리해야 합니다.
 
-## 관리자 웹 로그인
+## AI 모델 관리 화면 로그인
 
-AI 모델 관리 화면(`/admin/ai-models`)은 portfolio-api의 관리자 인증을 사용합니다. 로그인 폼은 MCP 서버에서 서버 간 요청으로 `POST /admin/user/login`을 호출합니다. MCP는 portfolio-api 응답의 `access_token` 쿠키를 브라우저에 전달하지 않고, 이를 `__Host-portfolio-admin-session` HttpOnly·Secure·SameSite=Lax 쿠키로 설정합니다. 쿠키는 MCP 호스트에만 적용되며 24시간 후 만료됩니다.
+AI 모델 관리 화면(`/admin/ai-models`)은 portfolio-api OAuth의 `resume:manage` scope를 사용합니다. 로그인 화면은 GitHub 로그인을 시작하고, portfolio-api가 GitHub 인증 후 운영 DB에 이미 연결된 GitHub identity인지 확인합니다. 이 흐름은 새 MCP 도구를 추가하지 않으며 일반 MCP 도구용 `resume:use` scope와 분리됩니다.
 
-MCP의 관리자 라우트는 세션 JWT를 Bearer 인증으로 portfolio-api에 전달합니다. 대시보드 진입 때 `GET /admin/user/auth/check`를 확인하고, 모델 설정 요청은 고정된 `/admin/resume-model-setting` 경로로만 전달합니다. 쓰기 요청은 MCP 사이트와 동일한 Origin만 허용합니다. MCP는 관리자 비밀번호를 저장하거나 JWT를 발급·갱신하지 않습니다. 로그아웃은 MCP 세션 쿠키를 지우며 portfolio-api JWT는 서버 측 stateless 정책에 따라 만료됩니다.
+MCP 서버는 동적 OAuth client를 등록하고 authorization code + PKCE를 시작합니다. OAuth state와 verifier는 10분짜리 host-only `HttpOnly`, `Secure`, `SameSite=Lax` 쿠키에 저장합니다. callback에서 state를 검증하고 code를 portfolio-api에 교환한 뒤 access token을 1시간 이내의 `__Host-portfolio-admin-session` 쿠키에 둡니다. refresh token은 요청하지 않고 브라우저 세션은 access token 만료 시 다시 로그인해야 합니다.
+
+모델 관리 요청은 MCP 서버가 Bearer 토큰으로 portfolio-api의 `/mcp/admin/user/auth/check` 및 `/mcp/admin/resume-model-setting` 경로에 전달합니다. portfolio-api는 서명·issuer·audience·DB 세션 상태·`resume:manage` scope와 사용자의 기존 GitHub identity를 검증합니다. 브라우저에서 portfolio-api로 직접 요청하지 않으며 MCP 서버의 same-origin 검사도 유지합니다. 기존 이메일·비밀번호 관리자 로그인은 이 화면에서 사용하지 않습니다.
+
+`MCP_ADMIN_OAUTH_RESOURCE_URL`은 관리 토큰의 audience로 사용하며, 생략하면 `MCP_PUBLIC_URL`을 사용합니다. 이 값은 portfolio-api의 `MCP_RESOURCE_URL`과 정확히 일치해야 합니다.

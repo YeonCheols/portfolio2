@@ -1,6 +1,7 @@
 import http, { type IncomingMessage, type ServerResponse } from "http";
 
 import type { PortfolioAdminApi } from "@mcp/auth/adminApi";
+import type { createPortfolioAdminOAuth } from "@mcp/auth/adminOAuth";
 import { handleAdminRequest } from "@mcp/auth/adminRoutes";
 
 import type { ResumeModelClient } from "@mcp/resume/output/runResumeHarness";
@@ -49,7 +50,12 @@ export const createResumeMcpServer = (options: {
   };
   connection: ResumeConnection;
   model?: ResumeModelSource;
-  admin?: { api: PortfolioAdminApi; publicUrl: string };
+  admin?: {
+    api: PortfolioAdminApi;
+    oauth: ReturnType<typeof createPortfolioAdminOAuth>;
+    publicUrl: string;
+    oauthResource: string;
+  };
   log?: (message: string) => void;
 }) =>
   http.createServer(async (req, res) => {

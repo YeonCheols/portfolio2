@@ -4,8 +4,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="referrer" content="no-referrer" />
-    <title>AI LLM 관리 · Portfolio MCP</title>
+    <title>AI 모델 설정 · Portfolio MCP</title>
     <link rel="stylesheet" href="/admin/ai-models/assets/admin.css" />
+    <script defer src="/admin/ai-models/assets/admin-ai-models.js"></script>
   </head>
   <body class="min-h-screen bg-slate-50 font-sans text-slate-900">
     <header
@@ -38,50 +39,150 @@
             MCP 관리자
           </p>
           <h1 class="mb-3 mt-2 text-4xl font-bold tracking-tight">
-            AI LLM 관리
+            AI 모델 설정
           </h1>
           <p class="leading-relaxed text-slate-600">
-            개발 및 운영 환경에서 사용할 AI 모델 설정을 확인하고 관리합니다.
+            개발 및 운영 MCP에서 사용할 OpenRouter 모델을 관리합니다. API 키는
+            저장하지 않고 Secret Manager 참조만 등록합니다.
           </p>
         </div>
         <span
           class="inline-flex w-fit items-center gap-2 rounded-full border border-green-200 bg-green-50 px-3 py-2 text-xs font-bold text-green-800"
         >
           <span class="size-2 rounded-full bg-green-600"></span>
-          portfolio-api 관리자 인증 완료
+          GitHub OAuth 인증 완료
         </span>
       </div>
-      <div class="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <section
-          class="min-h-40 rounded-2xl border border-slate-200 bg-white p-6"
+
+      <p
+        id="status-message"
+        class="mt-6 hidden rounded-xl border px-4 py-3 text-sm"
+        role="status"
+        aria-live="polite"
+      ></p>
+
+      <section
+        id="model-settings"
+        class="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2"
+        aria-label="환경별 활성 모델 설정"
+      >
+        <article
+          class="rounded-2xl border border-slate-200 bg-white p-6"
+          data-environment="development"
         >
           <h2 class="mb-3 text-base font-bold">개발 환경</h2>
-          <span
-            class="inline-flex rounded-full bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800"
-            >설정 연결 대기</span
-          >
-          <p class="mt-4 text-sm leading-relaxed text-slate-600">
-            개발 MCP에서 사용할 활성 모델입니다.
-          </p>
-        </section>
-        <section
-          class="min-h-40 rounded-2xl border border-slate-200 bg-white p-6"
+          <div data-settings-list="development" class="space-y-3"></div>
+        </article>
+        <article
+          class="rounded-2xl border border-slate-200 bg-white p-6"
+          data-environment="production"
         >
           <h2 class="mb-3 text-base font-bold">운영 환경</h2>
-          <span
-            class="inline-flex rounded-full bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800"
-            >설정 연결 대기</span
-          >
-          <p class="mt-4 text-sm leading-relaxed text-slate-600">
-            운영 MCP에서 사용할 활성 모델입니다.
-          </p>
-        </section>
-      </div>
-      <div
-        class="mt-5 rounded-xl border border-slate-200 bg-white px-5 py-4 text-sm leading-relaxed text-slate-600"
+          <div data-settings-list="production" class="space-y-3"></div>
+        </article>
+      </section>
+
+      <section
+        class="mt-8 rounded-2xl border border-slate-200 bg-white p-6 sm:p-8"
       >
-        관리 화면의 설정 조회와 변경 조작은 아직 연결되지 않았습니다.
-      </div>
+        <div class="mb-5 flex items-start justify-between gap-4">
+          <div>
+            <h2 id="form-title" class="text-lg font-bold">모델 설정 추가</h2>
+            <p class="mt-1 text-sm text-slate-600">
+              활성 설정은 수정할 수 없습니다. 새 설정을 만든 뒤 활성화해 주세요.
+            </p>
+          </div>
+          <button
+            id="cancel-edit"
+            class="hidden rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600"
+            type="button"
+          >
+            수정 취소
+          </button>
+        </div>
+        <form id="setting-form" class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <input id="setting-id" name="id" type="hidden" />
+          <label class="block text-sm font-semibold" for="environment">
+            환경
+            <select
+              id="environment"
+              name="environment"
+              class="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-3"
+              required
+            >
+              <option value="development">개발</option>
+              <option value="production">운영</option>
+            </select>
+          </label>
+          <label class="block text-sm font-semibold" for="provider">
+            공급자
+            <select
+              id="provider"
+              name="provider"
+              class="mt-2 w-full rounded-lg border border-slate-300 bg-white px-3 py-3"
+              required
+            >
+              <option value="openrouter">OpenRouter</option>
+            </select>
+          </label>
+          <label class="block text-sm font-semibold" for="model-name">
+            모델 이름
+            <input
+              id="model-name"
+              name="modelName"
+              class="mt-2 w-full rounded-lg border border-slate-300 px-3 py-3"
+              placeholder="anthropic/claude-sonnet-5.5"
+              maxlength="200"
+              required
+            />
+          </label>
+          <label class="block text-sm font-semibold" for="model-url">
+            API 주소
+            <input
+              id="model-url"
+              name="url"
+              type="url"
+              class="mt-2 w-full rounded-lg border border-slate-300 px-3 py-3"
+              value="https://openrouter.ai/api/v1/chat/completions"
+              required
+            />
+          </label>
+          <label
+            class="block text-sm font-semibold sm:col-span-2"
+            for="secret-ref"
+          >
+            Secret Manager 참조 이름
+            <input
+              id="secret-ref"
+              name="secretRef"
+              class="mt-2 w-full rounded-lg border border-slate-300 px-3 py-3"
+              placeholder="RESUME_MODEL_TOKEN_OPENROUTER"
+              pattern="RESUME_MODEL_TOKEN[A-Za-z0-9_-]{0,237}"
+              maxlength="255"
+              required
+            />
+            <span class="mt-1 block font-normal text-slate-500">
+              토큰 원문이나 API 키는 입력하지 마세요.
+            </span>
+          </label>
+          <div class="flex flex-wrap gap-3 sm:col-span-2">
+            <button
+              id="save-setting"
+              class="min-h-11 rounded-xl bg-blue-600 px-5 text-sm font-bold text-white"
+              type="submit"
+            >
+              설정 저장
+            </button>
+            <button
+              id="reload-settings"
+              class="min-h-11 rounded-xl border border-slate-200 px-5 text-sm font-bold text-slate-700"
+              type="button"
+            >
+              새로고침
+            </button>
+          </div>
+        </form>
+      </section>
     </main>
   </body>
 </html>

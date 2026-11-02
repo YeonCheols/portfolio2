@@ -1,4 +1,5 @@
 import { createPortfolioAdminApi } from "@mcp/auth/adminApi";
+import { createPortfolioAdminOAuth } from "@mcp/auth/adminOAuth";
 import { fetchOpenRouterModelText } from "@mcp/resume/connection/openRouterModelConnection";
 import {
   fetchResumeModel,
@@ -180,7 +181,10 @@ export const startResumeMcpServer = () => {
     },
     admin: {
       api: createPortfolioAdminApi({ baseUrl: portfolioApiUrl }),
+      oauth: createPortfolioAdminOAuth({ issuer: authorizationServer }),
       publicUrl,
+      oauthResource:
+        process.env.MCP_ADMIN_OAUTH_RESOURCE_URL?.trim() || publicUrl,
     },
     model: resumeModelSourceFromEnv({
       RESUME_MODEL_URL: process.env.RESUME_MODEL_URL,

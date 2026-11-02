@@ -1,18 +1,46 @@
 import { readFileSync } from "fs";
+import type { IncomingMessage, ServerResponse } from "http";
 import { join } from "path";
 
-import type { IncomingMessage, ServerResponse } from "http";
-
 import type { PortfolioAdminApi } from "@mcp/auth/adminApi";
+import type { createPortfolioAdminOAuth } from "@mcp/auth/adminOAuth";
 import { renderAdminConnectPage, renderAdminPage } from "@mcp/auth/adminPages";
 
 const cookieName = "__Host-portfolio-admin-session";
-const readCookie = (req: IncomingMessage): string | null => {
+const oauthCookieName = "__Host-portfolio-admin-oauth-state";
+const readCookie = (req: IncomingMessage, name = cookieName): string | null => {
   for (const part of (req.headers.cookie ?? "").split(";")) {
     const [key, ...value] = part.trim().split("=");
-    if (key === cookieName) return value.join("=") || null;
+    if (key === name) return value.join("=") || null;
   }
   return null;
+};
+
+const parseOAuthStateCookie = (value: string | null) => {
+  if (!value) return null;
+  try {
+    const state = JSON.parse(
+      Buffer.from(value, "base64url").toString("utf8"),
+    ) as Record<string, unknown>;
+    if (
+      typeof state.state !== "string" ||
+      typeof state.clientId !== "string" ||
+      typeof state.codeVerifier !== "string" ||
+      typeof state.redirectUri !== "string" ||
+      typeof state.resource !== "string"
+    ) {
+      return null;
+    }
+    return {
+      state: state.state,
+      clientId: state.clientId,
+      codeVerifier: state.codeVerifier,
+      redirectUri: state.redirectUri,
+      resource: state.resource,
+    };
+  } catch {
+    return null;
+  }
 };
 
 const readBody = async (req: IncomingMessage): Promise<string> => {
@@ -28,7 +56,11 @@ const readBody = async (req: IncomingMessage): Promise<string> => {
   return chunks.join("");
 };
 
-const redirect = (res: ServerResponse, location: string, cookie?: string) => {
+const redirect = (
+  res: ServerResponse,
+  location: string,
+  cookie?: string | string[],
+) => {
   res.writeHead(303, {
     location,
     "cache-control": "no-store",
@@ -50,7 +82,7 @@ const sendHtml = (res: ServerResponse, html: string) => {
   res.writeHead(200, {
     "cache-control": "no-store",
     "content-security-policy":
-      "default-src 'none'; style-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
+      "default-src 'none'; style-src 'self'; script-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
     "content-type": "text/html; charset=utf-8",
     "x-content-type-options": "nosniff",
     "referrer-policy": "no-referrer",
@@ -60,36 +92,49 @@ const sendHtml = (res: ServerResponse, html: string) => {
 
 const readApiPath = (pathname: string): string | null => {
   if (pathname === "/admin/ai-models/api/settings") {
-    return "/admin/resume-model-setting";
+    return "/mcp/admin/resume-model-setting";
   }
   const match = pathname.match(
     /^\/admin\/ai-models\/api\/settings\/(\d+)(\/activate)?$/,
   );
   return match
-    ? `/admin/resume-model-setting/${match[1]}${match[2] ?? ""}`
+    ? `/mcp/admin/resume-model-setting/${match[1]}${match[2] ?? ""}`
     : null;
 };
 
 export const handleAdminRequest = async (
   req: IncomingMessage,
   res: ServerResponse,
-  options: { api: PortfolioAdminApi; publicUrl: string },
+  options: {
+    api: PortfolioAdminApi;
+    oauth: ReturnType<typeof createPortfolioAdminOAuth>;
+    publicUrl: string;
+    oauthResource: string;
+  },
 ): Promise<boolean> => {
   const url = new URL(req.url ?? "/", options.publicUrl);
   const { pathname } = url;
 
-  if (
-    req.method === "GET" &&
-    pathname === "/admin/ai-models/assets/admin.css"
-  ) {
+  const adminAssets: Record<string, { file: string; contentType: string }> = {
+    "/admin/ai-models/assets/admin.css": {
+      file: "admin.css",
+      contentType: "text/css; charset=utf-8",
+    },
+    "/admin/ai-models/assets/admin-ai-models.js": {
+      file: "pages/admin-ai-models.js",
+      contentType: "text/javascript; charset=utf-8",
+    },
+  };
+  if (req.method === "GET" && adminAssets[pathname]) {
     try {
-      const css = readFileSync(join(__dirname, "admin.css"), "utf8");
+      const asset = adminAssets[pathname];
+      const content = readFileSync(join(__dirname, asset.file), "utf8");
       res.writeHead(200, {
         "cache-control": "public, max-age=3600",
-        "content-type": "text/css; charset=utf-8",
+        "content-type": asset.contentType,
         "x-content-type-options": "nosniff",
       });
-      res.end(css);
+      res.end(content);
     } catch {
       res.writeHead(404);
       res.end();
@@ -103,30 +148,76 @@ export const handleAdminRequest = async (
       renderAdminConnectPage(
         url.searchParams.get("error") === "login_failed"
           ? "로그인에 실패했습니다. 계정 정보를 확인해 주세요."
-          : "portfolio-api 관리자 계정으로 로그인하세요.",
+          : "",
       ),
     );
     return true;
   }
 
-  if (req.method === "POST" && pathname === "/admin/ai-models/login") {
+  if (req.method === "POST" && pathname === "/admin/ai-models/oauth/start") {
     if (req.headers.origin !== new URL(options.publicUrl).origin) {
       redirect(res, "/admin/ai-models/connect?error=login_failed");
       return true;
     }
     try {
-      const form = new URLSearchParams(await readBody(req));
-      const email = form.get("email")?.trim() ?? "";
-      const password = form.get("password") ?? "";
-      if (!email || !password) throw new Error("INVALID_LOGIN");
-      const { token } = await options.api.login(email, password);
+      const redirectUri = `${new URL(options.publicUrl).origin}/admin/ai-models/oauth/callback`;
+      const authorization = await options.oauth.startAuthorization({
+        redirectUri,
+        resource: options.oauthResource,
+      });
+      const stateCookie = Buffer.from(
+        JSON.stringify({
+          state: authorization.state,
+          clientId: authorization.clientId,
+          codeVerifier: authorization.codeVerifier,
+          redirectUri: authorization.redirectUri,
+          resource: authorization.resource,
+        }),
+      ).toString("base64url");
       redirect(
         res,
-        "/admin/ai-models",
-        `${cookieName}=${token}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=86400`,
+        authorization.authorizationUrl,
+        `${oauthCookieName}=${stateCookie}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=600`,
       );
     } catch {
       redirect(res, "/admin/ai-models/connect?error=login_failed");
+    }
+    return true;
+  }
+
+  if (req.method === "GET" && pathname === "/admin/ai-models/oauth/callback") {
+    const oauthState = parseOAuthStateCookie(readCookie(req, oauthCookieName));
+    if (
+      url.searchParams.get("error") ||
+      !oauthState ||
+      url.searchParams.get("state") !== oauthState.state ||
+      !url.searchParams.get("code")
+    ) {
+      redirect(
+        res,
+        "/admin/ai-models/connect?error=login_failed",
+        `${oauthCookieName}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`,
+      );
+      return true;
+    }
+    try {
+      const token = await options.oauth.exchangeCode({
+        code: url.searchParams.get("code")!,
+        clientId: oauthState.clientId,
+        redirectUri: oauthState.redirectUri,
+        codeVerifier: oauthState.codeVerifier,
+        resource: oauthState.resource,
+      });
+      redirect(res, "/admin/ai-models", [
+        `${cookieName}=${token.accessToken}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${Math.min(3600, token.expiresIn)}`,
+        `${oauthCookieName}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`,
+      ]);
+    } catch {
+      redirect(
+        res,
+        "/admin/ai-models/connect?error=login_failed",
+        `${oauthCookieName}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`,
+      );
     }
     return true;
   }
@@ -147,7 +238,7 @@ export const handleAdminRequest = async (
       return true;
     }
     try {
-      await options.api.request(token, "/admin/user/auth/check");
+      await options.api.request(token, "/mcp/admin/user/auth/check");
       sendHtml(res, renderAdminPage());
     } catch {
       redirect(
@@ -175,11 +266,11 @@ export const handleAdminRequest = async (
     const apiPath = readApiPath(pathname)!;
     const method = req.method ?? "GET";
     const validMethod =
-      (apiPath === "/admin/resume-model-setting" &&
+      (apiPath === "/mcp/admin/resume-model-setting" &&
         ["GET", "POST"].includes(method)) ||
-      (apiPath !== "/admin/resume-model-setting" &&
+      (apiPath !== "/mcp/admin/resume-model-setting" &&
         ((apiPath.endsWith("/activate") && method === "POST") ||
-          (/^\/admin\/resume-model-setting\/\d+$/.test(apiPath) &&
+          (/^\/mcp\/admin\/resume-model-setting\/\d+$/.test(apiPath) &&
             ["PUT", "DELETE"].includes(method))));
     if (!validMethod) {
       sendJson(res, 405, { ok: false, code: "METHOD_NOT_ALLOWED" });

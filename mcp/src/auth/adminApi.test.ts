@@ -1,31 +1,27 @@
 import { createPortfolioAdminApi } from "@mcp/auth/adminApi";
 
 describe("createPortfolioAdminApi", () => {
-  it("portfolio-api 로그인 쿠키에서 관리자 JWT를 반환하고 토큰을 노출하지 않는다", async () => {
+  it("portfolio-api MCP 모델 관리 API에 bearer 토큰을 전달한다", async () => {
     const fetchImpl = jest.fn().mockResolvedValue({
       ok: true,
-      status: 201,
-      headers: new Headers({
-        "set-cookie": "access_token=admin-jwt; Path=/; HttpOnly; Secure",
-      }),
-      json: async () => ({ user: { id: 5, email: "admin@example.com" } }),
+      status: 200,
+      json: async () => [{ id: 1, environment: "development" }],
     });
     const api = createPortfolioAdminApi({
-      baseUrl: "https://api.example.test",
+      baseUrl: "https://api.example.test/",
       fetchImpl,
     });
 
-    const result = await api.login("admin@example.com", "password");
+    await api.request("manage-token", "/mcp/admin/resume-model-setting");
 
-    expect(result).toEqual({
-      token: "admin-jwt",
-      user: { id: 5, email: "admin@example.com" },
-    });
     expect(fetchImpl).toHaveBeenCalledWith(
-      "https://api.example.test/admin/user/login",
-      expect.objectContaining({ method: "POST" }),
+      "https://api.example.test/mcp/admin/resume-model-setting",
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          authorization: "Bearer manage-token",
+        }),
+      }),
     );
-    expect(JSON.stringify(result)).not.toContain("password");
   });
 
   it("모델 설정 API 요청에 bearer 토큰을 전달한다", async () => {
@@ -39,10 +35,10 @@ describe("createPortfolioAdminApi", () => {
       fetchImpl,
     });
 
-    await api.request("admin-jwt", "/admin/resume-model-setting");
+    await api.request("admin-jwt", "/mcp/admin/resume-model-setting");
 
     expect(fetchImpl).toHaveBeenCalledWith(
-      "https://api.example.test/admin/resume-model-setting",
+      "https://api.example.test/mcp/admin/resume-model-setting",
       expect.objectContaining({
         headers: expect.objectContaining({
           authorization: "Bearer admin-jwt",
@@ -62,7 +58,20 @@ describe("createPortfolioAdminApi", () => {
     });
 
     await expect(
-      api.request("admin-jwt", "/admin/user/auth/check"),
+      api.request("admin-jwt", "/mcp/admin/user/auth/check"),
     ).rejects.toThrow("PORTFOLIO_API_ADMIN_REQUEST_FAILED");
+  });
+
+  it("기존 portfolio 관리자 경로는 요청하지 않는다", async () => {
+    const fetchImpl = jest.fn();
+    const api = createPortfolioAdminApi({
+      baseUrl: "https://api.example.test",
+      fetchImpl,
+    });
+
+    await expect(
+      api.request("manage-token", "/admin/resume-model-setting"),
+    ).rejects.toThrow("PORTFOLIO_API_ADMIN_PATH_NOT_ALLOWED");
+    expect(fetchImpl).not.toHaveBeenCalled();
   });
 });
