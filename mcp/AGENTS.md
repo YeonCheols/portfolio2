@@ -7,20 +7,18 @@
 ## 경계
 
 - `mcp/`는 웹 앱 `src/`와 분리된 프로젝트입니다. 이력서 엔티티, `resume.xml`, `parseResumeXml`을 가져오지 않습니다.
-- 인증서버와 OAuth 게이트웨이는 별도 Cloud Run 서비스이고 소스는 `src/auth/`, `src/gateway/`에 둡니다. 분리 시 인증서버와 게이트웨이도 함께 옮깁니다. 기존 `portfolio-mcp` 서비스는 비공개로 유지합니다.
+- OAuth 인증과 토큰 수명주기는 portfolio-api가 소유합니다. MCP 서버는 요청마다 portfolio-api introspection endpoint를 호출하며 refresh token을 처리하지 않습니다.
 - 인증·배포·클라이언트 연결 작업 전 [`docs/oauth-gateway.md`](docs/oauth-gateway.md)를 읽습니다.
 - 토큰과 시크릿은 저장소, 클라이언트 설정, 로그에 남기지 않습니다. 연락처 원문은 이슈 본문과 로그에 넣지 않습니다.
 - 사용자에게는 한국어로 답합니다. 근거를 남기는 문장은 `~습니다` 또는 `~ㅂ니다`로 끝냅니다.
 
 ## 프로세스
 
-인증서버, 게이트웨이, 이력서 MCP는 서로 다른 Cloud Run 서비스입니다. `auth`와 `gateway`는 `resume`를 가져오지 않습니다.
+MCP 서버만 배포하며 OAuth 처리는 portfolio-api에 위임합니다.
 
-| 프로세스         | 소스                        | 실행 파일                    |
-| ---------------- | --------------------------- | ---------------------------- |
-| 이력서 MCP       | `src/resume/http/server.ts` | `dist/resume/http/server.js` |
-| OAuth 게이트웨이 | `src/gateway/server.ts`     | `dist/gateway/server.js`     |
-| 인증서버         | `src/auth/server.ts`        | `dist/auth/server.js`        |
+| 프로세스   | 소스                        | 실행 파일                    |
+| ---------- | --------------------------- | ---------------------------- |
+| 이력서 MCP | `src/resume/http/server.ts` | `dist/resume/http/server.js` |
 
 이후 포트폴리오 MCP는 `src/portfolio/`에 둡니다. `resume` 내부를 가져오지 않습니다. 디렉터리는 그 작업이 시작될 때 만듭니다.
 
@@ -34,8 +32,6 @@ mcp/
 ├── .cursor/rules/agents.mdc      Cursor 진입점
 ├── .github/copilot-instructions.md  GitHub Copilot 진입점
 ├── docs/oauth-gateway.md         인증과 배포
-├── src/auth/                     인증서버. GitHub 로그인과 access token 발급
-├── src/gateway/                  공개 게이트웨이. 토큰 검증 후 비공개 MCP로 전달
 ├── src/runtimeBoundary.test.ts   웹 앱 이력서 소스를 직접 가져오지 않는지 검사
 └── src/resume/
     ├── model/                    공통 이력서 모델 타입

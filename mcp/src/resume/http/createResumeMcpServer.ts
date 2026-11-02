@@ -7,10 +7,25 @@ import type { ResumeConnection } from "@mcp/resume/tools/resumeTools";
 const readBody = (req: IncomingMessage): Promise<string> =>
   new Promise((resolve, reject) => {
     const chunks: string[] = [];
+    let size = 0;
+    let oversized = false;
     req.setEncoding("utf8");
-    req.on("data", (chunk: string) => chunks.push(chunk));
-    req.on("end", () => resolve(chunks.join("")));
-    req.on("error", reject);
+    req.on("data", (chunk: string) => {
+      if (oversized) return;
+      size += Buffer.byteLength(chunk);
+      if (size > 1024 * 1024) {
+        oversized = true;
+        reject(new Error("BODY_TOO_LARGE"));
+        return;
+      }
+      chunks.push(chunk);
+    });
+    req.on("end", () => {
+      if (!oversized) resolve(chunks.join(""));
+    });
+    req.on("error", (error) => {
+      if (!oversized) reject(error);
+    });
   });
 
 const sendJson = (res: ServerResponse, status: number, body: unknown): void => {
@@ -22,7 +37,13 @@ const sendJson = (res: ServerResponse, status: number, body: unknown): void => {
 export type ResumeModelSource = ResumeModelClient | (() => ResumeModelClient);
 
 export const createResumeMcpServer = (options: {
-  token: string;
+  introspect: (token: string) => Promise<boolean>;
+  protectedResourceMetadata?: {
+    resource: string;
+    authorization_servers: string[];
+    scopes_supported?: string[];
+    bearer_methods_supported?: string[];
+  };
   connection: ResumeConnection;
   model?: ResumeModelSource;
   log?: (message: string) => void;
@@ -35,18 +56,62 @@ export const createResumeMcpServer = (options: {
       return;
     }
 
+    if (
+      req.method === "GET" &&
+      (url === "/.well-known/oauth-protected-resource/mcp" ||
+        url === "/.well-known/oauth-protected-resource")
+    ) {
+      if (!options.protectedResourceMetadata) {
+        res.writeHead(404);
+        res.end();
+        return;
+      }
+      sendJson(res, 200, options.protectedResourceMetadata);
+      return;
+    }
+
     if (req.method !== "POST" || url !== "/mcp") {
       res.writeHead(404);
       res.end();
       return;
     }
 
-    const raw = await readBody(req);
-    const authorized =
-      options.token !== "" &&
-      req.headers.authorization === `Bearer ${options.token}`;
+    let raw: string;
+    try {
+      raw = await readBody(req);
+    } catch (error) {
+      const tooLarge =
+        error instanceof Error && error.message === "BODY_TOO_LARGE";
+      sendJson(res, tooLarge ? 413 : 400, {
+        ok: false,
+        code: tooLarge ? "BODY_TOO_LARGE" : "INVALID_INPUT",
+      });
+      return;
+    }
+    const authorization = req.headers.authorization;
+    const token = authorization?.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
+    let authorized = false;
+    try {
+      authorized = Boolean(token) && (await options.introspect(token!));
+    } catch {
+      options.log?.("AUTH_INTROSPECTION_UNAVAILABLE");
+      sendJson(res, 503, { ok: false, code: "AUTH_UNAVAILABLE" });
+      return;
+    }
 
     if (!authorized) {
+      const resourceMetadataUrl = options.protectedResourceMetadata
+        ? new URL(
+            "/.well-known/oauth-protected-resource/mcp",
+            options.protectedResourceMetadata.resource,
+          ).toString()
+        : undefined;
+      res.setHeader(
+        "www-authenticate",
+        resourceMetadataUrl
+          ? `Bearer resource_metadata="${resourceMetadataUrl}"`
+          : "Bearer",
+      );
       sendJson(res, 401, { ok: false, code: "UNAUTHORIZED" });
       return;
     }

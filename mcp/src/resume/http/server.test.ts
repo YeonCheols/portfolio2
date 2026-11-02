@@ -20,6 +20,42 @@ describe("startResumeMcpServer", () => {
     else process.env.RESUME_CONNECTION_TOKEN = previousToken;
   });
 
+  it("issuer 설정이 비어 있으면 portfolio-api 기본 issuer를 사용한다", () => {
+    const keys = [
+      "RESUME_CONNECTION_URL",
+      "RESUME_CONNECTION_TOKEN",
+      "PORTFOLIO_API_URL",
+      "PORTFOLIO_API_AUTH_ISSUER",
+      "MCP_PUBLIC_URL",
+      "MCP_AUTH_SERVICE_TOKEN",
+    ] as const;
+    const previous = Object.fromEntries(
+      keys.map((key) => [key, process.env[key]]),
+    );
+    const listen = jest
+      .spyOn(http.Server.prototype, "listen")
+      .mockImplementation(function (this: http.Server) {
+        return this;
+      });
+    process.env.RESUME_CONNECTION_URL = "https://resume.example/connect";
+    process.env.RESUME_CONNECTION_TOKEN = "connection-token";
+    process.env.PORTFOLIO_API_URL = "https://api.example.test";
+    process.env.PORTFOLIO_API_AUTH_ISSUER = "";
+    process.env.MCP_PUBLIC_URL = "https://mcp.example.test/mcp";
+    process.env.MCP_AUTH_SERVICE_TOKEN = "service-token";
+
+    try {
+      expect(() => startResumeMcpServer()).not.toThrow();
+      expect(listen).toHaveBeenCalledTimes(1);
+    } finally {
+      listen.mockRestore();
+      for (const key of keys) {
+        if (previous[key] === undefined) delete process.env[key];
+        else process.env[key] = previous[key];
+      }
+    }
+  });
+
   it("프로세스 진입점은 외부 AI 주소와 토큰으로 문장을 요청한다", async () => {
     const fetchImpl = jest.fn<
       Promise<{ json: () => Promise<unknown> }>,
@@ -486,7 +522,7 @@ describe("startResumeMcpServer", () => {
       workflow.indexOf("게이트웨이 런타임 계정"),
     );
     const beforeDeploy = workflow.slice(
-      workflow.indexOf("비공개 MCP 서버 배포"),
+      workflow.indexOf("portfolio-api introspection을 사용하는 공개 MCP 서버 배포"),
       workflow.indexOf("gcloud run deploy portfolio-mcp"),
     );
 
@@ -515,6 +551,10 @@ describe("startResumeMcpServer", () => {
       "RESUME_MODEL_SETTING_URL",
       "RESUME_MODEL_SETTING_TOKEN",
       "RESUME_MODEL_ENVIRONMENT",
+      "PORTFOLIO_API_URL",
+      "PORTFOLIO_API_AUTH_ISSUER",
+      "MCP_PUBLIC_URL",
+      "MCP_AUTH_SERVICE_TOKEN",
     ] as const;
     const previous = Object.fromEntries(keys.map((k) => [k, process.env[k]]));
     const listen = jest
@@ -527,6 +567,10 @@ describe("startResumeMcpServer", () => {
     process.env.RESUME_MODEL_SETTING_URL = "https://api.example/active";
     delete process.env.RESUME_MODEL_SETTING_TOKEN;
     process.env.RESUME_MODEL_ENVIRONMENT = "production";
+    process.env.PORTFOLIO_API_URL = "https://api.example.test";
+    process.env.PORTFOLIO_API_AUTH_ISSUER = "";
+    process.env.MCP_PUBLIC_URL = "https://mcp.example.test/mcp";
+    process.env.MCP_AUTH_SERVICE_TOKEN = "service-token";
 
     try {
       expect(() => startResumeMcpServer()).toThrow(
