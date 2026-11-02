@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <title>AI LLM 관리 · Portfolio MCP</title>
+    <link rel="stylesheet" href="/admin/ai-models/assets/admin.css" />
+  </head>
+  <body class="min-h-screen bg-slate-50 font-sans text-slate-900">
+    <header
+      class="mx-auto flex h-[72px] w-[calc(100%-32px)] max-w-5xl items-center justify-between border-b border-slate-200"
+    >
+      <div class="flex items-center gap-3 text-sm font-bold tracking-tight">
+        <span
+          class="grid size-[34px] place-items-center rounded-xl bg-blue-600 text-white"
+          >P</span
+        >
+        <span>PORTFOLIO MCP</span>
+      </div>
+      <form action="/admin/ai-models/logout" method="post">
+        <button
+          class="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600"
+          type="submit"
+        >
+          로그아웃
+        </button>
+      </form>
+    </header>
+    <main class="mx-auto max-w-5xl px-4 py-12 sm:px-0 sm:py-14">
+      <div
+        class="flex flex-col justify-between gap-5 sm:flex-row sm:items-start"
+      >
+        <div>
+          <p
+            class="text-xs font-extrabold uppercase tracking-[.14em] text-blue-700"
+          >
+            MCP 관리자
+          </p>
+          <h1 class="mb-3 mt-2 text-4xl font-bold tracking-tight">
+            AI LLM 관리
+          </h1>
+          <p class="leading-relaxed text-slate-600">
+            개발 및 운영 환경에서 사용할 AI 모델 설정을 확인하고 관리합니다.
+          </p>
+        </div>
+        <span
+          class="inline-flex w-fit items-center gap-2 rounded-full border border-green-200 bg-green-50 px-3 py-2 text-xs font-bold text-green-800"
+        >
+          <span class="size-2 rounded-full bg-green-600"></span>
+          portfolio-api 관리자 인증 완료
+        </span>
+      </div>
+      <div class="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <section
+          class="min-h-40 rounded-2xl border border-slate-200 bg-white p-6"
+        >
+          <h2 class="mb-3 text-base font-bold">개발 환경</h2>
+          <span
+            class="inline-flex rounded-full bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800"
+            >설정 연결 대기</span
+          >
+          <p class="mt-4 text-sm leading-relaxed text-slate-600">
+            개발 MCP에서 사용할 활성 모델입니다.
+          </p>
+        </section>
+        <section
+          class="min-h-40 rounded-2xl border border-slate-200 bg-white p-6"
+        >
+          <h2 class="mb-3 text-base font-bold">운영 환경</h2>
+          <span
+            class="inline-flex rounded-full bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-800"
+            >설정 연결 대기</span
+          >
+          <p class="mt-4 text-sm leading-relaxed text-slate-600">
+            운영 MCP에서 사용할 활성 모델입니다.
+          </p>
+        </section>
+      </div>
+      <div
+        class="mt-5 rounded-xl border border-slate-200 bg-white px-5 py-4 text-sm leading-relaxed text-slate-600"
+      >
+        관리 화면의 설정 조회와 변경 조작은 아직 연결되지 않았습니다.
+      </div>
+    </main>
+  </body>
+</html>

@@ -1,5 +1,8 @@
 import http, { type IncomingMessage, type ServerResponse } from "http";
 
+import type { PortfolioAdminApi } from "@mcp/auth/adminApi";
+import { handleAdminRequest } from "@mcp/auth/adminRoutes";
+
 import type { ResumeModelClient } from "@mcp/resume/output/runResumeHarness";
 import { handleMcpRequest } from "@mcp/resume/tools/handleMcpRequest";
 import type { ResumeConnection } from "@mcp/resume/tools/resumeTools";
@@ -46,9 +49,13 @@ export const createResumeMcpServer = (options: {
   };
   connection: ResumeConnection;
   model?: ResumeModelSource;
+  admin?: { api: PortfolioAdminApi; publicUrl: string };
   log?: (message: string) => void;
 }) =>
   http.createServer(async (req, res) => {
+    if (options.admin && (await handleAdminRequest(req, res, options.admin))) {
+      return;
+    }
     const url = req.url?.split("?")[0];
 
     if (req.method === "GET" && url === "/health") {

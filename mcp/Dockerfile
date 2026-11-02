@@ -7,6 +7,7 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY tsconfig.json ./tsconfig.json
+COPY tailwind.config.js ./tailwind.config.js
 COPY src ./src
 COPY scripts ./scripts
 COPY fonts ./fonts

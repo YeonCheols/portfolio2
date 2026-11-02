@@ -522,7 +522,9 @@ describe("startResumeMcpServer", () => {
       workflow.indexOf("게이트웨이 런타임 계정"),
     );
     const beforeDeploy = workflow.slice(
-      workflow.indexOf("portfolio-api introspection을 사용하는 공개 MCP 서버 배포"),
+      workflow.indexOf(
+        "portfolio-api introspection을 사용하는 공개 MCP 서버 배포",
+      ),
       workflow.indexOf("gcloud run deploy portfolio-mcp"),
     );
 

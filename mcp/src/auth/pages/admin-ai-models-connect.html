@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <title>AI 모델 설정 · Portfolio MCP</title>
+    <link rel="stylesheet" href="/admin/ai-models/assets/admin.css" />
+  </head>
+  <body class="min-h-screen bg-slate-50 font-sans text-slate-900">
+    <header
+      class="mx-auto flex h-[72px] w-[calc(100%-32px)] max-w-5xl items-center border-b border-slate-200"
+    >
+      <div class="flex items-center gap-3 text-sm font-bold tracking-tight">
+        <span
+          class="grid size-[34px] place-items-center rounded-xl bg-blue-600 text-white"
+          >P</span
+        >
+        <span>PORTFOLIO MCP</span>
+      </div>
+    </header>
+    <main
+      class="mx-auto grid min-h-[calc(100vh-73px)] w-[calc(100%-32px)] max-w-5xl place-items-center py-14"
+    >
+      <section
+        class="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-7 shadow-xl shadow-slate-900/5 sm:p-10"
+      >
+        <p
+          class="text-xs font-extrabold uppercase tracking-[.14em] text-blue-700"
+        >
+          관리자 인증
+        </p>
+        <h1 class="mb-3 mt-2 text-4xl font-bold tracking-tight">
+          AI 모델 설정
+        </h1>
+        <p class="leading-relaxed text-slate-600">
+          portfolio-api 관리자 계정으로 로그인해 환경별 AI 모델 설정을
+          관리합니다.
+        </p>
+        <form
+          action="/admin/ai-models/login"
+          method="post"
+          class="mt-7 space-y-4"
+        >
+          <label class="block text-sm font-semibold" for="email">이메일</label>
+          <input
+            class="w-full rounded-lg border border-slate-300 px-3 py-3"
+            id="email"
+            name="email"
+            type="email"
+            autocomplete="username"
+            required
+          />
+          <label class="block text-sm font-semibold" for="password"
+            >비밀번호</label
+          >
+          <input
+            class="w-full rounded-lg border border-slate-300 px-3 py-3"
+            id="password"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+          />
+          <button
+            class="flex min-h-12 w-full items-center justify-center rounded-xl bg-blue-600 px-4 text-sm font-bold text-white"
+            type="submit"
+          >
+            로그인
+          </button>
+        </form>
+        <p class="mt-4 text-xs leading-relaxed text-slate-500">{{message}}</p>
+      </section>
+    </main>
+  </body>
+</html>

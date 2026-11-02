@@ -48,3 +48,9 @@ MCP 배포는 다음 Actions variables와 Secret Manager secret을 사용합니�
 배포 workflow는 `portfolio-mcp`를 공개 ingress로 배포합니다. 이 서비스에서 `POST /mcp`는 portfolio-api introspection을 통과해야만 처리됩니다. Cloud Run 도메인이나 사용자 정의 도메인을 바꾸는 경우 `MCP_PUBLIC_URL` 및 MCP client 설정도 함께 갱신합니다.
 
 OAuth 인증서버와 게이트웨이의 소스 및 배포 단계는 제거했습니다. 기존 Cloud Run 서비스는 이 저장소 변경만으로 삭제되지 않으며, 새 MCP 경로의 로그인과 introspection을 검증한 뒤 별도로 정리해야 합니다.
+
+## 관리자 웹 로그인
+
+AI 모델 관리 화면(`/admin/ai-models`)은 portfolio-api의 관리자 인증을 사용합니다. 로그인 폼은 MCP 서버에서 서버 간 요청으로 `POST /admin/user/login`을 호출합니다. MCP는 portfolio-api 응답의 `access_token` 쿠키를 브라우저에 전달하지 않고, 이를 `__Host-portfolio-admin-session` HttpOnly·Secure·SameSite=Lax 쿠키로 설정합니다. 쿠키는 MCP 호스트에만 적용되며 24시간 후 만료됩니다.
+
+MCP의 관리자 라우트는 세션 JWT를 Bearer 인증으로 portfolio-api에 전달합니다. 대시보드 진입 때 `GET /admin/user/auth/check`를 확인하고, 모델 설정 요청은 고정된 `/admin/resume-model-setting` 경로로만 전달합니다. 쓰기 요청은 MCP 사이트와 동일한 Origin만 허용합니다. MCP는 관리자 비밀번호를 저장하거나 JWT를 발급·갱신하지 않습니다. 로그아웃은 MCP 세션 쿠키를 지우며 portfolio-api JWT는 서버 측 stateless 정책에 따라 만료됩니다.

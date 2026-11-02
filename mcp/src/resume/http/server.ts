@@ -1,3 +1,4 @@
+import { createPortfolioAdminApi } from "@mcp/auth/adminApi";
 import { fetchOpenRouterModelText } from "@mcp/resume/connection/openRouterModelConnection";
 import {
   fetchResumeModel,
@@ -176,6 +177,10 @@ export const startResumeMcpServer = () => {
     connection: {
       load: (input) =>
         fetchResumeModel(input, { url: resumeUrl, token: resumeToken }),
+    },
+    admin: {
+      api: createPortfolioAdminApi({ baseUrl: portfolioApiUrl }),
+      publicUrl,
     },
     model: resumeModelSourceFromEnv({
       RESUME_MODEL_URL: process.env.RESUME_MODEL_URL,

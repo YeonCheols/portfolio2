@@ -3,12 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "tsc -p tsconfig.json && node scripts/rewrite-alias-imports.mjs",
+    "build": "tsc -p tsconfig.json && node scripts/rewrite-alias-imports.mjs && tailwindcss -c tailwind.config.js -i src/auth/admin.css -o dist/auth/admin.css --minify && node scripts/copy-auth-pages.mjs",
     "start": "node dist/resume/http/server.js"
   },
   "devDependencies": {
     "@types/node": "20.1.7",
     "@types/pdfkit": "^0.17.7",
+    "tailwindcss": "3.4.17",
     "typescript": "5.0.4"
   },
   "dependencies": {
