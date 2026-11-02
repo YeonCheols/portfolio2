@@ -6,6 +6,7 @@ import {
 } from "@mcp/resume/connection/resumeConnection";
 import { fetchResumeModelText } from "@mcp/resume/connection/resumeModelConnection";
 import { createResumeMcpServer } from "@mcp/resume/http/createResumeMcpServer";
+import { createPortfolioApiIntrospector } from "@mcp/resume/http/portfolioApiIntrospector";
 import type { ResumeModelClient } from "@mcp/resume/output/runResumeHarness";
 
 const resumeModelConnections = {
@@ -47,7 +48,6 @@ export const resumeModelFromEnv = (
 });
 
 export const startResumeMcpServer = () => {
-  const token = process.env.MCP_AUTH_TOKEN ?? "";
   const resumeUrl = process.env.RESUME_CONNECTION_URL ?? "";
   const resumeToken = process.env.RESUME_CONNECTION_TOKEN ?? "";
 
@@ -57,10 +57,31 @@ export const startResumeMcpServer = () => {
     );
   }
 
+  const portfolioApiUrl = (process.env.PORTFOLIO_API_URL ?? "").replace(
+    /\/+$/,
+    "",
+  );
+  const publicUrl = process.env.MCP_PUBLIC_URL ?? "";
+  if (!publicUrl) throw new Error("MCP_PUBLIC_URL is required");
+  const authorizationServer =
+    process.env.PORTFOLIO_API_AUTH_ISSUER?.trim() || `${portfolioApiUrl}/auth`;
+  new URL(publicUrl);
+  new URL(authorizationServer);
+  const introspect = createPortfolioApiIntrospector({
+    apiUrl: portfolioApiUrl,
+    serviceToken: process.env.MCP_AUTH_SERVICE_TOKEN ?? "",
+  });
+
   const port = Number(process.env.PORT ?? 8080);
 
   return createResumeMcpServer({
-    token,
+    introspect,
+    protectedResourceMetadata: {
+      resource: publicUrl,
+      authorization_servers: [authorizationServer],
+      scopes_supported: ["resume:use"],
+      bearer_methods_supported: ["header"],
+    },
     connection: {
       load: (input) =>
         fetchResumeModel(input, { url: resumeUrl, token: resumeToken }),

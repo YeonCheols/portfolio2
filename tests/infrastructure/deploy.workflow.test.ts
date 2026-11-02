@@ -80,13 +80,14 @@ describe("deploy workflow", () => {
     expect(workflow).toContain("--allow-unauthenticated");
   });
 
-  it("MCP는 별도 Cloud Run 서비스로 배포하고 공개 접근을 열지 않는다", () => {
+  it("MCP는 portfolio-api introspection으로 보호되는 공개 endpoint를 배포한다", () => {
     const workflow = fs.readFileSync(mcpWorkflowPath, "utf8");
 
     expect(workflow).toContain("context: ./mcp");
     expect(workflow).toContain("gcloud run deploy portfolio-mcp");
-    expect(workflow).toContain("--no-allow-unauthenticated");
-    expect(workflow).toContain("MCP_AUTH_TOKEN=MCP_AUTH_TOKEN:latest");
+    expect(workflow).toContain("--allow-unauthenticated");
+    expect(workflow).toContain("MCP_AUTH_SERVICE_TOKEN=MCP_AUTH_TOKEN:latest");
+    expect(workflow).toContain("PORTFOLIO_API_URL");
     expect(workflow).toContain(
       "RESUME_CONNECTION_TOKEN=RESUME_CONNECTION_TOKEN:latest",
     );
@@ -99,7 +100,9 @@ describe("deploy workflow", () => {
     const workflow = fs.readFileSync(mcpWorkflowPath, "utf8");
     const mcpBuildStep = workflow
       .split("      - name: MCP 이미지 빌드와 푸시\n")[1]
-      ?.split("\n      - name: 비공개 MCP 서버 배포")[0];
+      ?.split(
+        "\n      - name: portfolio-api introspection을 사용하는 공개 MCP 서버 배포",
+      )[0];
 
     expect(mcpBuildStep).toBeDefined();
     expect(mcpBuildStep).toContain("uses: docker/build-push-action@v6");
