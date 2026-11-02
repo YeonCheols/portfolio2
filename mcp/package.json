@@ -4,9 +4,7 @@
   "private": true,
   "scripts": {
     "build": "tsc -p tsconfig.json && node scripts/rewrite-alias-imports.mjs",
-    "start": "node dist/resume/http/server.js",
-    "start:gateway": "node dist/gateway/server.js",
-    "start:auth": "node dist/auth/server.js"
+    "start": "node dist/resume/http/server.js"
   },
   "devDependencies": {
     "@types/node": "20.1.7",

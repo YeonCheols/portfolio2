@@ -51,7 +51,7 @@ describe("createResumeMcpServer", () => {
   it("이력서 생성은 서버에 연결된 외부 AI를 호출한다", async () => {
     const requests: { persona: string; prompt: string }[] = [];
     const server = createResumeMcpServer({
-      token: "test-token",
+      introspect: async (token) => token === "test-token",
       connection: { load: async () => connectedResume() },
       model: {
         generate: async (input) => {
@@ -125,7 +125,11 @@ describe("createResumeMcpServer", () => {
   it("헬스 확인은 열고 인증 없는 도구 호출은 본문 없이 거부한다", async () => {
     const log = jest.fn();
     const server = createResumeMcpServer({
-      token: "test-token",
+      introspect: async (token) => token === "test-token",
+      protectedResourceMetadata: {
+        resource: "https://mcp.example.test/mcp",
+        authorization_servers: ["https://api.example.test/auth"],
+      },
       connection: { load: async () => connectedResume() },
       log,
     });
@@ -143,6 +147,16 @@ describe("createResumeMcpServer", () => {
         path: "/health",
       });
       expect(health.status).toBe(200);
+
+      const metadata = await request(address.port, {
+        method: "GET",
+        path: "/.well-known/oauth-protected-resource/mcp",
+      });
+      expect(metadata.status).toBe(200);
+      expect(JSON.parse(metadata.body)).toMatchObject({
+        resource: "https://mcp.example.test/mcp",
+        authorization_servers: ["https://api.example.test/auth"],
+      });
 
       const denied = await request(address.port, {
         method: "POST",
@@ -190,6 +204,69 @@ describe("createResumeMcpServer", () => {
       await new Promise<void>((resolve, reject) => {
         server.close((error) => (error ? reject(error) : resolve()));
       });
+    }
+  });
+
+  it("요청 본문이 1 MiB를 넘으면 introspection 전에 거부한다", async () => {
+    const introspect = jest.fn(async () => true);
+    const server = createResumeMcpServer({
+      introspect,
+      connection: { load: async () => connectedResume() },
+    });
+    await new Promise<void>((resolve) =>
+      server.listen(0, "127.0.0.1", resolve),
+    );
+    const address = server.address();
+    if (!address || typeof address === "string")
+      throw new Error("port missing");
+
+    try {
+      const response = await request(address.port, {
+        method: "POST",
+        path: "/mcp",
+        headers: { "content-type": "application/json" },
+        body: "x".repeat(1024 * 1024 + 1),
+      });
+      expect(response.status).toBe(413);
+      expect(introspect).not.toHaveBeenCalled();
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
+  });
+
+  it("portfolio-api introspection 실패 시 요청을 fail-closed 처리한다", async () => {
+    const server = createResumeMcpServer({
+      introspect: async () => {
+        throw new Error("AUTH_INTROSPECTION_FAILED");
+      },
+      connection: { load: async () => connectedResume() },
+    });
+    await new Promise<void>((resolve) =>
+      server.listen(0, "127.0.0.1", resolve),
+    );
+    const address = server.address();
+    if (!address || typeof address === "string")
+      throw new Error("port missing");
+
+    try {
+      const response = await request(address.port, {
+        method: "POST",
+        path: "/mcp",
+        headers: {
+          authorization: "Bearer user-access-token",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "tools/list" }),
+      });
+      expect(response.status).toBe(503);
+      expect(response.body).toContain("AUTH_UNAVAILABLE");
+      expect(response.body).not.toContain("user-access-token");
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
     }
   });
 });
