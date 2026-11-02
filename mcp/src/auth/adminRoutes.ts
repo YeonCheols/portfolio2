@@ -1,10 +1,9 @@
 import { readFileSync } from "fs";
 import type { IncomingMessage, ServerResponse } from "http";
-import { join } from "path";
+import { extname, join } from "path";
 
 import type { PortfolioAdminApi } from "@mcp/auth/adminApi";
 import type { createPortfolioAdminOAuth } from "@mcp/auth/adminOAuth";
-import { renderAdminConnectPage, renderAdminPage } from "@mcp/auth/adminPages";
 
 const cookieName = "__Host-portfolio-admin-session";
 const oauthCookieName = "__Host-portfolio-admin-oauth-state";
@@ -93,6 +92,11 @@ const sendHtml = (res: ServerResponse, html: string, formAction = "'self'") => {
   res.end(html);
 };
 
+const assetContentTypes: Record<string, string> = {
+  ".js": "text/javascript; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+};
+
 const readApiPath = (pathname: string): string | null => {
   if (pathname === "/admin/ai-models/api/settings") {
     return "/mcp/admin/resume-model-setting";
@@ -114,28 +118,26 @@ export const handleAdminRequest = async (
     publicUrl: string;
     oauthResource: string;
     authorizationOrigin: string;
+    appRoot?: string;
   },
 ): Promise<boolean> => {
   const url = new URL(req.url ?? "/", options.publicUrl);
   const { pathname } = url;
+  // 빌드된 React 앱의 위치. 빌드가 dist/auth/app에 만들고 서버는 같은 dist 아래에서 읽는다
+  const appRoot = options.appRoot ?? join(__dirname, "app");
 
-  const adminAssets: Record<string, { file: string; contentType: string }> = {
-    "/admin/ai-models/assets/admin.css": {
-      file: "admin.css",
-      contentType: "text/css; charset=utf-8",
-    },
-    "/admin/ai-models/assets/admin-ai-models.js": {
-      file: "pages/admin-ai-models.js",
-      contentType: "text/javascript; charset=utf-8",
-    },
-  };
-  if (req.method === "GET" && adminAssets[pathname]) {
+  const assetName = pathname.match(
+    /^\/admin\/ai-models\/assets\/([A-Za-z0-9._-]+)$/,
+  )?.[1];
+  if (req.method === "GET" && assetName) {
+    const contentType = assetContentTypes[extname(assetName)];
     try {
-      const asset = adminAssets[pathname];
-      const content = readFileSync(join(__dirname, asset.file), "utf8");
+      if (!contentType) throw new Error("UNSUPPORTED_ASSET");
+      const content = readFileSync(join(appRoot, "assets", assetName));
       res.writeHead(200, {
-        "cache-control": "public, max-age=3600",
-        "content-type": asset.contentType,
+        // 파일 이름에 내용 해시가 들어 있어 바뀌면 이름도 바뀐다
+        "cache-control": "public, max-age=31536000, immutable",
+        "content-type": contentType,
         "x-content-type-options": "nosniff",
       });
       res.end(content);
@@ -149,11 +151,7 @@ export const handleAdminRequest = async (
   if (req.method === "GET" && pathname === "/admin/ai-models/connect") {
     sendHtml(
       res,
-      renderAdminConnectPage(
-        url.searchParams.get("error") === "login_failed"
-          ? "로그인에 실패했습니다. 계정 정보를 확인해 주세요."
-          : "",
-      ),
+      readFileSync(join(appRoot, "index.html"), "utf8"),
       `'self' ${options.authorizationOrigin} ${identityProviderOrigin}`,
     );
     return true;
@@ -244,7 +242,7 @@ export const handleAdminRequest = async (
     }
     try {
       await options.api.request(token, "/mcp/admin/user/auth/check");
-      sendHtml(res, renderAdminPage());
+      sendHtml(res, readFileSync(join(appRoot, "index.html"), "utf8"));
     } catch {
       redirect(
         res,

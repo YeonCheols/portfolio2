@@ -32,6 +32,7 @@ mcp/
 ├── .cursor/rules/agents.mdc      Cursor 진입점
 ├── .github/copilot-instructions.md  GitHub Copilot 진입점
 ├── docs/oauth-gateway.md         인증과 배포
+├── app/                          관리자 화면(React + Vite). 빌드 결과는 dist/auth/app
 ├── src/runtimeBoundary.test.ts   웹 앱 이력서 소스를 직접 가져오지 않는지 검사
 └── src/resume/
     ├── model/                    공통 이력서 모델 타입
@@ -92,6 +93,14 @@ mcp/
 
 - 같은 항목명이 연속되면 항목명을 한 번만 쓰고 값은 `- ` 불릿으로 묶습니다.
 - 기간은 `기간 시작 ~ 종료` 한 줄입니다. 비어 있는 쪽은 뺍니다.
+
+## 관리자 화면
+
+`app/`은 `/admin/ai-models` 관리자 화면의 React + Vite 앱입니다. `pnpm build`가 서버 TypeScript와 앱을 함께 빌드해 `dist/auth/app`에 정적 파일을 만들고, 서버(`src/auth/adminRoutes.ts`)가 이를 서빙합니다. OAuth 로그인, PKCE, 세션 쿠키는 서버가 맡으며 앱은 토큰을 다루지 않고 `/admin/ai-models/api/*`만 호출합니다.
+
+- 앱 소스 파일은 케밥 케이스(`login-page.tsx`)이고 컴포넌트 이름은 PascalCase입니다. 테스트는 대상 파일 옆에 둡니다.
+- 앱 테스트는 `pnpm test`(Vitest)로 실행합니다. 루트 Jest는 `mcp/app/`을 실행하지 않습니다.
+- CSP가 `script-src 'self'`이므로 인라인 스크립트를 두지 않습니다. 리퍼러 정책은 `same-origin`을 유지합니다. `no-referrer`면 브라우저가 폼 POST에 `Origin: null`을 보내 로그인 시작이 항상 거절됩니다.
 
 ## 에이전트별 진입점
 

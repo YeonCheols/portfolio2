@@ -1,4 +1,7 @@
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "fs";
 import http from "http";
+import { tmpdir } from "os";
+import { join } from "path";
 
 import { createPortfolioAdminApi } from "@mcp/auth/adminApi";
 import { handleAdminRequest } from "@mcp/auth/adminRoutes";
@@ -45,6 +48,29 @@ const request = (
 
 describe("portfolio-api 관리자 라우트", () => {
   const apiUrl = "https://api.example.test";
+  const indexHtml =
+    '<!doctype html><html><body><div id="root"></div></body></html>';
+  let appRoot = "";
+
+  beforeAll(() => {
+    appRoot = mkdtempSync(join(tmpdir(), "admin-app-"));
+    mkdirSync(join(appRoot, "assets"));
+    writeFileSync(join(appRoot, "index.html"), indexHtml);
+    writeFileSync(
+      join(appRoot, "assets", "index-abc123.js"),
+      "console.log(1);",
+    );
+    writeFileSync(
+      join(appRoot, "assets", "index-abc123.css"),
+      "body{margin:0}",
+    );
+    writeFileSync(join(appRoot, "assets", "notes.txt"), "internal");
+  });
+
+  afterAll(() => {
+    rmSync(appRoot, { recursive: true, force: true });
+  });
+
   const defaultOAuth = {
     startAuthorization: jest.fn().mockResolvedValue({
       authorizationUrl: "https://api.example.test/auth/authorize?state=state",
@@ -67,6 +93,7 @@ describe("portfolio-api 관리자 라우트", () => {
         publicUrl: "https://mcp.example.test/mcp",
         oauthResource: "https://mcp.example.test/mcp",
         authorizationOrigin: "https://api.example.test",
+        appRoot,
       }).then((handled) => {
         if (!handled) {
           res.writeHead(404);
@@ -78,6 +105,25 @@ describe("portfolio-api 관리자 라우트", () => {
   beforeEach(() => {
     defaultOAuth.startAuthorization.mockClear();
     defaultOAuth.exchangeCode.mockClear();
+  });
+
+  it("로그인 화면은 빌드된 React 앱의 index.html을 서빙한다", async () => {
+    const server = createServer(jest.fn());
+    await new Promise<void>((resolve) =>
+      server.listen(0, "127.0.0.1", resolve),
+    );
+    const port = (server.address() as { port: number }).port;
+    try {
+      const response = await request(port, "/admin/ai-models/connect");
+
+      expect(response.status).toBe(200);
+      expect(response.headers["content-type"]).toContain("text/html");
+      expect(response.body).toBe(indexHtml);
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
   });
 
   it("관리 페이지 응답은 같은 출처 POST에 Origin이 가도록 same-origin 리퍼러 정책을 보낸다", async () => {
@@ -231,7 +277,7 @@ describe("portfolio-api 관리자 라우트", () => {
     }
   });
 
-  it("관리 UI 스크립트를 동일 출처 전용 헤더로 제공한다", async () => {
+  it("빌드된 관리 UI 스크립트를 nosniff 헤더와 장기 캐시로 제공한다", async () => {
     const server = createServer(jest.fn());
     await new Promise<void>((resolve) =>
       server.listen(0, "127.0.0.1", resolve),
@@ -240,11 +286,13 @@ describe("portfolio-api 관리자 라우트", () => {
     try {
       const response = await request(
         port,
-        "/admin/ai-models/assets/admin-ai-models.js",
+        "/admin/ai-models/assets/index-abc123.js",
       );
       expect(response.status).toBe(200);
       expect(response.headers["content-type"]).toContain("javascript");
-      expect(response.body).toContain("/admin/ai-models/api/settings");
+      expect(response.headers["x-content-type-options"]).toBe("nosniff");
+      expect(response.headers["cache-control"]).toContain("immutable");
+      expect(response.body).toBe("console.log(1);");
     } finally {
       await new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),
@@ -252,16 +300,44 @@ describe("portfolio-api 관리자 라우트", () => {
     }
   });
 
-  it("관리 UI 스타일시트를 빌드 산출물 경로에서 제공한다", async () => {
+  it("허용하지 않은 확장자와 상위 경로 접근은 에셋으로 제공하지 않는다", async () => {
     const server = createServer(jest.fn());
     await new Promise<void>((resolve) =>
       server.listen(0, "127.0.0.1", resolve),
     );
     const port = (server.address() as { port: number }).port;
     try {
-      const response = await request(port, "/admin/ai-models/assets/admin.css");
+      for (const path of [
+        "/admin/ai-models/assets/notes.txt",
+        "/admin/ai-models/assets/..%2Findex.html",
+        "/admin/ai-models/assets/%2e%2e%2findex.html",
+      ]) {
+        const response = await request(port, path);
+        expect(response.status).toBe(404);
+        expect(response.body).not.toContain("internal");
+        expect(response.body).not.toContain('id="root"');
+      }
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
+  });
+
+  it("빌드된 관리 UI 스타일시트를 text/css로 제공한다", async () => {
+    const server = createServer(jest.fn());
+    await new Promise<void>((resolve) =>
+      server.listen(0, "127.0.0.1", resolve),
+    );
+    const port = (server.address() as { port: number }).port;
+    try {
+      const response = await request(
+        port,
+        "/admin/ai-models/assets/index-abc123.css",
+      );
       expect(response.status).toBe(200);
       expect(response.headers["content-type"]).toContain("text/css");
+      expect(response.body).toBe("body{margin:0}");
     } finally {
       await new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),
@@ -285,8 +361,12 @@ describe("portfolio-api 관리자 라우트", () => {
         headers: { cookie: "__Host-portfolio-admin-session=admin-jwt" },
       });
       expect(response.status).toBe(200);
+      expect(response.body).toBe(indexHtml);
       expect(response.headers["content-security-policy"]).toContain(
         "connect-src 'self'",
+      );
+      expect(response.headers["content-security-policy"]).toContain(
+        "form-action 'self';",
       );
     } finally {
       await new Promise<void>((resolve, reject) =>

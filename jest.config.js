@@ -21,6 +21,7 @@ const customJestConfig = {
   testPathIgnorePatterns: [
     "<rootDir>/tests/integration/",
     "<rootDir>/mcp/dist/",
+    "<rootDir>/mcp/app/",
   ],
 };
 
@@ -30,6 +31,7 @@ module.exports = async () => {
     ...(jestConfig.testPathIgnorePatterns ?? []),
     "<rootDir>/tests/integration/",
     "<rootDir>/mcp/dist/",
+    "<rootDir>/mcp/app/",
   ];
   jestConfig.transformIgnorePatterns = [
     "/node_modules/(?!(react-markdown|rehype-slug|remark-gfm|vfile|vfile-message|unist-.*|unified|bail|is-plain-obj|trough|remark-.*|mdast-util-.*|micromark.*|decode-named-character-reference|character-entities|property-information|hast-util-.*|space-separated-tokens|comma-separated-tokens|html-url-attributes|estree-util-is-identifier-name|devlop|zwitch|longest-streak|stringify-entities|ccount|escape-string-regexp|markdown-table|trim-lines|style-to-object|style-to-js|extend)/)",

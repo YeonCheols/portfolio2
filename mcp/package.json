@@ -3,16 +3,28 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "build": "tsc -p tsconfig.json && node scripts/rewrite-alias-imports.mjs && tailwindcss -c tailwind.config.js -i src/auth/admin.css -o dist/auth/admin.css --minify && node scripts/copy-auth-pages.mjs",
-    "start": "node dist/resume/http/server.js"
+    "build": "tsc -p tsconfig.json && node scripts/rewrite-alias-imports.mjs && tsc -p app/tsconfig.json && vite build --config app/vite.config.ts",
+    "start": "node dist/resume/http/server.js",
+    "test": "vitest run --config app/vite.config.ts"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.8",
     "@types/node": "20.1.7",
     "@types/pdfkit": "^0.17.7",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^4.7.0",
+    "jsdom": "^25.0.1",
     "tailwindcss": "3.4.17",
-    "typescript": "5.0.4"
+    "typescript": "5.0.4",
+    "vite": "^5.4.21",
+    "vitest": "^2.1.9"
   },
   "dependencies": {
-    "pdfkit": "^0.20.2"
+    "pdfkit": "^0.20.2",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
   }
 }
