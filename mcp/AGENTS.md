@@ -68,7 +68,7 @@ mcp/
 | `render_resume_template` | 원소 이름과 원문을 한 줄로 출력합니다.                                             |
 | `render_resume_form`     | 한글 항목명과 원문으로 이력서 양식을 출력합니다.                                   |
 
-없는 도구 이름은 `UNKNOWN_TOOL`입니다. 연결이 거부한 입력은 연결 오류 코드만 반환합니다.
+없는 도구 이름은 `UNKNOWN_TOOL`입니다. 연결이 거부한 입력은 연결 오류 코드만 반환합니다. OpenRouter 공급자가 비정상 상태로 응답하면 `openRouterModelConnection.ts`가 상태 코드로 오류 코드를 나눕니다. 401·403은 `MODEL_AUTH_FAILED`, 429와 5xx는 `MODEL_PROVIDER_ERROR`, 그 밖의 거부는 `MODEL_REJECTED`입니다. `generate_resume`도 같은 어댑터를 쓰므로 이 코드가 도구 응답의 연결 오류 코드로 그대로 전달됩니다. 공급자의 오류 본문은 읽지도 전달하지도 않습니다.
 
 `render_resume_template`, `render_resume_form`, `read_resume_selection`, `check_resume_draft`, `generate_resume`는 `src/resume/output/selectTemplateSections.ts`의 같은 섹션 선택을 사용합니다.
 
@@ -102,6 +102,7 @@ mcp/
 
 - 앱 소스 파일은 케밥 케이스(`login-page.tsx`)이고 컴포넌트 이름은 PascalCase입니다. 테스트는 대상 파일 옆에 둡니다.
 - 앱 테스트는 `pnpm test`(Vitest)로 실행합니다. 루트 Jest는 `mcp/app/`을 실행하지 않습니다.
+- 설정별 연결 테스트는 `POST /admin/ai-models/api/settings/:id/test`(본문 `{ environment }`)가 맡습니다. 세션, 같은 출처, 메서드를 기존 API 경로와 같은 흐름으로 검사한 뒤 `src/auth/settingConnectionTest.ts`가 portfolio-api 목록(`/service/resume-model-setting`)에서 요청한 id와 환경이 모두 맞는 설정만 골라 그 설정의 `apiKey`로 `src/resume/connection/testModelConnection.ts`를 실행합니다. 활성 설정이나 다른 설정으로 대체하지 않고, 설정을 만들거나 바꾸거나 활성화하지 않습니다. 모델에는 고정된 최소 입력만 보내며 이력서 원문은 보내지 않습니다. 호출은 두 번입니다. 먼저 일반 호출을 보내고, 성공하면 이력서 생성의 의미 검증이 쓰는 `json_schema` 형식(`{ status: string }`)으로 한 번 더 보내 구조화 응답을 쓸 수 있는지 확인합니다. 일반 호출이 실패하면 두 번째는 보내지 않습니다. 응답은 `{ ok: true, latencyMs, response, structured }` 또는 `{ ok: false, code }`입니다. `response`와 `structured.response`는 공급자 응답 원문이고, `structured`는 `{ ok: true, latencyMs }` 또는 `{ ok: false, code }`(`STRUCTURED_INVALID`는 응답이 약속한 JSON이 아닌 경우)입니다. 구조화 확인이 실패해도 연결은 성공으로 두며 구조화 결과에만 코드를 담습니다. 연결 실패 코드는 키 미등록(`API_KEY_MISSING`), 인증 실패(`MODEL_AUTH_FAILED`), 공급자 오류와 호출 한도(`MODEL_PROVIDER_ERROR`), 요청 거부(`MODEL_REJECTED`), 시간 초과(`MODEL_TIMEOUT`)로 구분합니다. 응답 원문은 브라우저로 나가므로 API 키가 섞여 있으면 `[REDACTED]`로 가리고 8,000자를 넘으면 앞 2,000자만 `{ truncated, preview }`로 남깁니다. 키, 주소, 공급자 오류 원문은 응답과 로그(`ADMIN_MODEL_TEST`)에 남기지 않습니다. 모델 호출은 호출마다 15초 제한이 있고 자동 반복하지 않으며 버튼을 눌렀을 때만 실행합니다. 주소가 `https`가 아니거나 키가 없거나 공급자를 모르면 요청을 보내지 않습니다.
 - CSP가 `script-src 'self'`이므로 인라인 스크립트를 두지 않습니다. 리퍼러 정책은 `same-origin`을 유지합니다. `no-referrer`면 브라우저가 폼 POST에 `Origin: null`을 보내 로그인 시작이 항상 거절됩니다.
 
 ## 에이전트별 진입점

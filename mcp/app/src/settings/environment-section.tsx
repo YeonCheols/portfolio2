@@ -1,4 +1,4 @@
-import type { ModelSetting } from "../types";
+import type { ConnectionTestState, ModelSetting } from "../types";
 
 import { SettingCard } from "./setting-card";
 
@@ -7,6 +7,8 @@ type EnvironmentSectionProps = {
   title: string;
   settings: ModelSetting[];
   loading: boolean;
+  testStates: Record<number, ConnectionTestState>;
+  onTest: (setting: ModelSetting) => void;
   onActivate: (setting: ModelSetting) => void;
   onEdit: (setting: ModelSetting) => void;
   onDelete: (setting: ModelSetting) => void;
@@ -17,6 +19,8 @@ export const EnvironmentSection = ({
   title,
   settings,
   loading,
+  testStates,
+  onTest,
   onActivate,
   onEdit,
   onDelete,
@@ -38,6 +42,8 @@ export const EnvironmentSection = ({
           <SettingCard
             key={setting.id}
             setting={setting}
+            testState={testStates[setting.id]}
+            onTest={onTest}
             onActivate={onActivate}
             onEdit={onEdit}
             onDelete={onDelete}

@@ -394,4 +394,136 @@ describe("SettingsPage", () => {
       await screen.findByRole("heading", { name: "모델 설정 추가" }),
     ).toBeTruthy();
   });
+
+  describe("연결 테스트", () => {
+    const productionSetting = {
+      ...developmentSetting,
+      id: 21,
+      environment: "production",
+      modelName: "vendor/prod-model",
+      isActive: false,
+    };
+
+    it("누른 카드의 id와 환경으로만 테스트하고 결과를 그 카드에만 보여주며 설정은 바꾸지 않는다", async () => {
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(
+          jsonResponse([developmentSetting, productionSetting]),
+        )
+        .mockResolvedValueOnce(jsonResponse({ ok: true, latencyMs: 120 }));
+      vi.stubGlobal("fetch", fetchMock);
+      const user = userEvent.setup();
+      render(<SettingsPage />);
+      const production = await screen.findByRole("region", {
+        name: "운영 환경",
+      });
+
+      await user.click(
+        within(production).getByRole("button", { name: "연결 테스트" }),
+      );
+
+      expect(
+        await within(production).findByText("연결 성공 · 120ms"),
+      ).toBeTruthy();
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(fetchMock).toHaveBeenLastCalledWith(
+        "/admin/ai-models/api/settings/21/test",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ environment: "production" }),
+        }),
+      );
+      const development = screen.getByRole("region", { name: "개발 환경" });
+      expect(within(development).queryByRole("status")).toBeNull();
+      expect(
+        within(production).getByRole("button", { name: "활성화" }),
+      ).toBeTruthy();
+    });
+
+    it("두 카드를 동시에 테스트해도 결과가 섞이지 않고 진행 중인 카드는 중복 요청을 막는다", async () => {
+      let resolveProduction: (response: Response) => void = () => undefined;
+      const fetchMock = vi.fn((url: string) => {
+        if (url === "/admin/ai-models/api/settings") {
+          return Promise.resolve(
+            jsonResponse([developmentSetting, productionSetting]),
+          );
+        }
+        if (url.endsWith("/21/test")) {
+          return new Promise<Response>((resolve) => {
+            resolveProduction = resolve;
+          });
+        }
+        return Promise.resolve(jsonResponse({ ok: true, latencyMs: 80 }));
+      });
+      vi.stubGlobal("fetch", fetchMock);
+      const user = userEvent.setup();
+      render(<SettingsPage />);
+      const production = await screen.findByRole("region", {
+        name: "운영 환경",
+      });
+      const development = screen.getByRole("region", { name: "개발 환경" });
+
+      await user.click(
+        within(production).getByRole("button", { name: "연결 테스트" }),
+      );
+      await user.click(
+        within(development).getByRole("button", { name: "연결 테스트" }),
+      );
+
+      expect(
+        await within(development).findByText("연결 성공 · 80ms"),
+      ).toBeTruthy();
+      expect(
+        within(production).getByText("연결을 테스트하는 중입니다."),
+      ).toBeTruthy();
+      const running = within(production).getByRole("button", {
+        name: "테스트 중...",
+      }) as HTMLButtonElement;
+      expect(running.disabled).toBe(true);
+      await user.click(running);
+      expect(
+        fetchMock.mock.calls.filter(([url]) => url.endsWith("/21/test")),
+      ).toHaveLength(1);
+
+      resolveProduction(jsonResponse({ ok: false, code: "MODEL_REJECTED" }));
+
+      expect(
+        await within(production).findByText(
+          /^연결 실패 · 모델 공급자가 요청을 거부했습니다/,
+        ),
+      ).toBeTruthy();
+      expect(within(development).getByText("연결 성공 · 80ms")).toBeTruthy();
+    });
+
+    it("요청이 실패하면 서버 메시지 없이 안내를 보여주고 다시 테스트할 수 있다", async () => {
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse([productionSetting]))
+        .mockResolvedValueOnce(jsonResponse({ message: "secret detail" }, 500));
+      vi.stubGlobal("fetch", fetchMock);
+      const user = userEvent.setup();
+      render(<SettingsPage />);
+      const production = await screen.findByRole("region", {
+        name: "운영 환경",
+      });
+
+      await user.click(
+        within(production).getByRole("button", { name: "연결 테스트" }),
+      );
+
+      expect(
+        await within(production).findByText(
+          "연결 실패 · 요청을 처리하지 못했습니다. 다시 시도해 주세요.",
+        ),
+      ).toBeTruthy();
+      expect(production.textContent).not.toContain("secret detail");
+      expect(
+        (
+          within(production).getByRole("button", {
+            name: "연결 테스트",
+          }) as HTMLButtonElement
+        ).disabled,
+      ).toBe(false);
+    });
+  });
 });

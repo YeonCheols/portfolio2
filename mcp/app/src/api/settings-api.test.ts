@@ -5,6 +5,7 @@ import {
   createSetting,
   deleteSetting,
   listSettings,
+  testSetting,
   updateSetting,
 } from "./settings-api";
 
@@ -152,5 +153,93 @@ describe("settingsApi", () => {
       "/admin/ai-models/api/settings/11/activate",
       expect.objectContaining({ method: "POST" }),
     );
+  });
+
+  it("연결 테스트는 id 경로로 선택한 환경만 POST하고 서버가 준 결과를 반환한다", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ ok: true, latencyMs: 120 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await testSetting(11, "production");
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/admin/ai-models/api/settings/11/test",
+      expect.objectContaining({
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ environment: "production" }),
+      }),
+    );
+    expect(result).toEqual({ ok: true, latencyMs: 120 });
+  });
+
+  it("연결 테스트 응답이 약속한 형식이 아니면 형식 오류로 던진다", async () => {
+    for (const body of [
+      null,
+      [],
+      {},
+      { ok: "yes" },
+      { ok: true },
+      { ok: false },
+    ]) {
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(body)));
+
+      await expect(testSetting(11, "production")).rejects.toThrow(
+        "연결 테스트 응답 형식이 올바르지 않습니다.",
+      );
+    }
+  });
+
+  it("구조화 응답 확인 결과와 응답 원문을 그대로 반환한다", async () => {
+    const body = {
+      ok: true,
+      latencyMs: 120,
+      response: { id: "gen-1" },
+      structured: { ok: true, latencyMs: 300, response: { id: "gen-2" } },
+    };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(body)));
+
+    await expect(testSetting(11, "production")).resolves.toEqual(body);
+  });
+
+  it("구조화 응답 확인 결과가 약속한 형식이 아니면 형식 오류로 던진다", async () => {
+    for (const structured of [
+      null,
+      "yes",
+      [],
+      {},
+      { ok: "yes" },
+      { ok: true },
+      { ok: false },
+    ]) {
+      vi.stubGlobal(
+        "fetch",
+        vi
+          .fn()
+          .mockResolvedValue(
+            jsonResponse({ ok: true, latencyMs: 120, structured }),
+          ),
+      );
+
+      await expect(testSetting(11, "production")).rejects.toThrow(
+        "연결 테스트 응답 형식이 올바르지 않습니다.",
+      );
+    }
+  });
+
+  it("연결 테스트 실패 결과는 오류로 던지지 않고 코드를 그대로 반환한다", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(jsonResponse({ ok: false, code: "MODEL_REJECTED" })),
+    );
+
+    await expect(testSetting(11, "production")).resolves.toEqual({
+      ok: false,
+      code: "MODEL_REJECTED",
+    });
   });
 });

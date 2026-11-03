@@ -1,6 +1,10 @@
 import { createPortfolioAdminApi } from "@mcp/auth/adminApi";
 import { createPortfolioAdminOAuth } from "@mcp/auth/adminOAuth";
-import { fetchOpenRouterModelText } from "@mcp/resume/connection/openRouterModelConnection";
+import { createSettingConnectionTester } from "@mcp/auth/settingConnectionTest";
+import {
+  fetchOpenRouterModelResult,
+  fetchOpenRouterModelText,
+} from "@mcp/resume/connection/openRouterModelConnection";
 import {
   fetchResumeModel,
   ResumeConnectionError,
@@ -25,6 +29,11 @@ import type { ResumeModelClient } from "@mcp/resume/output/runResumeHarness";
 
 const resumeModelConnections = {
   openrouter: fetchOpenRouterModelText,
+} as const;
+
+// 연결 테스트는 공급자 응답 원문까지 보여줘야 해서 문장과 원문을 함께 돌려주는 연결을 쓴다
+export const modelTestConnections = {
+  openrouter: fetchOpenRouterModelResult,
 } as const;
 
 export type ResumeModelSettingSource = {
@@ -88,6 +97,11 @@ export const startResumeMcpServer = () => {
     { ttlMs: 30_000 },
   );
 
+  const adminApi = createPortfolioAdminApi({
+    baseUrl: config.api.apiUrl,
+    serviceToken: config.api.serviceToken,
+  });
+
   return createResumeMcpServer({
     introspect,
     log: (message) => console.log(message),
@@ -101,9 +115,10 @@ export const startResumeMcpServer = () => {
       load: (input) => fetchResumeModel(input, config.resume),
     },
     admin: {
-      api: createPortfolioAdminApi({
-        baseUrl: config.api.apiUrl,
-        serviceToken: config.api.serviceToken,
+      api: adminApi,
+      testSetting: createSettingConnectionTester({
+        api: adminApi,
+        connections: modelTestConnections,
       }),
       introspect: introspectSession,
       oauth: createPortfolioAdminOAuth({ issuer: authorizationServer }),

@@ -5,9 +5,15 @@ import {
   createSetting,
   deleteSetting,
   listSettings,
+  testSetting,
   updateSetting,
 } from "../api/settings-api";
-import type { ModelSetting, ModelSettingInput } from "../types";
+import type {
+  ConnectionTestResult,
+  ConnectionTestState,
+  ModelSetting,
+  ModelSettingInput,
+} from "../types";
 
 import { EnvironmentSection } from "./environment-section";
 import { SettingForm } from "./setting-form";
@@ -22,6 +28,10 @@ export const SettingsPage = () => {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState<Message | null>(null);
   const [editing, setEditing] = useState<ModelSetting | null>(null);
+  // 설정 id마다 따로 둬서 한 카드의 진행·결과가 다른 카드에 섞이지 않게 한다
+  const [testStates, setTestStates] = useState<
+    Record<number, ConnectionTestState>
+  >({});
   const mounted = useRef(true);
 
   const reload = useCallback(async () => {
@@ -49,6 +59,25 @@ export const SettingsPage = () => {
       mounted.current = false;
     };
   }, [reloadWithMessage]);
+
+  const handleTest = async (setting: ModelSetting) => {
+    setTestStates((current) => ({
+      ...current,
+      [setting.id]: { status: "running" },
+    }));
+    let result: ConnectionTestResult;
+    try {
+      result = await testSetting(setting.id, setting.environment);
+    } catch {
+      // 서버 오류 원문은 화면에 노출하지 않고 안전한 코드로만 알린다
+      result = { ok: false, code: "REQUEST_FAILED" };
+    }
+    if (!mounted.current) return;
+    setTestStates((current) => ({
+      ...current,
+      [setting.id]: { status: "done", result },
+    }));
+  };
 
   const handleActivate = async (setting: ModelSetting) => {
     try {
@@ -156,6 +185,8 @@ export const SettingsPage = () => {
             title="개발 환경"
             settings={settings.filter((s) => s.environment === "development")}
             loading={loading}
+            testStates={testStates}
+            onTest={handleTest}
             onActivate={handleActivate}
             onEdit={setEditing}
             onDelete={handleDelete}
@@ -165,6 +196,8 @@ export const SettingsPage = () => {
             title="운영 환경"
             settings={settings.filter((s) => s.environment === "production")}
             loading={loading}
+            testStates={testStates}
+            onTest={handleTest}
             onActivate={handleActivate}
             onEdit={setEditing}
             onDelete={handleDelete}
