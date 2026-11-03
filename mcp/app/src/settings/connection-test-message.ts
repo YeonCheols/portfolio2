@@ -3,8 +3,12 @@ import type { ConnectionTestState, StructuredCheck } from "../types";
 // 서버가 주는 안전한 코드만 사람이 읽는 문장으로 바꾼다. 모르는 코드는 일반 문구로 가려 원문을 노출하지 않는다
 const failureMessages: Record<string, string> = {
   API_KEY_MISSING: "API 키가 등록되지 않았습니다.",
+  MODEL_AUTH_FAILED:
+    "API 키가 올바르지 않거나 권한이 없습니다. 키를 확인해 주세요.",
+  MODEL_PROVIDER_ERROR:
+    "모델 공급자에 일시적인 오류가 있거나 호출 한도를 넘었습니다. 잠시 후 다시 시도해 주세요.",
   MODEL_REJECTED:
-    "모델 공급자가 요청을 거부했습니다. 키와 모델 이름을 확인해 주세요.",
+    "모델 공급자가 요청을 거부했습니다. 모델 이름과 요청 설정을 확인해 주세요.",
   MODEL_TIMEOUT: "제한 시간 안에 응답이 없습니다.",
   MODEL_UNAVAILABLE: "모델 공급자에 연결하지 못했습니다.",
   MISSING_MODEL_CONNECTION: "지원하지 않는 공급자입니다.",

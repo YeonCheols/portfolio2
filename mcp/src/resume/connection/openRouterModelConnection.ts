@@ -11,6 +11,15 @@ export type OpenRouterModelOptions = ResumeConnectionOptions & {
 // 연결 테스트가 공급자 응답 원문을 보여줄 수 있도록 문장과 원문을 함께 돌려준다
 export type OpenRouterModelResult = { text: string; raw: unknown };
 
+// 상태 코드로 원인을 나눠, 키 문제와 공급자 쪽 문제를 사용자가 구분하게 한다. 공급자의 오류 본문은 읽지 않는다
+const failureCode = (status: number | undefined): string => {
+  if (status === 401 || status === 403) return "MODEL_AUTH_FAILED";
+  if (status === 429 || (status !== undefined && status >= 500)) {
+    return "MODEL_PROVIDER_ERROR";
+  }
+  return "MODEL_REJECTED";
+};
+
 export const fetchOpenRouterModelResult = async (
   input: ResumeModelCall,
   options: OpenRouterModelOptions,
@@ -46,7 +55,7 @@ export const fetchOpenRouterModelResult = async (
     }),
   });
   if (response.ok !== true) {
-    throw new ResumeConnectionError("MODEL_REJECTED");
+    throw new ResumeConnectionError(failureCode(response.status));
   }
   let payload: { choices?: { message?: { content?: unknown } }[] };
   try {
