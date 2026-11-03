@@ -127,8 +127,8 @@ export const SettingsPage = () => {
           AI 모델 설정
         </h1>
         <p className="leading-relaxed text-slate-600">
-          개발 및 운영 MCP에서 사용할 OpenRouter 모델을 관리합니다. API 키는
-          저장하지 않고 Secret Manager 참조만 등록합니다.
+          개발 및 운영 MCP에서 사용할 OpenRouter 모델과 API 키를 관리합니다.
+          설정과 키는 portfolio-api에 저장됩니다.
         </p>
         <button
           type="button"

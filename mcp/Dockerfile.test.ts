@@ -17,6 +17,21 @@ describe("mcp container", () => {
     expect(dockerfile).not.toContain("portfolio-web");
   });
 
+  it("컨테이너 시작 시 중앙 설정을 읽는 CLI와 진입점을 포함한다", () => {
+    const dockerfile = fs.readFileSync(
+      path.join(__dirname, "Dockerfile"),
+      "utf8",
+    );
+    expect(dockerfile).toContain(
+      "COPY --from=configcli /portfolio-config /usr/local/bin/portfolio-config",
+    );
+    expect(dockerfile).toContain(
+      'ENTRYPOINT ["sh", "scripts/start-with-config.sh"]',
+    );
+    expect(dockerfile).toContain("github-cli");
+    expect(dockerfile).not.toContain("ENV GH_TOKEN");
+  });
+
   it("한글 PDF 렌더링 폰트를 MCP 이미지에 포함한다", () => {
     const dockerfile = fs.readFileSync(
       path.join(__dirname, "Dockerfile"),

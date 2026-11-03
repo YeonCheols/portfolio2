@@ -1,9 +1,6 @@
-import fs from "fs";
 import http from "http";
-import path from "path";
 
 import {
-  resumeModelFromEnv,
   resumeModelFromSetting,
   resumeModelSourceFromEnv,
   startResumeMcpServer,
@@ -28,6 +25,9 @@ describe("startResumeMcpServer", () => {
       "PORTFOLIO_API_AUTH_ISSUER",
       "MCP_PUBLIC_URL",
       "MCP_AUTH_SERVICE_TOKEN",
+      "RESUME_MODEL_SETTING_URL",
+      "RESUME_MODEL_SETTING_TOKEN",
+      "RESUME_MODEL_ENVIRONMENT",
     ] as const;
     const previous = Object.fromEntries(
       keys.map((key) => [key, process.env[key]]),
@@ -43,6 +43,9 @@ describe("startResumeMcpServer", () => {
     process.env.PORTFOLIO_API_AUTH_ISSUER = "";
     process.env.MCP_PUBLIC_URL = "https://mcp.example.test/mcp";
     process.env.MCP_AUTH_SERVICE_TOKEN = "service-token";
+    process.env.RESUME_MODEL_SETTING_URL = "https://api.example/active";
+    process.env.RESUME_MODEL_SETTING_TOKEN = "read-token";
+    process.env.RESUME_MODEL_ENVIRONMENT = "production";
 
     try {
       expect(() => startResumeMcpServer()).not.toThrow();
@@ -56,239 +59,33 @@ describe("startResumeMcpServer", () => {
     }
   });
 
-  it("프로세스 진입점은 외부 AI 주소와 토큰으로 문장을 요청한다", async () => {
-    const fetchImpl = jest.fn<
-      Promise<{ json: () => Promise<unknown> }>,
-      [string, RequestInit]
-    >(async () => ({ json: async () => ({ ok: true, text: "생성 문장" }) }));
-
-    const model = resumeModelFromEnv(
-      {
-        RESUME_MODEL_URL: "https://model.example/generate",
-        RESUME_MODEL_TOKEN: "model-token",
-      },
-      fetchImpl,
-    );
-
-    await expect(
-      model.generate({
-        persona: "이력서 전문 작성자",
-        prompt: "원소를 해석한다",
+  it("활성 설정 조회 주소가 없으면 정적 모델 환경변수로 대체하지 않고 시작을 거부한다", () => {
+    expect(() =>
+      resumeModelSourceFromEnv({
+        RESUME_MODEL_URL: "https://legacy.example/generate",
+        RESUME_MODEL_TOKEN: "fake-legacy-token",
       }),
-    ).resolves.toBe("생성 문장");
-    expect(fetchImpl).toHaveBeenCalledWith(
-      "https://model.example/generate",
-      expect.objectContaining({
-        method: "POST",
-        headers: expect.objectContaining({
-          authorization: "Bearer model-token",
-        }),
-        body: JSON.stringify({
-          persona: "이력서 전문 작성자",
-          prompt: "원소를 해석한다",
-        }),
-      }),
-    );
-  });
-
-  it("연결 공급자가 없으면 OpenRouter 주소여도 공통 본문으로 보낸다", async () => {
-    const fetchImpl = jest.fn<
-      Promise<{ ok: boolean; json: () => Promise<unknown> }>,
-      [string, RequestInit]
-    >(async () => ({
-      ok: true,
-      json: async () => ({
-        ok: true,
-        text: "생성 문장",
-        choices: [{ message: { content: "생성 문장" } }],
-      }),
-    }));
-
-    const model = resumeModelFromEnv(
-      {
-        RESUME_MODEL_URL: "https://openrouter.ai/api/v1/chat/completions",
-        RESUME_MODEL_TOKEN: "model-token",
-      },
-      fetchImpl,
-    );
-
-    await expect(
-      model.generate({
-        persona: "이력서 전문 작성자",
-        prompt: "원소를 해석한다",
-      }),
-    ).resolves.toBe("생성 문장");
-    expect(fetchImpl).toHaveBeenCalledWith(
-      "https://openrouter.ai/api/v1/chat/completions",
-      expect.objectContaining({
-        method: "POST",
-        headers: expect.objectContaining({
-          authorization: "Bearer model-token",
-          "content-type": "application/json",
-        }),
-        body: JSON.stringify({
-          persona: "이력서 전문 작성자",
-          prompt: "원소를 해석한다",
-        }),
-      }),
-    );
-  });
-
-  it("연결 공급자가 OpenRouter이면 설정한 모델 이름으로 메시지를 보낸다", async () => {
-    const fetchImpl = jest.fn<
-      Promise<{ ok: boolean; json: () => Promise<unknown> }>,
-      [string, RequestInit]
-    >(async () => ({
-      ok: true,
-      json: async () => ({
-        choices: [{ message: { content: "생성 문장" } }],
-      }),
-    }));
-
-    const model = resumeModelFromEnv(
-      {
-        RESUME_MODEL_URL: "https://model.example/generate",
-        RESUME_MODEL_TOKEN: "model-token",
-        RESUME_MODEL_PROVIDER: "openrouter",
-        RESUME_MODEL_NAME: "vendor/model",
-      },
-      fetchImpl,
-    );
-
-    await expect(
-      model.generate({
-        persona: "이력서 전문 작성자",
-        prompt: "원소를 해석한다",
-      }),
-    ).resolves.toBe("생성 문장");
-    expect(fetchImpl).toHaveBeenCalledWith(
-      "https://model.example/generate",
-      expect.objectContaining({
-        body: JSON.stringify({
-          model: "vendor/model",
-          messages: [
-            { role: "system", content: "이력서 전문 작성자" },
-            { role: "user", content: "원소를 해석한다" },
-          ],
-        }),
-      }),
-    );
-  });
-
-  it("OpenRouter 모델 이름이 없으면 외부 AI를 호출하지 않는다", async () => {
-    const fetchImpl = jest.fn<
-      Promise<{ ok: boolean; json: () => Promise<unknown> }>,
-      [string, RequestInit]
-    >(async () => ({
-      ok: true,
-      json: async () => ({
-        choices: [{ message: { content: "생성 문장" } }],
-      }),
-    }));
-
-    const model = resumeModelFromEnv(
-      {
-        RESUME_MODEL_URL: "https://model.example/generate",
-        RESUME_MODEL_TOKEN: "model-token",
-        RESUME_MODEL_PROVIDER: "openrouter",
-        RESUME_MODEL_NAME: "  ",
-      },
-      fetchImpl,
-    );
-
-    await expect(
-      model.generate({
-        persona: "이력서 전문 작성자",
-        prompt: "원소를 해석한다",
-      }),
-    ).rejects.toMatchObject({ code: "MISSING_MODEL_CONNECTION" });
-    expect(fetchImpl).not.toHaveBeenCalled();
-  });
-
-  it("알 수 없는 연결 공급자는 외부 AI를 호출하지 않는다", async () => {
-    const fetchImpl = jest.fn<
-      Promise<{ ok: boolean; json: () => Promise<unknown> }>,
-      [string, RequestInit]
-    >(async () => ({
-      ok: true,
-      json: async () => ({ ok: true, text: "생성 문장" }),
-    }));
-
-    const model = resumeModelFromEnv(
-      {
-        RESUME_MODEL_URL: "https://model.example/generate",
-        RESUME_MODEL_TOKEN: "model-token",
-        RESUME_MODEL_PROVIDER: "other-llm",
-        RESUME_MODEL_NAME: "vendor/model",
-      },
-      fetchImpl,
-    );
-
-    await expect(
-      model.generate({
-        persona: "이력서 전문 작성자",
-        prompt: "원소를 해석한다",
-      }),
-    ).rejects.toMatchObject({ code: "MISSING_MODEL_CONNECTION" });
-    expect(fetchImpl).not.toHaveBeenCalled();
-  });
-
-  it("배포 워크플로는 공통 모델 주소와 토큰 이름만 주입한다", () => {
-    const workflow = fs.readFileSync(
-      path.join(process.cwd(), ".github/workflows/deploy-mcp.yml"),
-      "utf8",
-    );
-    const deploy = workflow.slice(
-      workflow.indexOf("gcloud run deploy portfolio-mcp"),
-      workflow.indexOf("게이트웨이 런타임 계정"),
-    );
-
-    expect(deploy).toContain('RESUME_MODEL_URL="${{ vars.RESUME_MODEL_URL }}"');
-    expect(deploy).toContain(
-      'RESUME_MODEL_TOKEN="${{ secrets.RESUME_MODEL_TOKEN }}"',
-    );
-    expect(deploy).toContain(
-      'RESUME_MODEL_PROVIDER="${{ vars.RESUME_MODEL_PROVIDER }}"',
-    );
-    expect(deploy).toContain(
-      'RESUME_MODEL_NAME="${{ vars.RESUME_MODEL_NAME }}"',
-    );
-    expect(deploy).not.toContain(
-      "RESUME_MODEL_TOKEN=RESUME_MODEL_TOKEN:latest",
-    );
-    expect(deploy.toLowerCase()).not.toContain("openrouter");
-    expect(deploy).not.toMatch(/sk-[A-Za-z0-9]/);
+    ).toThrow(/RESUME_MODEL_SETTING_URL/);
   });
 
   describe("resumeModelFromSetting", () => {
     const settingUrl = "https://api.example/resume-model-setting/active";
     const modelUrl = "https://openrouter.ai/api/v1/chat/completions";
-    const metadata = "http://metadata.google.internal/computeMetadata/v1";
-    const secretUrl =
-      "https://secretmanager.googleapis.com/v1/projects/demo-project/secrets/RESUME_MODEL_TOKEN_OPENROUTER/versions/latest:access";
     const setting = {
       provider: "openrouter",
       modelName: "vendor/model",
       url: modelUrl,
-      secretRef: "RESUME_MODEL_TOKEN_OPENROUTER",
+      apiKey: "model-secret",
     };
     const input = { persona: "이력서 전문 작성자", prompt: "원소를 해석한다" };
 
-    // 설정 API, 메타데이터 서버, Secret Manager, 모델 API를 주소로 구분하는 가짜 네트워크
+    // 모델 설정 API와 모델 API만 사용하는 가짜 네트워크
     const fakeNetwork = (overrides: Record<string, unknown> = {}) => {
       const replies: Record<string, unknown> = {
         [`${settingUrl}?environment=production`]: setting,
-        [`${metadata}/instance/service-accounts/default/token`]: {
-          access_token: "metadata-access-token",
-        },
-        [`${metadata}/project/project-id`]: "demo-project",
-        [secretUrl]: {
-          payload: { data: Buffer.from("model-secret").toString("base64") },
-        },
         [modelUrl]: { choices: [{ message: { content: "생성 문장" } }] },
         ...overrides,
       };
-      // 메타데이터 서버의 project-id처럼 문자열 본문은 JSON이 아니라 일반 텍스트다
       const fetchImpl = jest.fn<
         Promise<{
           ok: boolean;
@@ -320,7 +117,7 @@ describe("startResumeMcpServer", () => {
     const modelOf = (fetchImpl: ReturnType<typeof fakeNetwork>) =>
       JSON.parse(String(callsTo(fetchImpl, modelUrl).at(-1)?.[1].body)).model;
 
-    it("활성 설정을 조회해 설정의 모델 이름과 시크릿 토큰으로 호출한다", async () => {
+    it("활성 설정 API가 반환한 모델 이름과 실제 API 키로 호출한다", async () => {
       const fetchImpl = fakeNetwork();
       const model = resumeModelFromSetting({
         settingUrl,
@@ -373,7 +170,11 @@ describe("startResumeMcpServer", () => {
       await model.generate(input);
 
       expect(callsTo(fetchImpl, settingKey)).toHaveLength(1);
-      expect(callsTo(fetchImpl, secretUrl)).toHaveLength(1);
+      expect(
+        fetchImpl.mock.calls.every(
+          ([url]) => !url.includes("secretmanager.googleapis.com"),
+        ),
+      ).toBe(true);
       expect(callsTo(fetchImpl, modelUrl)).toHaveLength(2);
       expect(modelOf(fetchImpl)).toBe("vendor/model");
     });
@@ -400,16 +201,13 @@ describe("startResumeMcpServer", () => {
       expect(callsTo(fetchImpl, settingKey)).toHaveLength(2);
     });
 
-    it.each<
-      [string, string, (replies: Record<string, unknown>) => void, boolean]
-    >([
+    it.each<[string, string, (replies: Record<string, unknown>) => void]>([
       [
         "활성 설정이 없음",
         "MODEL_SETTING_NOT_FOUND",
         (replies) => {
           delete replies[settingKey];
         },
-        false,
       ],
       [
         "알 수 없는 provider",
@@ -417,19 +215,17 @@ describe("startResumeMcpServer", () => {
         (replies) => {
           replies[settingKey] = { ...setting, provider: "other-llm" };
         },
-        false,
       ],
       [
-        "시크릿을 읽을 수 없음",
-        "MODEL_SECRET_UNAVAILABLE",
+        "API 키가 없음",
+        "MODEL_SETTING_INVALID",
         (replies) => {
-          delete replies[secretUrl];
+          replies[settingKey] = { ...setting, apiKey: undefined };
         },
-        true,
       ],
     ])(
       "%s이면 모델 API를 호출하지 않고 %s로 실패한다",
-      async (_label, code, breakIt, readsSecret) => {
+      async (_label, code, breakIt) => {
         const fetchImpl = fakeNetwork();
         breakIt(fetchImpl.replies);
         const model = resumeModelFromSetting({
@@ -441,8 +237,11 @@ describe("startResumeMcpServer", () => {
 
         await expect(model.generate(input)).rejects.toMatchObject({ code });
         expect(callsTo(fetchImpl, modelUrl)).toHaveLength(0);
-        // provider를 모르면 쓰지 않을 비밀값에 접근하지 않는다
-        expect(callsTo(fetchImpl, secretUrl).length > 0).toBe(readsSecret);
+        expect(
+          fetchImpl.mock.calls.every(
+            ([url]) => !url.includes("secretmanager.googleapis.com"),
+          ),
+        ).toBe(true);
       },
     );
 
@@ -473,6 +272,17 @@ describe("startResumeMcpServer", () => {
         expect(
           fetchImpl.mock.calls.some(([url]) => url.includes("legacy.example")),
         ).toBe(false);
+      });
+
+      it("개발 환경은 localhost HTTP 설정 API로 연결할 수 있다", () => {
+        expect(() =>
+          resumeModelSourceFromEnv({
+            ...dynamicEnv,
+            RESUME_MODEL_ENVIRONMENT: "development",
+            RESUME_MODEL_SETTING_URL:
+              "http://localhost:3001/resume-model-setting/active",
+          }),
+        ).not.toThrow();
       });
 
       it.each<[string, Record<string, string | undefined>, RegExp]>([
@@ -510,40 +320,6 @@ describe("startResumeMcpServer", () => {
         },
       );
     });
-  });
-
-  it("배포 워크플로는 조회 주소 변수가 있을 때만 동적 설정 모드를 켜고 기존 환경변수는 롤백용으로 남긴다", () => {
-    const workflow = fs.readFileSync(
-      path.join(process.cwd(), ".github/workflows/deploy-mcp.yml"),
-      "utf8",
-    );
-    const deploy = workflow.slice(
-      workflow.indexOf("gcloud run deploy portfolio-mcp"),
-      workflow.indexOf("게이트웨이 런타임 계정"),
-    );
-    const beforeDeploy = workflow.slice(
-      workflow.indexOf(
-        "portfolio-api introspection을 사용하는 공개 MCP 서버 배포",
-      ),
-      workflow.indexOf("gcloud run deploy portfolio-mcp"),
-    );
-
-    expect(deploy).toContain(
-      'RESUME_MODEL_SETTING_URL="${{ vars.RESUME_MODEL_SETTING_URL }}"',
-    );
-    expect(deploy).toContain(
-      'RESUME_MODEL_ENVIRONMENT="${{ vars.RESUME_MODEL_ENVIRONMENT }}"',
-    );
-    // 시크릿 읽기 권한은 사전 설정이라, 변수가 없으면 조회 토큰을 주입하지 않아 기존 배포가 깨지지 않는다
-    expect(beforeDeploy).toContain(
-      'if [ -n "${{ vars.RESUME_MODEL_SETTING_URL }}" ]',
-    );
-    expect(beforeDeploy).toContain(
-      "RESUME_MODEL_SETTING_TOKEN=RESUME_MODEL_SETTING_TOKEN:latest",
-    );
-    expect(deploy).toContain('--set-secrets="${SECRETS}"');
-    expect(deploy).toContain('RESUME_MODEL_URL="${{ vars.RESUME_MODEL_URL }}"');
-    expect(workflow).not.toContain("gcloud secrets add-iam-policy-binding");
   });
 
   it("동적 설정 모드에서 조회 토큰이 없으면 서버를 열지 않는다", () => {

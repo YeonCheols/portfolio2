@@ -6,11 +6,11 @@ export type ModelSetting = {
   provider: string;
   modelName: string;
   url: string;
-  secretRef: string;
+  hasApiKey: boolean;
   isActive: boolean;
 };
 
 export type ModelSettingInput = Pick<
   ModelSetting,
-  "environment" | "provider" | "modelName" | "url" | "secretRef"
->;
+  "environment" | "provider" | "modelName" | "url"
+> & { apiKey?: string };

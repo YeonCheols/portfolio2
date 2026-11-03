@@ -32,18 +32,9 @@ portfolio-api가 제공해야 하는 OAuth protocol endpoint, GitHub callback, J
 { "client_id": "mcp", "token": "<access token>" }
 ```
 
-MCP 배포는 다음 Actions variables와 Secret Manager secret을 사용합니다.
+MCP 정적 환경은 portfolio-config의 환경별 파일에서 가져옵니다. API origin과 issuer·MCP resource URL, 이력서 데이터 연결 및 서비스 토큰, 활성 모델 조회 연결은 시작 시 검증합니다. 가져오기·실행·운영 배포 방법은 [환경 설정 문서](environment.md)를 따릅니다.
 
-| 이름                        | 종류                  | 용도                                                                                        |
-| --------------------------- | --------------------- | ------------------------------------------------------------------------------------------- |
-| `PORTFOLIO_API_URL`         | Actions variable      | portfolio-api origin                                                                        |
-| `PORTFOLIO_API_AUTH_ISSUER` | Actions variable      | OAuth issuer. 비우면 `${PORTFOLIO_API_URL}/auth`를 사용                                     |
-| `MCP_PUBLIC_URL`            | Actions variable      | MCP resource 전체 URL(`/mcp` 포함)                                                          |
-| `MCP_AUTH_SERVICE_TOKEN`    | Cloud Run 환경 변수   | `MCP_AUTH_TOKEN` secret을 이 이름으로 매핑한 portfolio-api introspection 보호용 서비스 토큰 |
-| `RESUME_CONNECTION_URL`     | Actions variable      | 기존 이력서 데이터 연결                                                                     |
-| `RESUME_CONNECTION_TOKEN`   | Secret Manager secret | 기존 이력서 데이터 연결 인증                                                                |
-
-`MCP_AUTH_SERVICE_TOKEN`은 portfolio-api의 `MCP_AUTH_SERVICE_TOKEN`과 같은 비밀값이어야 합니다. 값 자체는 저장소나 클라이언트 설정에 넣지 않습니다. 배포 런타임 계정에 Secret Manager 접근 권한을 사전에 부여합니다.
+`MCP_AUTH_SERVICE_TOKEN`은 portfolio-api의 같은 이름과 동일한 값이어야 합니다. 정적 토큰 원본은 비공개 portfolio-config에만 두고 MCP 저장소·클라이언트 설정·로그에는 넣지 않습니다. 활성 모델과 실제 모델 키는 portfolio-api의 보호된 활성 설정 조회에서 받아 요청별 모델 클라이언트에 전달합니다.
 
 배포 workflow는 `portfolio-mcp`를 공개 ingress로 배포합니다. 이 서비스에서 `POST /mcp`는 portfolio-api introspection을 통과해야만 처리됩니다. Cloud Run 도메인이나 사용자 정의 도메인을 바꾸는 경우 `MCP_PUBLIC_URL` 및 MCP client 설정도 함께 갱신합니다.
 

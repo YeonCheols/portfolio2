@@ -7,7 +7,7 @@ export type ResumeModelSetting = {
   provider: string;
   modelName: string;
   url: string;
-  secretRef: string;
+  apiKey: string;
 };
 
 export type ResumeModelSettingOptions = {
@@ -33,18 +33,20 @@ const parseResumeModelSetting = (payload: unknown): ResumeModelSetting => {
   const body = (
     typeof payload === "object" && payload !== null ? payload : {}
   ) as Record<string, unknown>;
-  const { provider, modelName, url, secretRef } = body;
+  const { provider, modelName, url, apiKey } = body;
   if (
     !isFilled(provider) ||
     !isFilled(modelName) ||
     !isFilled(url) ||
-    !isFilled(secretRef) ||
+    !isFilled(apiKey) ||
+    apiKey.length > 4096 ||
+    /[\0\r\n]/.test(apiKey) ||
     !isHttpsUrl(url)
   ) {
     throw new ResumeConnectionError("MODEL_SETTING_INVALID");
   }
 
-  return { provider, modelName, url, secretRef };
+  return { provider, modelName, url, apiKey };
 };
 
 export const fetchActiveResumeModelSetting = async (
