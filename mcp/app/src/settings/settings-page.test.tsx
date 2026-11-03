@@ -13,11 +13,35 @@ const developmentSetting = {
   provider: "openrouter",
   modelName: "<img src=x onerror=alert(1)>",
   url: "https://openrouter.ai/api/v1/chat/completions",
-  secretRef: "RESUME_MODEL_TOKEN_DEV",
+  hasApiKey: true,
   isActive: true,
 };
 
 describe("SettingsPage", () => {
+  it("실제 모델 API 키를 입력받아 portfolio-api 저장 요청으로 전달한다", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse([]))
+      .mockResolvedValueOnce(jsonResponse({ id: 30 }, 201))
+      .mockResolvedValueOnce(jsonResponse([]));
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    render(<SettingsPage />);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    await user.type(screen.getByLabelText("모델 이름"), "vendor/model");
+    const input = screen.getByLabelText("모델 API 키") as HTMLInputElement;
+    expect(input.type).toBe("password");
+    await user.type(input, "fake-provider-api-key");
+    await user.click(screen.getByRole("button", { name: "설정 저장" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
+    const body = JSON.parse(fetchMock.mock.calls[1][1].body);
+    expect(body.apiKey).toBe("fake-provider-api-key");
+    expect(body).not.toHaveProperty("secretRef");
+    expect(
+      (screen.getByLabelText("모델 API 키") as HTMLInputElement).value,
+    ).toBe("");
+  });
+
   afterEach(() => {
     vi.unstubAllGlobals();
   });
@@ -54,7 +78,7 @@ describe("SettingsPage", () => {
       id: 21,
       environment: "production",
       modelName: "anthropic/claude-sonnet-5.5",
-      secretRef: "RESUME_MODEL_TOKEN_PRODUCTION",
+      hasApiKey: true,
       isActive: false,
     };
     const fetchMock = vi
@@ -111,8 +135,8 @@ describe("SettingsPage", () => {
       "anthropic/claude-sonnet-5.5",
     );
     await user.type(
-      screen.getByLabelText("Secret Manager 참조 이름"),
-      "RESUME_MODEL_TOKEN_PRODUCTION",
+      screen.getByLabelText("모델 API 키"),
+      "fake-production-api-key",
     );
     await user.click(screen.getByRole("button", { name: "설정 저장" }));
 
@@ -127,7 +151,7 @@ describe("SettingsPage", () => {
           provider: "openrouter",
           modelName: "anthropic/claude-sonnet-5.5",
           url: "https://openrouter.ai/api/v1/chat/completions",
-          secretRef: "RESUME_MODEL_TOKEN_PRODUCTION",
+          apiKey: "fake-production-api-key",
         }),
       }),
     );
@@ -180,7 +204,6 @@ describe("SettingsPage", () => {
           provider: "openrouter",
           modelName: "openai/gpt-test",
           url: "https://openrouter.ai/api/v1/chat/completions",
-          secretRef: "RESUME_MODEL_TOKEN_DEV",
         }),
       }),
     );

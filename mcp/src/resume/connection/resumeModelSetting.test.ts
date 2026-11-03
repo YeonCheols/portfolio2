@@ -4,7 +4,7 @@ const active = {
   provider: "openrouter",
   modelName: "vendor/model",
   url: "https://openrouter.ai/api/v1/chat/completions",
-  secretRef: "RESUME_MODEL_TOKEN_OPENROUTER",
+  apiKey: "fake-provider-api-key",
 };
 
 const respond = (status: number, body: unknown) =>
@@ -18,6 +18,23 @@ const respond = (status: number, body: unknown) =>
   }));
 
 describe("fetchActiveResumeModelSetting", () => {
+  it("portfolio-api 응답의 실제 API 키를 모델 설정과 함께 읽는다", async () => {
+    const setting = {
+      provider: "openrouter",
+      modelName: "vendor/model",
+      url: "https://openrouter.ai/api/v1/chat/completions",
+      apiKey: "fake-provider-api-key",
+    };
+    await expect(
+      fetchActiveResumeModelSetting({
+        url: "https://api.example/active",
+        token: "read-token",
+        environment: "production",
+        fetchImpl: respond(200, setting),
+      }),
+    ).resolves.toEqual(setting);
+  });
+
   it("환경 이름과 조회 전용 토큰으로 활성 설정 네 필드를 읽는다", async () => {
     const fetchImpl = respond(200, active);
 
@@ -73,7 +90,7 @@ describe("fetchActiveResumeModelSetting", () => {
   it.each([
     ["본문이 null", null],
     ["필드가 모두 없음", {}],
-    ["secretRef가 없음", { ...active, secretRef: undefined }],
+    ["apiKey가 없음", { ...active, apiKey: undefined }],
     ["modelName이 공백", { ...active, modelName: "  " }],
     ["provider가 숫자", { ...active, provider: 1 }],
     ["url이 https가 아님", { ...active, url: "http://openrouter.ai/api" }],

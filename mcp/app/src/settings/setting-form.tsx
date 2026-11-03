@@ -19,7 +19,7 @@ const initialValues: ModelSettingInput = {
   provider: "openrouter",
   modelName: "",
   url: defaultUrl,
-  secretRef: "",
+  apiKey: "",
 };
 
 const fieldClass =
@@ -32,7 +32,7 @@ const valuesOf = (setting: ModelSetting | null): ModelSettingInput =>
         provider: setting.provider,
         modelName: setting.modelName,
         url: setting.url,
-        secretRef: setting.secretRef,
+        apiKey: "",
       }
     : initialValues;
 
@@ -53,11 +53,12 @@ export const SettingForm = ({
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setSaving(true);
+    const { apiKey, ...metadata } = values;
     const saved = await onSubmit({
-      ...values,
+      ...metadata,
       modelName: values.modelName.trim(),
       url: values.url.trim(),
-      secretRef: values.secretRef.trim(),
+      ...(apiKey?.trim() ? { apiKey: apiKey.trim() } : {}),
     });
     setSaving(false);
     if (saved) setValues(initialValues);
@@ -126,19 +127,24 @@ export const SettingForm = ({
           />
         </div>
         <div className="text-sm font-semibold sm:col-span-2">
-          <label htmlFor="setting-secret-ref">Secret Manager 참조 이름</label>
+          <label htmlFor="setting-api-key">모델 API 키</label>
           <input
-            id="setting-secret-ref"
+            id="setting-api-key"
             className={fieldClass}
-            placeholder="RESUME_MODEL_TOKEN_OPENROUTER"
-            pattern="RESUME_MODEL_TOKEN[A-Za-z0-9_\-]{0,237}"
-            maxLength={255}
-            value={values.secretRef}
-            onChange={change("secretRef")}
-            required
+            type="password"
+            autoComplete="new-password"
+            placeholder={
+              editing?.hasApiKey
+                ? "비워두면 기존 키를 유지합니다"
+                : "모델 공급자가 발급한 API 키"
+            }
+            maxLength={4096}
+            value={values.apiKey ?? ""}
+            onChange={change("apiKey")}
+            required={!editing?.hasApiKey}
           />
           <span className="mt-1 block font-normal text-slate-500">
-            토큰 원문이나 API 키는 입력하지 마세요.
+            키는 portfolio-api에 저장되며 목록에서는 등록 여부만 표시합니다.
           </span>
         </div>
         <div className="flex flex-wrap gap-3 sm:col-span-2">

@@ -44,8 +44,19 @@ describe("MCP deployment workflow", () => {
     expect(mcpWorkflow).toContain("paths:");
     expect(mcpWorkflow).toContain("mcp/**");
     expect(mcpWorkflow).toContain("portfolio-mcp");
-    expect(mcpWorkflow).toContain("PORTFOLIO_API_URL");
-    expect(mcpWorkflow).toContain("MCP_AUTH_SERVICE_TOKEN");
+    expect(mcpWorkflow).toContain(
+      "configcli=${{ runner.temp }}/portfolio-config-bin",
+    );
+    expect(mcpWorkflow).toContain(
+      "--set-secrets=GH_TOKEN=PORTFOLIO_CONFIG_READ_TOKEN:latest",
+    );
+    expect(mcpWorkflow).toContain("PORTFOLIO_CONFIG_ENVIRONMENT=production");
+    expect(mcpWorkflow).not.toContain("portfolio-config run");
+    expect(mcpWorkflow).not.toContain("--env-vars-file");
+    expect(mcpWorkflow).not.toContain("vars.PORTFOLIO_API_URL");
+    expect(mcpWorkflow).not.toContain("secrets.RESUME_MODEL_TOKEN");
+    expect(mcpWorkflow).not.toContain("vars.RESUME_MODEL_URL");
+    expect(mcpWorkflow).not.toContain("secrets.PORTFOLIO_CONFIG_READ_TOKEN");
     expect(mcpWorkflow).toContain("--allow-unauthenticated");
     expect(mcpWorkflow).not.toContain("portfolio-mcp-oauth-auth");
     expect(mcpWorkflow).not.toContain("portfolio-mcp-oauth-gateway");

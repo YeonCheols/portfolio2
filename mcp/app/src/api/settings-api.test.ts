@@ -23,7 +23,7 @@ describe("settingsApi", () => {
       provider: "openrouter",
       modelName: "anthropic/claude-sonnet-5.5",
       url: "https://openrouter.ai/api/v1/chat/completions",
-      secretRef: "RESUME_MODEL_TOKEN_DEV",
+      hasApiKey: true,
       isActive: true,
     };
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse([setting]));
@@ -86,7 +86,7 @@ describe("settingsApi", () => {
       provider: "openrouter",
       modelName: "anthropic/claude-sonnet-5.5",
       url: "https://openrouter.ai/api/v1/chat/completions",
-      secretRef: "RESUME_MODEL_TOKEN_PRODUCTION",
+      apiKey: "fake-production-api-key",
     } as const;
 
     await createSetting(input);
@@ -109,7 +109,7 @@ describe("settingsApi", () => {
       provider: "openrouter",
       modelName: "openai/gpt-test",
       url: "https://openrouter.ai/api/v1/chat/completions",
-      secretRef: "RESUME_MODEL_TOKEN_DEV",
+      apiKey: "fake-development-api-key",
     } as const;
 
     await updateSetting(11, input);

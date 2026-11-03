@@ -37,6 +37,20 @@ jobs:
       - name: gcloud 설치
         uses: google-github-actions/setup-gcloud@v2
 
+      - name: 이미지에 포함할 portfolio-config CLI 준비
+        env:
+          GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+        run: |
+          umask 077
+          gcloud secrets versions access latest \
+            --secret=PORTFOLIO_CONFIG_READ_TOKEN --project="$GCP_PROJECT_ID" \
+            --out-file="$RUNNER_TEMP/portfolio-config-read-token"
+          GH_TOKEN="$(cat "$RUNNER_TEMP/portfolio-config-read-token")"
+          export GH_TOKEN
+          gh api repos/YeonCheols/portfolio-config/contents/scripts/install.sh?ref=cli-v0.2.0 \
+            --header 'Accept: application/vnd.github.raw+json' > "$RUNNER_TEMP/install-portfolio-config.sh"
+          bash "$RUNNER_TEMP/install-portfolio-config.sh" cli-v0.2.0 "$RUNNER_TEMP/portfolio-config-bin"
+
       - name: Artifact Registry 로그인
         run: gcloud auth configure-docker "${{ vars.GCP_REGION }}-docker.pkg.dev" --quiet
 
@@ -44,22 +58,23 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./mcp
+          build-contexts: |
+            configcli=${{ runner.temp }}/portfolio-config-bin
           push: true
           tags: ${{ env.IMAGE }}
 
-      - name: portfolio-api introspection을 사용하는 공개 MCP 서버 배포
+      - name: 시작 시 중앙 설정을 읽는 공개 MCP 서버 배포
         run: |
-          SECRETS="MCP_AUTH_SERVICE_TOKEN=MCP_AUTH_TOKEN:latest,RESUME_CONNECTION_TOKEN=RESUME_CONNECTION_TOKEN:latest"
-          # 동적 설정 모드일 때만 조회 토큰 secret을 런타임에 연결한다
-          if [ -n "${{ vars.RESUME_MODEL_SETTING_URL }}" ]; then
-            SECRETS="${SECRETS},RESUME_MODEL_SETTING_TOKEN=RESUME_MODEL_SETTING_TOKEN:latest"
-          fi
           gcloud run deploy portfolio-mcp \
             --image "${IMAGE}" \
             --region "${{ vars.GCP_REGION }}" \
             --project "${{ vars.GCP_PROJECT_ID }}" \
-            --set-secrets="${SECRETS}" \
-            --set-env-vars=PORTFOLIO_API_URL="${{ vars.PORTFOLIO_API_URL }}",PORTFOLIO_API_AUTH_ISSUER="${{ vars.PORTFOLIO_API_AUTH_ISSUER }}",MCP_PUBLIC_URL="${{ vars.MCP_PUBLIC_URL }}",RESUME_CONNECTION_URL="${{ vars.RESUME_CONNECTION_URL }}",RESUME_MODEL_SETTING_URL="${{ vars.RESUME_MODEL_SETTING_URL }}",RESUME_MODEL_ENVIRONMENT="${{ vars.RESUME_MODEL_ENVIRONMENT }}",RESUME_MODEL_URL="${{ vars.RESUME_MODEL_URL }}",RESUME_MODEL_TOKEN="${{ secrets.RESUME_MODEL_TOKEN }}",RESUME_MODEL_PROVIDER="${{ vars.RESUME_MODEL_PROVIDER }}",RESUME_MODEL_NAME="${{ vars.RESUME_MODEL_NAME }}" \
+            --set-secrets=GH_TOKEN=PORTFOLIO_CONFIG_READ_TOKEN:latest \
+            --set-env-vars=PORTFOLIO_CONFIG_ENVIRONMENT=production,PORTFOLIO_CONFIG_REF=master \
             --service-account=${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }} \
             --allow-unauthenticated \
             --quiet
+
+      - name: 임시 인증파일 정리
+        if: always()
+        run: rm -f -- "$RUNNER_TEMP/portfolio-config-read-token" "$RUNNER_TEMP/install-portfolio-config.sh"

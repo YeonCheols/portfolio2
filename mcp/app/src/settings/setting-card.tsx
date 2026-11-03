@@ -28,7 +28,7 @@ export const SettingCard = ({
     </div>
     <dl className="mt-3 space-y-1 break-all text-xs text-slate-600">
       <div>공급자: {setting.provider}</div>
-      <div>시크릿 참조: {setting.secretRef}</div>
+      <div>API 키: {setting.hasApiKey ? "등록됨" : "미등록"}</div>
     </dl>
     <div className="mt-4 flex flex-wrap gap-2">
       {setting.isActive ? (
@@ -40,6 +40,7 @@ export const SettingCard = ({
           <button
             type="button"
             onClick={() => onActivate(setting)}
+            disabled={!setting.hasApiKey}
             className="rounded-lg border border-blue-200 px-3 py-2 text-xs font-bold text-blue-700"
           >
             활성화

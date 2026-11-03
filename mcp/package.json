@@ -4,7 +4,10 @@
   "private": true,
   "scripts": {
     "build": "tsc -p tsconfig.json && node scripts/rewrite-alias-imports.mjs && tsc -p app/tsconfig.json && vite build --config app/vite.config.ts",
-    "start": "node dist/resume/http/server.js",
+    "start": "node --env-file=.env dist/resume/http/server.js",
+    "start:dev": "portfolio-config run --app portfolio-mcp --env development -- node dist/resume/http/server.js",
+    "start:prod": "portfolio-config run --app portfolio-mcp --env production -- node dist/resume/http/server.js",
+    "env:pull": "portfolio-config export --app portfolio-mcp",
     "test": "vitest run --config app/vite.config.ts"
   },
   "devDependencies": {

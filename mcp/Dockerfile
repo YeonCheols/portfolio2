@@ -1,5 +1,9 @@
+# syntax=docker/dockerfile:1
 FROM node:20-alpine
-RUN corepack enable && corepack prepare pnpm@9 --activate
+RUN apk add --no-cache ca-certificates github-cli \
+    && corepack enable && corepack prepare pnpm@9 --activate
+
+COPY --from=configcli /portfolio-config /usr/local/bin/portfolio-config
 
 WORKDIR /app
 
@@ -18,4 +22,5 @@ ENV PORT=8080
 EXPOSE 8080
 
 USER node
+ENTRYPOINT ["sh", "scripts/start-with-config.sh"]
 CMD ["node", "dist/resume/http/server.js"]
