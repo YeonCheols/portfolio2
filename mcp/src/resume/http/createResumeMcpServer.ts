@@ -3,6 +3,7 @@ import http, { type IncomingMessage, type ServerResponse } from "http";
 import type { PortfolioAdminApi } from "@mcp/auth/adminApi";
 import type { createPortfolioAdminOAuth } from "@mcp/auth/adminOAuth";
 import { handleAdminRequest } from "@mcp/auth/adminRoutes";
+import type { SettingConnectionTester } from "@mcp/auth/settingConnectionTest";
 import type { IntrospectedSession } from "@mcp/resume/http/portfolioApiIntrospector";
 
 import type { ResumeModelClient } from "@mcp/resume/output/runResumeHarness";
@@ -58,6 +59,7 @@ export const createResumeMcpServer = (options: {
     oauthResource: string;
     authorizationOrigin: string;
     introspect: (token: string) => Promise<IntrospectedSession>;
+    testSetting?: SettingConnectionTester;
   };
   log?: (message: string) => void;
 }) =>

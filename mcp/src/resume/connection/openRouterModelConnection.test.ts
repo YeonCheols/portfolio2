@@ -1,4 +1,7 @@
-import { fetchOpenRouterModelText } from "@mcp/resume/connection/openRouterModelConnection";
+import {
+  fetchOpenRouterModelResult,
+  fetchOpenRouterModelText,
+} from "@mcp/resume/connection/openRouterModelConnection";
 import { ResumeConnectionError } from "@mcp/resume/connection/resumeConnection";
 
 describe("fetchOpenRouterModelText", () => {
@@ -40,6 +43,31 @@ describe("fetchOpenRouterModelText", () => {
       provider: { require_parameters: true },
       response_format: responseFormat,
     });
+  });
+
+  it("연결 테스트용으로 응답 문장과 공급자 응답 원문을 함께 돌려준다", async () => {
+    const body = {
+      id: "gen-1",
+      model: "vendor/model",
+      choices: [{ message: { content: "ok" } }],
+      usage: { total_tokens: 12 },
+    };
+    const fetchImpl = jest.fn<
+      Promise<{ ok: boolean; json: () => Promise<unknown> }>,
+      [string, RequestInit]
+    >(async () => ({ ok: true, json: async () => body }));
+
+    const result = await fetchOpenRouterModelResult(
+      { persona: "연결 테스트", prompt: "ok" },
+      {
+        url: "https://openrouter.ai/api/v1/chat/completions",
+        token: "model-token",
+        model: "vendor/model",
+        fetchImpl,
+      },
+    );
+
+    expect(result).toEqual({ text: "ok", raw: body });
   });
 
   it("응답 문장이 없으면 확정 본문으로 받지 않는다", async () => {

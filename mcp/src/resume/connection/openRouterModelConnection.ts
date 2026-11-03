@@ -8,10 +8,13 @@ export type OpenRouterModelOptions = ResumeConnectionOptions & {
   model?: string;
 };
 
-export const fetchOpenRouterModelText = async (
+// 연결 테스트가 공급자 응답 원문을 보여줄 수 있도록 문장과 원문을 함께 돌려준다
+export type OpenRouterModelResult = { text: string; raw: unknown };
+
+export const fetchOpenRouterModelResult = async (
   input: ResumeModelCall,
   options: OpenRouterModelOptions,
-): Promise<string> => {
+): Promise<OpenRouterModelResult> => {
   const model = (options.model ?? "").trim();
   if (
     options.url.trim() === "" ||
@@ -59,5 +62,10 @@ export const fetchOpenRouterModelText = async (
     throw new ResumeConnectionError("MODEL_REJECTED");
   }
 
-  return content;
+  return { text: content, raw: payload };
 };
+
+export const fetchOpenRouterModelText = async (
+  input: ResumeModelCall,
+  options: OpenRouterModelOptions,
+): Promise<string> => (await fetchOpenRouterModelResult(input, options)).text;

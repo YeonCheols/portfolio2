@@ -5,6 +5,7 @@ import { join } from "path";
 
 import { createPortfolioAdminApi } from "@mcp/auth/adminApi";
 import { handleAdminRequest } from "@mcp/auth/adminRoutes";
+import type { SettingConnectionTester } from "@mcp/auth/settingConnectionTest";
 import type { IntrospectedSession } from "@mcp/resume/http/portfolioApiIntrospector";
 
 const request = (
@@ -94,6 +95,7 @@ describe("portfolio-api 관리자 라우트", () => {
       .fn()
       .mockResolvedValue({ active: true, sub: "7" }),
     log?: (message: string) => void,
+    testSetting?: SettingConnectionTester,
   ) =>
     http.createServer((req, res) => {
       handleAdminRequest(req, res, {
@@ -104,6 +106,7 @@ describe("portfolio-api 관리자 라우트", () => {
         }),
         introspect,
         log,
+        testSetting,
         oauth,
         publicUrl: "https://mcp.example.test/mcp",
         oauthResource: "https://mcp.example.test/mcp",
@@ -762,5 +765,206 @@ describe("portfolio-api 관리자 라우트", () => {
         server.close((error) => (error ? reject(error) : resolve())),
       );
     }
+  });
+
+  describe("설정별 연결 테스트 경로", () => {
+    const testPath = "/admin/ai-models/api/settings/3/test";
+    const sessionCookie = "__Host-portfolio-admin-session=api-jwt";
+    const sameOrigin = "https://mcp.example.test";
+    const postTest = (
+      port: number,
+      options: { headers?: Record<string, string>; body?: string } = {},
+    ) =>
+      request(port, testPath, {
+        method: "POST",
+        body: options.body ?? JSON.stringify({ environment: "production" }),
+        headers: {
+          cookie: sessionCookie,
+          origin: sameOrigin,
+          "content-type": "application/json",
+          ...options.headers,
+        },
+      });
+    const withServer = async (
+      config: {
+        testSetting?: SettingConnectionTester;
+        introspect?: (token: string) => Promise<IntrospectedSession>;
+        log?: (message: string) => void;
+      },
+      run: (port: number) => Promise<void>,
+    ) => {
+      const server = createServer(
+        jest.fn(),
+        defaultOAuth,
+        appRoot,
+        config.introspect,
+        config.log,
+        config.testSetting,
+      );
+      await new Promise<void>((resolve) =>
+        server.listen(0, "127.0.0.1", resolve),
+      );
+      try {
+        await run((server.address() as { port: number }).port);
+      } finally {
+        await new Promise<void>((resolve, reject) =>
+          server.close((error) => (error ? reject(error) : resolve())),
+        );
+      }
+    };
+
+    it("세션과 같은 출처를 확인한 뒤 선택한 id와 환경으로 연결 테스트를 실행하고 결과만 반환한다", async () => {
+      const testSetting = jest
+        .fn()
+        .mockResolvedValue({ ok: true, latencyMs: 120 });
+      const introspect = jest
+        .fn()
+        .mockResolvedValue({ active: true, sub: "7" });
+
+      await withServer({ testSetting, introspect }, async (port) => {
+        const response = await postTest(port);
+
+        expect(response.status).toBe(200);
+        expect(JSON.parse(response.body)).toEqual({ ok: true, latencyMs: 120 });
+        expect(introspect).toHaveBeenCalledWith("api-jwt");
+        expect(testSetting).toHaveBeenCalledWith({
+          id: 3,
+          environment: "production",
+        });
+      });
+    });
+
+    it("환경이 없거나 알 수 없는 값이거나 JSON이 아니면 400으로 거절하고 테스트를 실행하지 않는다", async () => {
+      const testSetting = jest.fn();
+
+      await withServer({ testSetting }, async (port) => {
+        for (const body of [
+          "",
+          "not json",
+          "null",
+          "{}",
+          JSON.stringify({ environment: "staging" }),
+          JSON.stringify({ environment: 1 }),
+        ]) {
+          const response = await postTest(port, { body });
+
+          expect(response.status).toBe(400);
+          expect(JSON.parse(response.body).code).toBe("INVALID_REQUEST");
+        }
+        expect(testSetting).not.toHaveBeenCalled();
+      });
+    });
+
+    it("테스트 실행이 예외로 끝나면 502로 응답하고 내부 정보를 숨긴다", async () => {
+      const testSetting = jest
+        .fn()
+        .mockRejectedValue(new Error("secret-key https://internal.example"));
+
+      await withServer({ testSetting }, async (port) => {
+        const response = await postTest(port);
+
+        expect(response.status).toBe(502);
+        expect(JSON.parse(response.body)).toEqual({
+          ok: false,
+          code: "UPSTREAM_FAILED",
+        });
+        expect(response.body).not.toContain("secret-key");
+      });
+    });
+
+    it("실행 결과를 ADMIN_MODEL_TEST로 남기고 설정 변경 로그나 키·오류 원문은 남기지 않는다", async () => {
+      const log = jest.fn();
+      const testSetting = jest
+        .fn()
+        .mockResolvedValueOnce({ ok: true, latencyMs: 120 })
+        .mockResolvedValueOnce({ ok: false, code: "MODEL_REJECTED" });
+
+      await withServer({ testSetting, log }, async (port) => {
+        await postTest(port);
+        await postTest(port);
+      });
+
+      expect(log.mock.calls.map(([line]) => line)).toEqual([
+        "ADMIN_MODEL_TEST sub=7 id=3 environment=production result=ok",
+        "ADMIN_MODEL_TEST sub=7 id=3 environment=production result=failed code=MODEL_REJECTED",
+      ]);
+      expect(JSON.stringify(log.mock.calls)).not.toContain(
+        "ADMIN_SETTING_CHANGE",
+      );
+    });
+
+    it("테스트 실행이 예외로 끝나도 시도를 ADMIN_MODEL_TEST로 남기고 원본 오류는 남기지 않는다", async () => {
+      const log = jest.fn();
+      const testSetting = jest
+        .fn()
+        .mockRejectedValue(new Error("secret-key leaked"));
+
+      await withServer({ testSetting, log }, async (port) => {
+        await postTest(port);
+      });
+
+      expect(log.mock.calls.map(([line]) => line)).toEqual([
+        "ADMIN_MODEL_TEST sub=7 id=3 environment=production result=failed code=UPSTREAM_FAILED",
+      ]);
+      expect(JSON.stringify(log.mock.calls)).not.toContain("secret-key");
+    });
+
+    it("쿠키가 없거나 출처가 다르거나 세션이 무효이거나 메서드가 다르면 테스트를 실행하지 않는다", async () => {
+      const testSetting = jest.fn();
+
+      await withServer({ testSetting }, async (port) => {
+        const noCookie = await postTest(port, { headers: { cookie: "" } });
+        const otherOrigin = await postTest(port, {
+          headers: { origin: "https://evil.example.test" },
+        });
+        const noOrigin = await postTest(port, { headers: { origin: "" } });
+        const get = await request(port, testPath, {
+          headers: { cookie: sessionCookie },
+        });
+
+        expect(noCookie.status).toBe(401);
+        expect(otherOrigin.status).toBe(403);
+        expect(noOrigin.status).toBe(403);
+        expect(get.status).toBe(405);
+      });
+
+      await withServer(
+        {
+          testSetting,
+          introspect: jest.fn().mockResolvedValue({ active: false }),
+        },
+        async (port) => {
+          expect((await postTest(port)).status).toBe(401);
+        },
+      );
+      await withServer(
+        {
+          testSetting,
+          introspect: jest.fn().mockRejectedValue(new Error("TIMEOUT")),
+        },
+        async (port) => {
+          expect((await postTest(port)).status).toBe(503);
+        },
+      );
+
+      expect(testSetting).not.toHaveBeenCalled();
+    });
+
+    it("요청 본문이 너무 크면 413으로 거절하고 테스트를 실행하지 않는다", async () => {
+      const testSetting = jest.fn();
+
+      await withServer({ testSetting }, async (port) => {
+        const response = await postTest(port, {
+          body: JSON.stringify({
+            environment: "production",
+            pad: "x".repeat(40_000),
+          }),
+        });
+
+        expect(response.status).toBe(413);
+        expect(JSON.parse(response.body).code).toBe("BODY_TOO_LARGE");
+        expect(testSetting).not.toHaveBeenCalled();
+      });
+    });
   });
 });

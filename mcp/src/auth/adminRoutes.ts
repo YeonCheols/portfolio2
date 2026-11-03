@@ -4,6 +4,7 @@ import { extname, join } from "path";
 
 import type { PortfolioAdminApi } from "@mcp/auth/adminApi";
 import type { createPortfolioAdminOAuth } from "@mcp/auth/adminOAuth";
+import type { SettingConnectionTester } from "@mcp/auth/settingConnectionTest";
 import type { IntrospectedSession } from "@mcp/resume/http/portfolioApiIntrospector";
 
 const cookieName = "__Host-portfolio-admin-session";
@@ -38,6 +39,21 @@ const parseOAuthStateCookie = (value: string | null) => {
       redirectUri: state.redirectUri,
       resource: state.resource,
     };
+  } catch {
+    return null;
+  }
+};
+
+const modelEnvironments = ["development", "production"];
+
+// 환경을 요청이 명시해야 하므로 없거나 모르는 값이면 null로 거절한다
+const parseTestEnvironment = (body: string): string | null => {
+  try {
+    const value = (JSON.parse(body) as { environment?: unknown } | null)
+      ?.environment;
+    return typeof value === "string" && modelEnvironments.includes(value)
+      ? value
+      : null;
   } catch {
     return null;
   }
@@ -114,6 +130,16 @@ const assetContentTypes: Record<string, string> = {
 const logSubject = (sub: string | undefined): string =>
   sub !== undefined && /^[A-Za-z0-9_-]{1,64}$/.test(sub) ? sub : "unknown";
 
+// 결과 코드는 주입된 함수의 값이라, 로그 줄을 위조하지 못하도록 정해진 형식일 때만 남긴다
+const logTestResult = (result: { ok: boolean; code?: string }): string => {
+  if (result.ok) return "ok";
+  const code =
+    result.code !== undefined && /^[A-Z_]{1,64}$/.test(result.code)
+      ? result.code
+      : "unknown";
+  return `failed code=${code}`;
+};
+
 const readApiPath = (pathname: string): string | null => {
   if (pathname === "/admin/ai-models/api/settings") {
     return "/service/resume-model-setting";
@@ -137,6 +163,7 @@ export const handleAdminRequest = async (
     authorizationOrigin: string;
     introspect: (token: string) => Promise<IntrospectedSession>;
     log?: (message: string) => void;
+    testSetting?: SettingConnectionTester;
     appRoot?: string;
   },
 ): Promise<boolean> => {
@@ -280,7 +307,11 @@ export const handleAdminRequest = async (
   }
 
   if (pathname.startsWith("/admin/ai-models/api/")) {
-    if (!readApiPath(pathname)) return false;
+    const { testSetting } = options;
+    const testId = testSetting
+      ? pathname.match(/^\/admin\/ai-models\/api\/settings\/(\d+)\/test$/)?.[1]
+      : undefined;
+    if (testId === undefined && !readApiPath(pathname)) return false;
     const token = readCookie(req);
     if (!token) {
       sendJson(res, 401, { ok: false, code: "UNAUTHORIZED" });
@@ -292,15 +323,17 @@ export const handleAdminRequest = async (
       sendJson(res, 403, { ok: false, code: "INVALID_ORIGIN" });
       return true;
     }
-    const apiPath = readApiPath(pathname)!;
+    const apiPath = readApiPath(pathname) ?? "";
     const method = req.method ?? "GET";
     const validMethod =
-      (apiPath === "/service/resume-model-setting" &&
-        ["GET", "POST"].includes(method)) ||
-      (apiPath !== "/service/resume-model-setting" &&
-        ((apiPath.endsWith("/activate") && method === "POST") ||
-          (/^\/service\/resume-model-setting\/\d+$/.test(apiPath) &&
-            ["PUT", "DELETE"].includes(method))));
+      testId !== undefined
+        ? method === "POST"
+        : (apiPath === "/service/resume-model-setting" &&
+            ["GET", "POST"].includes(method)) ||
+          (apiPath !== "/service/resume-model-setting" &&
+            ((apiPath.endsWith("/activate") && method === "POST") ||
+              (/^\/service\/resume-model-setting\/\d+$/.test(apiPath) &&
+                ["PUT", "DELETE"].includes(method))));
     if (!validMethod) {
       sendJson(res, 405, { ok: false, code: "METHOD_NOT_ALLOWED" });
       return true;
@@ -314,6 +347,37 @@ export const handleAdminRequest = async (
     }
     if (!session.active) {
       sendJson(res, 401, { ok: false, code: "UNAUTHORIZED" });
+      return true;
+    }
+    if (testId !== undefined && testSetting) {
+      const logTest = (environment: string, result: string) =>
+        options.log?.(
+          `ADMIN_MODEL_TEST sub=${logSubject(session.sub)} id=${testId} environment=${environment} result=${result}`,
+        );
+      // 요청이 테스트 실행까지 간 경우에만 값이 채워져, 예외도 시도로 기록한다
+      let attemptedEnvironment: string | null = null;
+      try {
+        const environment = parseTestEnvironment(await readBody(req));
+        if (!environment) {
+          sendJson(res, 400, { ok: false, code: "INVALID_REQUEST" });
+          return true;
+        }
+        attemptedEnvironment = environment;
+        const result = await testSetting({ id: Number(testId), environment });
+        logTest(environment, logTestResult(result));
+        sendJson(res, 200, result);
+      } catch (error) {
+        const tooLarge =
+          error instanceof Error && error.message === "BODY_TOO_LARGE";
+        if (attemptedEnvironment) {
+          logTest(attemptedEnvironment, "failed code=UPSTREAM_FAILED");
+        }
+        // 원본 오류에 키나 주소가 섞일 수 있어 코드만 응답한다
+        sendJson(res, tooLarge ? 413 : 502, {
+          ok: false,
+          code: tooLarge ? "BODY_TOO_LARGE" : "UPSTREAM_FAILED",
+        });
+      }
       return true;
     }
     try {

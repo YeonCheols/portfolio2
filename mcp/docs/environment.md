@@ -76,7 +76,7 @@ portfolio-config run --app portfolio-mcp --env production --ref COMMIT_SHA -- no
 5. 다음 요청은 활성 설정을 새로 조회하므로 모델 변경마다 서버를 재시작하지 않습니다.
 
 모델 설정·활성 상태·실제 API 키는 portfolio-api가 소유합니다. MCP 설정 화면은 실제 API 키를 입력받아 API에 저장 요청만 전달하며 로컬 파일·프로세스 전역 환경에 저장하지 않습니다.
-관리 목록과 저장 응답에는 `apiKey` 대신 `hasApiKey`를 반환합니다. 실제 키는 `RESUME_MODEL_SETTING_TOKEN`으로 보호된 활성 설정 조회에서만 반환합니다.
+저장·수정·활성화·삭제 응답에는 `apiKey` 대신 `hasApiKey`만 반환합니다. 실제 키는 `RESUME_MODEL_SETTING_TOKEN`으로 보호된 활성 설정 조회와, 인증된 관리 목록(`GET /service/resume-model-setting`, portfolio-api #108)에서만 반환합니다. 관리 목록의 키는 설정별 연결 테스트가 비활성 설정도 호출하기 위한 것이며, MCP 관리 서버가 이 목록을 관리 화면 API로 그대로 전달하므로 관리 세션이 있는 사용자의 브라우저 응답에도 포함됩니다. 화면은 이 값을 사용하거나 표시하지 않습니다.
 MCP는 모델 키를 Secret Manager에서 읽지 않으며 모델 호출에 GCP ADC 인증도 필요하지 않습니다.
 GitHub 저장소 읽기에 사용하는 Cloud Run bootstrap 인증은 아래처럼 별도로 유지합니다.
 정적 파일에는 `RESUME_MODEL_URL`, `RESUME_MODEL_PROVIDER`, `RESUME_MODEL_NAME`, `RESUME_MODEL_TOKEN`을 넣지 않습니다.

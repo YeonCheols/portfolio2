@@ -1,10 +1,33 @@
 import http from "http";
 
 import {
+  modelTestConnections,
   resumeModelFromSetting,
   resumeModelSourceFromEnv,
   startResumeMcpServer,
 } from "@mcp/resume/http/server";
+
+describe("modelTestConnections", () => {
+  it("OpenRouter 연결 테스트는 응답 문장과 공급자 응답 원문을 함께 돌려준다", async () => {
+    const body = { id: "gen-1", choices: [{ message: { content: "ok" } }] };
+    const fetchImpl = jest.fn(async () => ({
+      ok: true,
+      json: async () => body,
+    }));
+
+    const result = await modelTestConnections.openrouter(
+      { persona: "연결 테스트", prompt: "ok" },
+      {
+        url: "https://openrouter.ai/api/v1/chat/completions",
+        token: "model-token",
+        model: "vendor/model",
+        fetchImpl,
+      },
+    );
+
+    expect(result).toEqual({ text: "ok", raw: body });
+  });
+});
 
 describe("startResumeMcpServer", () => {
   const previousUrl = process.env.RESUME_CONNECTION_URL;
@@ -52,6 +75,76 @@ describe("startResumeMcpServer", () => {
       expect(listen).toHaveBeenCalledTimes(1);
     } finally {
       listen.mockRestore();
+      for (const key of keys) {
+        if (previous[key] === undefined) delete process.env[key];
+        else process.env[key] = previous[key];
+      }
+    }
+  });
+
+  it("설정별 연결 테스트 경로가 서버에 연결되어 인증 없이는 401로 거절한다", async () => {
+    const keys = [
+      "RESUME_CONNECTION_URL",
+      "RESUME_CONNECTION_TOKEN",
+      "PORTFOLIO_API_URL",
+      "PORTFOLIO_API_AUTH_ISSUER",
+      "MCP_PUBLIC_URL",
+      "MCP_AUTH_SERVICE_TOKEN",
+      "RESUME_MODEL_SETTING_URL",
+      "RESUME_MODEL_SETTING_TOKEN",
+      "RESUME_MODEL_ENVIRONMENT",
+    ] as const;
+    const previous = Object.fromEntries(
+      keys.map((key) => [key, process.env[key]]),
+    );
+    const listen = jest
+      .spyOn(http.Server.prototype, "listen")
+      .mockImplementation(function (this: http.Server) {
+        return this;
+      });
+    process.env.RESUME_CONNECTION_URL = "https://resume.example/connect";
+    process.env.RESUME_CONNECTION_TOKEN = "connection-token";
+    process.env.PORTFOLIO_API_URL = "https://api.example.test";
+    process.env.PORTFOLIO_API_AUTH_ISSUER = "";
+    process.env.MCP_PUBLIC_URL = "https://mcp.example.test/mcp";
+    process.env.MCP_AUTH_SERVICE_TOKEN = "service-token";
+    process.env.RESUME_MODEL_SETTING_URL = "https://api.example/active";
+    process.env.RESUME_MODEL_SETTING_TOKEN = "read-token";
+    process.env.RESUME_MODEL_ENVIRONMENT = "production";
+
+    let server: http.Server | undefined;
+    try {
+      server = startResumeMcpServer();
+      listen.mockRestore();
+      await new Promise<void>((resolve) =>
+        server!.listen(0, "127.0.0.1", resolve),
+      );
+      const port = (server.address() as { port: number }).port;
+
+      const status = await new Promise<number>((resolve, reject) => {
+        const req = http.request(
+          {
+            hostname: "127.0.0.1",
+            port,
+            path: "/admin/ai-models/api/settings/1/test",
+            method: "POST",
+            headers: { origin: "https://mcp.example.test" },
+          },
+          (res) => {
+            res.resume();
+            res.on("end", () => resolve(res.statusCode ?? 0));
+          },
+        );
+        req.on("error", reject);
+        req.end();
+      });
+
+      expect(status).toBe(401);
+    } finally {
+      listen.mockRestore();
+      if (server?.listening) {
+        await new Promise<void>((resolve) => server!.close(() => resolve()));
+      }
       for (const key of keys) {
         if (previous[key] === undefined) delete process.env[key];
         else process.env[key] = previous[key];
