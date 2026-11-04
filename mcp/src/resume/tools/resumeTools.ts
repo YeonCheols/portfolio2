@@ -11,6 +11,7 @@ import {
   type ResumeSelectionNode,
 } from "@mcp/resume/output/checkResumeDraft";
 import { createResumePdf } from "@mcp/resume/output/createResumePdf";
+import { assertResumePdfReady } from "@mcp/resume/output/assertResumePdfReady";
 import { previewResume } from "@mcp/resume/output/previewResume";
 import {
   renderResumeForm,
@@ -429,14 +430,9 @@ export const callResumeTool = async (
           text: JSON.stringify({ ...generated, generationId }),
         };
       }
-      if (
-        !("resume" in generated) ||
-        !generated.resume.trim() ||
-        !("claims" in generated)
-      )
+      if (!("resume" in generated) || !("claims" in generated))
         throw new ResumeConnectionError("INCOMPLETE_RESUME");
-      if (generated.gaps.length || generated.conflicts.length)
-        throw new ResumeConnectionError("UNVERIFIED_CLAIMS");
+      assertResumePdfReady(generated);
       if (debug) await debug.write("pdf");
       const pdf = await createResumePdf({
         resume: generated.resume,

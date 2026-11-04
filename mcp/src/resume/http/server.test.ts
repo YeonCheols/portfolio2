@@ -1,3 +1,4 @@
+/** @jest-environment node */
 import http from "http";
 
 import {
@@ -101,8 +102,25 @@ describe("modelTestConnections", () => {
 describe("startResumeMcpServer", () => {
   const previousUrl = process.env.RESUME_CONNECTION_URL;
   const previousToken = process.env.RESUME_CONNECTION_TOKEN;
+  // 루트 .env의 웹 앱용 SUPABASE_URL이 Jest에 로드되면 저장소 설정이 일부만 있는 것으로 판정되어 시작이 거부된다
+  const storageKeys = [
+    "SUPABASE_URL",
+    "SUPABASE_SECRET_KEY",
+    "MCP_STORAGE_BUCKET",
+  ] as const;
+  const previousStorage = Object.fromEntries(
+    storageKeys.map((key) => [key, process.env[key]]),
+  );
+
+  beforeEach(() => {
+    for (const key of storageKeys) delete process.env[key];
+  });
 
   afterEach(() => {
+    for (const key of storageKeys) {
+      if (previousStorage[key] === undefined) delete process.env[key];
+      else process.env[key] = previousStorage[key];
+    }
     if (previousUrl === undefined) delete process.env.RESUME_CONNECTION_URL;
     else process.env.RESUME_CONNECTION_URL = previousUrl;
     if (previousToken === undefined) delete process.env.RESUME_CONNECTION_TOKEN;
@@ -221,6 +239,118 @@ describe("startResumeMcpServer", () => {
       if (server?.listening) {
         await new Promise<void>((resolve) => server!.close(() => resolve()));
       }
+      for (const key of keys) {
+        if (previous[key] === undefined) delete process.env[key];
+        else process.env[key] = previous[key];
+      }
+    }
+  });
+
+  it("Supabase 설정이 있을 때만 디버깅 아카이브 API가 서버에 연결된다", async () => {
+    const keys = [
+      "RESUME_CONNECTION_URL",
+      "RESUME_CONNECTION_TOKEN",
+      "PORTFOLIO_API_URL",
+      "PORTFOLIO_API_AUTH_ISSUER",
+      "MCP_PUBLIC_URL",
+      "MCP_AUTH_SERVICE_TOKEN",
+      "RESUME_MODEL_SETTING_URL",
+      "RESUME_MODEL_SETTING_TOKEN",
+      "RESUME_MODEL_ENVIRONMENT",
+      "SUPABASE_URL",
+      "SUPABASE_SECRET_KEY",
+      "MCP_STORAGE_BUCKET",
+    ] as const;
+    const previous = Object.fromEntries(
+      keys.map((key) => [key, process.env[key]]),
+    );
+    process.env.RESUME_CONNECTION_URL = "https://resume.example/connect";
+    process.env.RESUME_CONNECTION_TOKEN = "connection-token";
+    process.env.PORTFOLIO_API_URL = "https://api.example.test";
+    process.env.PORTFOLIO_API_AUTH_ISSUER = "";
+    process.env.MCP_PUBLIC_URL = "https://mcp.example.test/mcp";
+    process.env.MCP_AUTH_SERVICE_TOKEN = "service-token";
+    process.env.RESUME_MODEL_SETTING_URL = "https://api.example/active";
+    process.env.RESUME_MODEL_SETTING_TOKEN = "read-token";
+    process.env.RESUME_MODEL_ENVIRONMENT = "development";
+    // 세션 확인과 Storage 목록 호출만 가짜로 응답하고 그 밖의 호출은 막는다
+    const fetchSpy = jest
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(async (input) => {
+        const url = String(input);
+        if (url.endsWith("/auth/introspect")) {
+          return new Response(JSON.stringify({ active: true, sub: "7" }));
+        }
+        if (url.includes("/storage/v1/object/list/mcp")) {
+          return new Response("[]");
+        }
+        throw new Error("UNEXPECTED_FETCH");
+      });
+    const getArchives = async (): Promise<{ status: number; body: string }> => {
+      const listen = jest
+        .spyOn(http.Server.prototype, "listen")
+        .mockImplementation(function (this: http.Server) {
+          return this;
+        });
+      const server = startResumeMcpServer();
+      listen.mockRestore();
+      await new Promise<void>((resolve) =>
+        server.listen(0, "127.0.0.1", resolve),
+      );
+      try {
+        const port = (server.address() as { port: number }).port;
+        return await new Promise((resolve, reject) => {
+          const req = http.request(
+            {
+              hostname: "127.0.0.1",
+              port,
+              path: "/admin/debug/resume/api/archives?environment=development",
+              headers: {
+                cookie: "__Host-portfolio-admin-session=admin-jwt",
+              },
+            },
+            (res) => {
+              const chunks: string[] = [];
+              res.setEncoding("utf8");
+              res.on("data", (chunk: string) => chunks.push(chunk));
+              res.on("end", () =>
+                resolve({
+                  status: res.statusCode ?? 0,
+                  body: chunks.join(""),
+                }),
+              );
+            },
+          );
+          req.on("error", reject);
+          req.end();
+        });
+      } finally {
+        await new Promise<void>((resolve) => server.close(() => resolve()));
+      }
+    };
+
+    try {
+      delete process.env.SUPABASE_URL;
+      delete process.env.SUPABASE_SECRET_KEY;
+      delete process.env.MCP_STORAGE_BUCKET;
+      const unconfigured = await getArchives();
+      expect(unconfigured.status).toBe(503);
+      expect(JSON.parse(unconfigured.body).code).toBe(
+        "DEBUG_ARCHIVE_UNAVAILABLE",
+      );
+
+      process.env.SUPABASE_URL = "https://storage.example.test";
+      process.env.SUPABASE_SECRET_KEY = "sb_secret_fake";
+      process.env.MCP_STORAGE_BUCKET = "mcp";
+      const configured = await getArchives();
+      expect(configured.status).toBe(200);
+      expect(JSON.parse(configured.body)).toEqual({
+        ok: true,
+        items: [],
+        hasMore: false,
+      });
+    } finally {
+      fetchSpy.mockRestore();
       for (const key of keys) {
         if (previous[key] === undefined) delete process.env[key];
         else process.env[key] = previous[key];

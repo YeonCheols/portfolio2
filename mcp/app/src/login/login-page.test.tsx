@@ -8,7 +8,7 @@ describe("LoginPage", () => {
     render(<LoginPage error={null} />);
 
     expect(
-      screen.getByRole("heading", { level: 1, name: "AI 모델 설정 로그인" }),
+      screen.getByRole("heading", { level: 1, name: "MCP 관리자 로그인" }),
     ).toBeTruthy();
     const form = screen
       .getByRole("button", { name: "GitHub로 로그인" })
@@ -24,5 +24,17 @@ describe("LoginPage", () => {
     expect(screen.getByRole("alert").textContent).toBe(
       "로그인에 실패했습니다. 계정 정보를 확인해 주세요.",
     );
+  });
+
+  it("가려던 화면이 있으면 OAuth 시작 요청에 next로 실어 보낸다", () => {
+    render(<LoginPage error={null} next="/admin/debug/resume?page=2" />);
+
+    const form = screen
+      .getByRole("button", { name: "GitHub로 로그인" })
+      .closest("form");
+    expect(form?.getAttribute("action")).toBe(
+      "/admin/ai-models/oauth/start?next=%2Fadmin%2Fdebug%2Fresume%3Fpage%3D2",
+    );
+    expect(form?.getAttribute("method")).toBe("post");
   });
 });

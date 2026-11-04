@@ -331,6 +331,24 @@ describe("SettingsPage", () => {
     expect(form?.getAttribute("method")).toBe("post");
   });
 
+  it("현재 위치를 도메인 › 항목으로 보여주고 메뉴 화면으로 돌아가는 링크만 둔다", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse([])));
+    render(<SettingsPage />);
+    await screen.findByRole("heading", { level: 1, name: "AI 모델 설정" });
+
+    const location = screen.getByRole("navigation", { name: "현재 위치" });
+    expect(
+      within(location).getByRole("link", { name: "메뉴" }).getAttribute("href"),
+    ).toBe("/admin");
+    expect(within(location).getByText("이력서")).toBeTruthy();
+    expect(
+      within(location).getByText("AI 모델 설정").getAttribute("aria-current"),
+    ).toBe("page");
+    // 같은 도메인의 다른 화면과 다른 도메인 항목은 메뉴 화면에서 고른다
+    expect(within(location).queryByText("디버깅 아카이브")).toBeNull();
+    expect(screen.queryByText("포트폴리오 툴 관리")).toBeNull();
+  });
+
   it("새로고침을 누르면 설정 목록을 다시 조회한다", async () => {
     const fetchMock = vi
       .fn()

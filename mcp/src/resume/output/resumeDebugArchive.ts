@@ -18,15 +18,17 @@ type DebugData = {
   >;
   errorCode?: string;
 };
-type DebugStage =
-  | "started"
-  | "source"
-  | "model_request"
-  | "model_response"
-  | "validation"
-  | "pdf"
-  | "completed"
-  | "failed";
+export const resumeDebugStages = [
+  "started",
+  "source",
+  "model_request",
+  "model_response",
+  "validation",
+  "pdf",
+  "completed",
+  "failed",
+] as const;
+type DebugStage = (typeof resumeDebugStages)[number];
 
 export const createResumeDebugAttempt = (
   storage: JsonStorage,

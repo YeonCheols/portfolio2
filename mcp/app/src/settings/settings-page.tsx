@@ -14,6 +14,7 @@ import type {
   ModelSetting,
   ModelSettingInput,
 } from "../types";
+import { AdminLayout } from "../ui/admin-layout";
 
 import { EnvironmentSection } from "./environment-section";
 import { SettingForm } from "./setting-form";
@@ -131,85 +132,67 @@ export const SettingsPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
-      <header className="mx-auto flex h-[72px] w-[calc(100%-32px)] max-w-5xl items-center justify-between border-b border-slate-200">
-        <div className="flex items-center gap-3 text-sm font-bold tracking-tight">
-          <span className="grid size-[34px] place-items-center rounded-xl bg-blue-600 text-white">
-            P
-          </span>
-          <span>PORTFOLIO MCP</span>
-        </div>
-        <form action="/admin/ai-models/logout" method="post">
-          <button
-            type="submit"
-            className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-600"
-          >
-            로그아웃
-          </button>
-        </form>
-      </header>
-      <main className="mx-auto max-w-5xl px-4 py-12 sm:px-0 sm:py-14">
-        <p className="text-xs font-extrabold uppercase tracking-[.14em] text-blue-700">
-          MCP 관리자
-        </p>
-        <h1 className="mb-3 mt-2 text-4xl font-bold tracking-tight">
-          AI 모델 설정
-        </h1>
-        <p className="leading-relaxed text-slate-600">
-          개발 및 운영 MCP에서 사용할 OpenRouter 모델과 API 키를 관리합니다.
-          설정과 키는 portfolio-api에 저장됩니다.
-        </p>
-        <button
-          type="button"
-          onClick={reloadWithMessage}
-          className="mt-4 min-h-11 rounded-xl border border-slate-200 px-5 text-sm font-bold text-slate-700"
+    <AdminLayout current="ai-models">
+      <p className="text-xs font-extrabold uppercase tracking-[.14em] text-blue-700">
+        MCP 관리자
+      </p>
+      <h1 className="mb-3 mt-2 text-4xl font-bold tracking-tight">
+        AI 모델 설정
+      </h1>
+      <p className="leading-relaxed text-slate-600">
+        개발 및 운영 MCP에서 사용할 OpenRouter 모델과 API 키를 관리합니다.
+        설정과 키는 portfolio-api에 저장됩니다.
+      </p>
+      <button
+        type="button"
+        onClick={reloadWithMessage}
+        className="mt-4 min-h-11 rounded-xl border border-slate-200 px-5 text-sm font-bold text-slate-700"
+      >
+        새로고침
+      </button>
+      {message && (
+        <p
+          role="status"
+          aria-live="polite"
+          className={
+            message.isError
+              ? "mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+              : "mt-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800"
+          }
         >
-          새로고침
-        </button>
-        {message && (
-          <p
-            role="status"
-            aria-live="polite"
-            className={
-              message.isError
-                ? "mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
-                : "mt-6 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800"
-            }
-          >
-            {message.text}
-          </p>
-        )}
-        <div className="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <EnvironmentSection
-            id="environment-development"
-            title="개발 환경"
-            settings={settings.filter((s) => s.environment === "development")}
-            loading={loading}
-            testStates={testStates}
-            onTest={handleTest}
-            onActivate={handleActivate}
-            onEdit={setEditing}
-            onDelete={handleDelete}
-          />
-          <EnvironmentSection
-            id="environment-production"
-            title="운영 환경"
-            settings={settings.filter((s) => s.environment === "production")}
-            loading={loading}
-            testStates={testStates}
-            onTest={handleTest}
-            onActivate={handleActivate}
-            onEdit={setEditing}
-            onDelete={handleDelete}
-          />
-        </div>
-        <SettingForm
-          key={editing?.id ?? "new"}
-          editing={editing}
-          onCancel={() => setEditing(null)}
-          onSubmit={handleSubmit}
+          {message.text}
+        </p>
+      )}
+      <div className="mt-7 grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <EnvironmentSection
+          id="environment-development"
+          title="개발 환경"
+          settings={settings.filter((s) => s.environment === "development")}
+          loading={loading}
+          testStates={testStates}
+          onTest={handleTest}
+          onActivate={handleActivate}
+          onEdit={setEditing}
+          onDelete={handleDelete}
         />
-      </main>
-    </div>
+        <EnvironmentSection
+          id="environment-production"
+          title="운영 환경"
+          settings={settings.filter((s) => s.environment === "production")}
+          loading={loading}
+          testStates={testStates}
+          onTest={handleTest}
+          onActivate={handleActivate}
+          onEdit={setEditing}
+          onDelete={handleDelete}
+        />
+      </div>
+      <SettingForm
+        key={editing?.id ?? "new"}
+        editing={editing}
+        onCancel={() => setEditing(null)}
+        onSubmit={handleSubmit}
+      />
+    </AdminLayout>
   );
 };

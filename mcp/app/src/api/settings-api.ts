@@ -6,22 +6,9 @@ import type {
   StructuredCheck,
 } from "../types";
 
-const settingsUrl = "/admin/ai-models/api/settings";
+import { request } from "./request";
 
-const request = async (path: string, init: RequestInit): Promise<unknown> => {
-  const response = await fetch(path, { credentials: "same-origin", ...init });
-  if (response.status === 401) {
-    window.location.assign(
-      new URL("/admin/ai-models/connect", window.location.origin).toString(),
-    );
-    throw new Error("세션이 만료되었습니다. 다시 로그인해 주세요.");
-  }
-  if (!response.ok) {
-    throw new Error("요청을 처리하지 못했습니다. 다시 시도해 주세요.");
-  }
-  if (response.status === 204) return null;
-  return response.json();
-};
+const settingsUrl = "/admin/ai-models/api/settings";
 
 export const listSettings = async (): Promise<ModelSetting[]> => {
   const settings = await request(settingsUrl, { method: "GET" });
