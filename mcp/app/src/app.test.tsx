@@ -1,7 +1,9 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { App } from "./app";
+import { adminMenuItems } from "../../src/auth/adminMenu";
+
+import { App, pageRegistry } from "./app";
 
 describe("App", () => {
   afterEach(() => {
@@ -94,5 +96,61 @@ describe("App", () => {
     expect(
       screen.getByRole("heading", { level: 1, name: "관리 메뉴" }),
     ).toBeTruthy();
+  });
+
+  it("메뉴 정의에서 경로가 있는 항목마다 화면이 등록돼 있고 정의에 없는 화면 등록은 없다", () => {
+    const withPath = adminMenuItems.filter((item) => item.path);
+
+    for (const item of withPath)
+      expect(pageRegistry[item.id]).toBeTypeOf("function");
+    expect(Object.keys(pageRegistry).sort()).toEqual(
+      withPath.map((item) => item.id).sort(),
+    );
+  });
+
+  it("메뉴에 등록된 경로는 알림 화면이 아니라 등록된 화면으로 열고 모르는 경로는 안내한다", () => {
+    // 각 화면이 마운트 때 부르는 API는 끝나지 않는 응답으로 막아 화면 선택만 확인한다
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => new Promise(() => {})),
+    );
+
+    for (const item of adminMenuItems.filter((entry) => entry.path)) {
+      const { unmount } = render(<App pathname={item.path!} search="" />);
+      expect(screen.queryByText("페이지를 찾을 수 없습니다")).toBeNull();
+      unmount();
+    }
+
+    render(<App pathname="/admin/unknown" search="" />);
+    expect(
+      screen.getByRole("heading", {
+        level: 1,
+        name: "페이지를 찾을 수 없습니다",
+      }),
+    ).toBeTruthy();
+    expect(
+      screen.getAllByRole("link", { name: "메뉴" })[0]?.getAttribute("href"),
+    ).toBe("/admin");
+  });
+
+  it("등록된 화면은 필요할 때 불러오고 불러오는 동안 현재 위치와 안내를 먼저 보여준다", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({ ok: true, status: 200, json: async () => [] })),
+    );
+
+    render(<App pathname="/admin/ai-models" search="" />);
+
+    // 화면 코드가 도착하기 전에는 레이아웃과 안내만 보이고, 도착하면 화면으로 바뀐다
+    expect(screen.getByRole("status").textContent).toContain(
+      "화면을 불러오는 중입니다.",
+    );
+    expect(
+      screen.getByRole("navigation", { name: "현재 위치" }).textContent,
+    ).toContain("AI 모델 설정");
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "AI 모델 설정" }),
+    ).toBeTruthy();
+    expect(screen.queryByText("화면을 불러오는 중입니다.")).toBeNull();
   });
 });

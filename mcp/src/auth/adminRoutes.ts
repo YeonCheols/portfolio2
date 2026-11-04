@@ -174,7 +174,6 @@ const readApiPath = (pathname: string): string | null => {
 const connectPath = "/admin/ai-models/connect";
 const debugPagePath = "/admin/debug/resume";
 const debugApiPrefix = `${debugPagePath}/api/`;
-const settingsPagePath = "/admin/ai-models";
 
 // 로그인 뒤 돌아갈 수 있는 화면은 공통 메뉴(adminMenu)에 있는 경로뿐이다. 쿠키로 오가는 값이라 사용할 때마다 다시 검증한다
 const returnPagePaths = adminPagePaths;
@@ -590,25 +589,18 @@ export const handleAdminRequest = async (
     return true;
   }
 
+  // 화면 경로는 공통 메뉴 정의(adminMenu)에서 일괄 등록한다. 경로가 있는 항목만 서빙하므로
+  // 준비 중인 항목과 정의에 없는 경로는 여기서 처리하지 않는다
+  const isMenuPage =
+    pathname === adminMenuPath || pathname === `${adminMenuPath}/`;
   if (
     req.method === "GET" &&
-    (pathname === adminMenuPath || pathname === `${adminMenuPath}/`)
+    (isMenuPage || adminPagePaths.includes(pathname))
   ) {
-    await serveAuthenticatedApp(req, res, { ...options, appRoot });
-    return true;
-  }
-
-  if (req.method === "GET" && pathname === settingsPagePath) {
-    await serveAuthenticatedApp(req, res, {
-      ...options,
-      appRoot,
-      next: settingsPagePath,
-    });
-    return true;
-  }
-
-  if (req.method === "GET" && pathname === debugPagePath) {
-    const next = safeReturnPath(`${pathname}${url.search}`) ?? debugPagePath;
+    // 메뉴 화면은 기본 이동지라 next를 싣지 않는다
+    const next = isMenuPage
+      ? undefined
+      : (safeReturnPath(`${pathname}${url.search}`) ?? pathname);
     await serveAuthenticatedApp(req, res, { ...options, appRoot, next });
     return true;
   }

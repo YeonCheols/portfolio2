@@ -1,5 +1,5 @@
-import { render, screen, within } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { fireEvent, render, screen, within } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 
 import { adminMenu } from "../../../src/auth/adminMenu";
 
@@ -42,5 +42,28 @@ describe("AdminMenuPage", () => {
       expect(within(entry).getByText("준비 중")).toBeTruthy();
       expect(within(entry).queryByRole("link")).toBeNull();
     }
+  });
+
+  it("현재 위치로 메뉴를 표시하고 링크로 만들지 않는다", () => {
+    render(<AdminMenuPage />);
+
+    const location = screen.getByRole("navigation", { name: "현재 위치" });
+    expect(
+      within(location).getByText("메뉴").getAttribute("aria-current"),
+    ).toBe("page");
+    expect(within(location).queryByRole("link")).toBeNull();
+  });
+
+  it("메뉴 카드를 누르면 화면을 이동하는 동안 이동 중 표시를 보여준다", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    render(<AdminMenuPage />);
+    expect(screen.queryByRole("status")).toBeNull();
+
+    fireEvent.click(screen.getByRole("link", { name: "디버깅 아카이브" }));
+
+    expect(screen.getByRole("status").textContent).toContain(
+      "페이지를 이동하는 중입니다.",
+    );
+    vi.restoreAllMocks();
   });
 });

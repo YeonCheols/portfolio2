@@ -1,3 +1,5 @@
+import { NavigationProgress } from "../ui/navigation-progress";
+
 type LoginPageProps = {
   error: string | null;
   // 로그인 전에 가려던 화면 경로. 허용 여부는 서버가 다시 검증한다
@@ -9,6 +11,7 @@ const githubMark =
 
 export const LoginPage = ({ error, next }: LoginPageProps) => (
   <div className="min-h-screen bg-[#f6f8fa] font-sans text-[#1f2328]">
+    <NavigationProgress />
     <header className="mx-auto flex max-w-5xl justify-center px-4 pb-6 pt-12">
       <a
         className="flex items-center gap-3 text-lg font-semibold tracking-tight"

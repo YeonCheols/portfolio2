@@ -331,25 +331,22 @@ describe("SettingsPage", () => {
     expect(form?.getAttribute("method")).toBe("post");
   });
 
-  it("관리 메뉴에서 현재 화면을 표시하고 디버깅 아카이브로 이동하는 링크를 보여준다", async () => {
+  it("현재 위치를 도메인 › 항목으로 보여주고 메뉴 화면으로 돌아가는 링크만 둔다", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse([])));
     render(<SettingsPage />);
     await screen.findByRole("heading", { level: 1, name: "AI 모델 설정" });
 
-    const menu = screen.getByRole("navigation", { name: "관리 메뉴" });
-    const archive = within(menu).getByRole("link", { name: "디버깅 아카이브" });
-    expect(archive.getAttribute("href")).toBe("/admin/debug/resume");
-    // 메뉴 화면으로 돌아가는 링크가 있고 같은 도메인의 항목만 나열한다
+    const location = screen.getByRole("navigation", { name: "현재 위치" });
     expect(
-      within(menu).getByRole("link", { name: "메뉴" }).getAttribute("href"),
+      within(location).getByRole("link", { name: "메뉴" }).getAttribute("href"),
     ).toBe("/admin");
-    expect(within(menu).queryByText("포트폴리오 툴 관리")).toBeNull();
-    expect(archive.getAttribute("aria-current")).toBeNull();
+    expect(within(location).getByText("이력서")).toBeTruthy();
     expect(
-      within(menu)
-        .getByRole("link", { name: "AI 모델 설정" })
-        .getAttribute("aria-current"),
+      within(location).getByText("AI 모델 설정").getAttribute("aria-current"),
     ).toBe("page");
+    // 같은 도메인의 다른 화면과 다른 도메인 항목은 메뉴 화면에서 고른다
+    expect(within(location).queryByText("디버깅 아카이브")).toBeNull();
+    expect(screen.queryByText("포트폴리오 툴 관리")).toBeNull();
   });
 
   it("새로고침을 누르면 설정 목록을 다시 조회한다", async () => {
