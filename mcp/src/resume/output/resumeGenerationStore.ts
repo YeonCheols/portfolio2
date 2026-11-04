@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { JsonStorage } from "@mcp/storage/supabaseStorage";
 
 import type { ResumeSelectionNode } from "@mcp/resume/output/checkResumeDraft";
 import type {
@@ -71,4 +72,5 @@ export const createResumeGenerationStore = () => {
 export type ResumeGenerationContext = {
   store: ReturnType<typeof createResumeGenerationStore>;
   scope: ResumeGenerationScope;
+  storage?: JsonStorage;
 };

@@ -77,6 +77,18 @@ export const readMcpRuntimeConfig = (env: RuntimeEnv) => {
   );
   const portText = env.PORT ?? "8080";
   const port = Number(portText);
+  const storageKeys = [
+    "SUPABASE_URL",
+    "SUPABASE_SECRET_KEY",
+    "MCP_STORAGE_BUCKET",
+  ];
+  const storage = storageKeys.some((key) => env[key] !== undefined)
+    ? {
+        url: required(env, "SUPABASE_URL"),
+        secretKey: required(env, "SUPABASE_SECRET_KEY"),
+        bucket: required(env, "MCP_STORAGE_BUCKET"),
+      }
+    : undefined;
   if (
     !/^\d+$/.test(portText) ||
     !Number.isInteger(port) ||
@@ -101,5 +113,6 @@ export const readMcpRuntimeConfig = (env: RuntimeEnv) => {
       token: required(env, "RESUME_CONNECTION_TOKEN"),
     },
     modelSetting,
+    storage,
   };
 };

@@ -1,4 +1,5 @@
 import http, { type IncomingMessage, type ServerResponse } from "http";
+import type { JsonStorage } from "@mcp/storage/supabaseStorage";
 
 import type { PortfolioAdminApi } from "@mcp/auth/adminApi";
 import type { createPortfolioAdminOAuth } from "@mcp/auth/adminOAuth";
@@ -54,6 +55,7 @@ export const createResumeMcpServer = (options: {
   };
   connection: ResumeConnection;
   model?: ResumeModelSource;
+  storage?: JsonStorage;
   admin?: {
     api: PortfolioAdminApi;
     oauth: ReturnType<typeof createPortfolioAdminOAuth>;
@@ -164,6 +166,7 @@ export const createResumeMcpServer = (options: {
           ? {
               store: generations,
               scope: { subject: session.sub, environment: options.environment },
+              storage: options.storage,
             }
           : undefined,
       );

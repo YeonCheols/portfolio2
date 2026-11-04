@@ -62,6 +62,9 @@ describe("createResumeMcpServer", () => {
       }),
     );
     const createModel = jest.fn(() => ({ generate }));
+    const storage = {
+      putJson: jest.fn(async (_path: string, _value: unknown) => {}),
+    };
     const server = createResumeMcpServer({
       introspect: async (token) => ({
         active: token !== "inactive",
@@ -70,6 +73,7 @@ describe("createResumeMcpServer", () => {
       environment: "production",
       connection: { load: async () => connectedResume() },
       model: createModel,
+      storage,
     });
     await new Promise<void>((resolve) =>
       server.listen(0, "127.0.0.1", resolve),
@@ -112,6 +116,13 @@ describe("createResumeMcpServer", () => {
       expect((await call("inactive", { generationId })).status).toBe(401);
       expect(generate).toHaveBeenCalledTimes(1);
       expect(createModel).toHaveBeenCalledTimes(1);
+      expect(storage.putJson).toHaveBeenCalledWith(
+        expect.stringMatching(/^debug\/resume\/production\//),
+        expect.objectContaining({
+          response: expect.any(String),
+          stage: "completed",
+        }),
+      );
     } finally {
       await new Promise<void>((resolve) => server.close(() => resolve()));
     }

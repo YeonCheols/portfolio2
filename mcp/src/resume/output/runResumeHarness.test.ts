@@ -77,6 +77,35 @@ const recordingClient = (fixtures: string[]) => {
 };
 
 describe("runResumeHarness", () => {
+  it("원문 보관이 비동기이면 완료를 기다린 뒤 응답을 파싱한다", async () => {
+    const client = { generate: jest.fn(async () => "invalid JSON {") };
+    let finish: (() => void) | undefined;
+    const recorded = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    const onResponse = jest.fn(() => recorded);
+    const pending = runResumeHarness(
+      [employment],
+      client,
+      undefined,
+      onResponse,
+    );
+    let settled = false;
+    pending.then(
+      () => {
+        settled = true;
+      },
+      () => {
+        settled = true;
+      },
+    );
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(onResponse).toHaveBeenCalled();
+    expect(settled).toBe(false);
+    finish?.();
+    await expect(pending).rejects.toThrow();
+  });
   it("생성 전에 오탈자와 사실 충돌을 자체 점검하고 항목 중복을 금지하도록 요청한다", () => {
     expect(resumeWriterPersona).toContain("맞춤법·띄어쓰기·오탈자");
     expect(resumeWriterPersona).toContain("날짜·직급·역할·성과 수치");

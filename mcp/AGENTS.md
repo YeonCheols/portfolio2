@@ -44,6 +44,8 @@ mcp/
     └── testing/                  테스트 fixture. 실행 코드가 가져오지 않음
 ```
 
+`src/storage/`는 도메인에 종속되지 않는 MCP 공통 Storage 연결을 소유합니다. `MCP_STORAGE_BUCKET`은 공통 버킷 이름이며 `debug/resume/` 같은 하위 경로는 소비 도메인이 소유합니다.
+
 외부 연결은 다음 역할과 도메인으로 나눕니다. 테스트는 이동한 구현 파일 옆에 유지합니다.
 
 - `connection/shared/`: 공통 오류, fetch·옵션 타입과 JSON POST 계약을 소유합니다.
@@ -92,7 +94,9 @@ mcp/
 
 새 생성 입력을 접수하면 이전 원문·스냅샷과 ID를 모델 호출 전에 즉시 초기화합니다. 새 생성 실패 시 이전 결과를 복구하지 않으며, 늦게 끝난 이전 모델·PDF 작업도 이전 결과를 다시 저장하거나 반환하지 못합니다. `generate_resume`에 `generationId`만 전달하면 보관 원문에서 내부 검증만 재실행합니다. `convert_resume_to_pdf`도 `generationId`만 받아 같은 원문·스냅샷으로 내부 검증 후 PDF를 만들며 모델·원문 조회 API를 호출하지 않습니다. 클라이언트가 보내는 `generatedResume`, 수정한 본문·claims·selection은 받지 않습니다. `interpretation` 기반 외부 재작성 안내도 새 도구 입력 계약에서 제외합니다.
 
-성공 응답과 생성 중 오류에는 `generationId`가 포함됩니다. 원문 수신 전에는 `GENERATION_NOT_READY`, 다른 사용자·환경·이전 ID·없는 결과에는 `GENERATION_NOT_FOUND`, 요청자 식별·환경이 없는 실행에는 `GENERATION_CONTEXT_REQUIRED`를 반환합니다. 메모리는 프로세스 종료·배포·Cloud Run 인스턴스 교체 시 사라지고 다른 인스턴스와 공유되지 않습니다. 결과가 없어도 모델을 자동 재호출하지 않으며 별도 시간 만료나 디스크·DB 저장은 추가하지 않습니다.
+성공 응답과 생성 중 오류에는 `generationId`가 포함됩니다. 원문 수신 전에는 `GENERATION_NOT_READY`, 다른 사용자·환경·이전 ID·없는 결과에는 `GENERATION_NOT_FOUND`, 요청자 식별·환경이 없는 실행에는 `GENERATION_CONTEXT_REQUIRED`를 반환합니다. 메모리는 프로세스 종료·배포·Cloud Run 인스턴스 교체 시 사라지고 다른 인스턴스와 공유되지 않습니다. 결과가 없어도 모델을 자동 재호출하지 않습니다.
+
+Supabase 연결이 설정되면 `output/resumeDebugArchive.ts`가 입력 스냅샷·모델 요청·파싱 전 응답·검증·실패 코드를 비공개 버킷의 `debug/resume/{environment}/{subjectHash}/{generationId}/{attemptId}/`에 단계별 JSON으로 보관합니다. 기록은 현재 메모리와 독립적이며 이전 메모리 ID를 복구하지 않습니다. 모델 원문을 메모리에 먼저 저장하고 외부 기록 저장 완료 후 파싱하므로 Storage 장애에도 받은 원문은 메모리에 남습니다. 기록 저장 실패는 `DEBUG_STORAGE_FAILED`로 표시하며 서버 키와 인증 헤더는 기록에 포함하지 않습니다. 자동 정리와 보관 기간은 후속 작업으로 둡니다. 세부 계약은 `docs/environment.md`를 따릅니다.
 
 지원 공급자는 `openrouter`, `openai`, `gemini`입니다. OpenAI는 Chat Completions, Gemini는 Google의 OpenAI 호환 Chat Completions 엔드포인트에 직접 연결합니다. 공통 전송·응답 검증·오류 변환은 `connection/model/chatCompletionModelConnection.ts`가 소유하고 OpenRouter의 `provider.require_parameters`는 OpenRouter 어댑터만 전달합니다. 관리 화면의 공급자 옵션과 기본 주소는 `app/src/settings/providers/model-providers.ts`의 `MODEL_PROVIDERS`가 모델 ID 예시·공식 모델 목록 링크와 함께 소유합니다. 공급자 추가는 실제 모델 설정을 자동 등록·활성화하지 않습니다. #180에서는 실제 모델 등록·활성화·실호출은 OpenAI만 수행하고 Gemini는 가짜 네트워크로 검증합니다.
 

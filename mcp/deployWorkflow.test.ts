@@ -44,6 +44,7 @@ describe("MCP deployment workflow", () => {
     expect(mcpWorkflow).toContain("paths:");
     expect(mcpWorkflow).toContain("mcp/**");
     expect(mcpWorkflow).toContain("portfolio-mcp");
+    expect(mcpWorkflow).toContain("cli-v0.2.1");
     expect(mcpWorkflow).toContain(
       "configcli=${{ runner.temp }}/portfolio-config-bin",
     );

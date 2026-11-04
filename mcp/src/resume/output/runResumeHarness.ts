@@ -127,7 +127,7 @@ export type GeneratedResume = CheckedDraft & {
 export type ResumeResponseRecorder = (
   request: ResumeModelRequest,
   response: string,
-) => void;
+) => void | Promise<void>;
 
 const resumeSectionOrder: {
   title: string;
@@ -651,7 +651,7 @@ export const runResumeHarness = async (
     ),
   };
   const response = await client.generate(request);
-  onResponse?.(request, response);
+  await onResponse?.(request, response);
   return completeResumeGeneration(selection, response);
 };
 

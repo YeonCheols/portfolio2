@@ -18,6 +18,7 @@ import {
 } from "@mcp/resume/output/renderResumeForm";
 import { renderResumeTemplate } from "@mcp/resume/output/renderResumeTemplate";
 import type { ResumeGenerationContext } from "@mcp/resume/output/resumeGenerationStore";
+import { createResumeDebugAttempt } from "@mcp/resume/output/resumeDebugArchive";
 import {
   generateResume,
   completeResumeGeneration,
@@ -286,6 +287,7 @@ export const callResumeTool = async (
   generation?: ResumeGenerationContext,
 ): Promise<ResumeToolResult> => {
   let generationId: string | undefined;
+  let debug: ReturnType<typeof createResumeDebugAttempt> | undefined;
   try {
     if (name === "validate_resume_xml") {
       const resume = await loadFromArgs(args, connection);
@@ -326,8 +328,21 @@ export const callResumeTool = async (
           return { ok: false, code: "GENERATION_ID_REQUIRED" };
         generationId = args.generationId;
         const stored = store.read(scope, generationId);
+        if (generation.storage) {
+          debug = createResumeDebugAttempt(
+            generation.storage,
+            scope,
+            generationId,
+            name,
+          );
+          await debug.write("started", {
+            snapshot: stored.snapshot,
+            request: stored.request,
+            response: stored.response,
+          });
+        }
         if (stored.response === undefined || !stored.snapshot)
-          return { ok: false, code: "GENERATION_NOT_READY", generationId };
+          throw new ResumeConnectionError("GENERATION_NOT_READY");
         generated = completeResumeGeneration(
           stored.snapshot.selection,
           stored.response,
@@ -343,8 +358,17 @@ export const callResumeTool = async (
         if (args.interpretation !== undefined)
           return { ok: false, code: "INVALID_INPUT" };
         generationId = store.begin(scope);
+        if (generation.storage) {
+          debug = createResumeDebugAttempt(
+            generation.storage,
+            scope,
+            generationId,
+            name,
+          );
+          await debug.write("started");
+        }
         if (claims === undefined && !model)
-          return { ok: false, code: "MISSING_MODEL_CONNECTION", generationId };
+          throw new ResumeConnectionError("MISSING_MODEL_CONNECTION");
         const { template, composed } = await loadTemplateResume(
           args,
           connection,
@@ -352,39 +376,74 @@ export const callResumeTool = async (
         const selection = readGeneratedSelection(composed, template);
         const forms = generatedResumeForms(composed, template);
         store.snapshot(scope, generationId, { selection, forms });
+        if (debug)
+          await debug.write("source", { snapshot: { selection, forms } });
         const id = generationId;
         if (claims !== undefined) {
           const response = JSON.stringify({ claims });
           store.capture(scope, id, undefined, response);
+          if (debug) await debug.write("model_response", { response });
           generated = completeResumeGeneration(selection, response);
         } else {
           generated = await generateResume(selection, {
-            model,
+            model: model
+              ? {
+                  generate: async (request) => {
+                    if (debug) await debug.write("model_request", { request });
+                    return model.generate(request);
+                  },
+                }
+              : undefined,
             forms,
-            onResponse: (request, response) =>
-              store.capture(scope, id, request, response),
+            onResponse: async (request, response) => {
+              try {
+                store.capture(scope, id, request, response);
+              } catch (error) {
+                if (debug)
+                  await debug.write("model_response", { request, response });
+                throw error;
+              }
+              if (debug)
+                await debug.write("model_response", { request, response });
+            },
           });
         }
       }
+      if ("gaps" in generated) {
+        if (debug)
+          await debug.write("validation", {
+            validation: {
+              gaps: generated.gaps,
+              conflicts: generated.conflicts,
+              uncertain: generated.uncertain,
+              validationIssues: generated.validationIssues,
+            },
+          });
+      }
       store.assertCurrent(scope, generationId);
-      if (!isPdf)
+      if (!isPdf) {
+        if (debug) await debug.write("completed");
+        store.assertCurrent(scope, generationId);
         return {
           ok: true,
           text: JSON.stringify({ ...generated, generationId }),
         };
+      }
       if (
         !("resume" in generated) ||
         !generated.resume.trim() ||
         !("claims" in generated)
       )
-        return { ok: false, code: "INCOMPLETE_RESUME", generationId };
+        throw new ResumeConnectionError("INCOMPLETE_RESUME");
       if (generated.gaps.length || generated.conflicts.length)
-        return { ok: false, code: "UNVERIFIED_CLAIMS", generationId };
+        throw new ResumeConnectionError("UNVERIFIED_CLAIMS");
+      if (debug) await debug.write("pdf");
       const pdf = await createResumePdf({
         resume: generated.resume,
         claims: generated.claims,
         selection: generated.selection,
       });
+      if (debug) await debug.write("completed");
       store.assertCurrent(scope, generationId);
       return {
         ok: true,
@@ -436,6 +495,29 @@ export const callResumeTool = async (
 
     return { ok: false, code: "UNKNOWN_TOOL" };
   } catch (error) {
+    if (
+      debug &&
+      !(
+        error instanceof ResumeConnectionError &&
+        error.code === "DEBUG_STORAGE_FAILED"
+      )
+    ) {
+      const errorCode =
+        error instanceof ResumeConnectionError
+          ? error.code
+          : name === "convert_resume_to_pdf"
+            ? "PDF_GENERATION_FAILED"
+            : "GENERATION_FAILED";
+      try {
+        await debug.write("failed", { errorCode });
+      } catch {
+        return {
+          ok: false,
+          code: "DEBUG_STORAGE_FAILED",
+          ...(generationId ? { generationId } : {}),
+        };
+      }
+    }
     if (error instanceof ResumeConnectionError) {
       return {
         ok: false,
