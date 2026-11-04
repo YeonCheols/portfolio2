@@ -675,22 +675,34 @@ export const createResumePdf = (input: ResumePdfInput): Promise<Buffer> =>
       fontSize: number,
     ): string[] => {
       const lines: string[] = [];
-      let line = "";
-      let width = 0;
-
-      for (const character of Array.from(text)) {
-        document.font(resumeFont).fontSize(fontSize);
-        const characterWidth = document.widthOfString(character);
-        if (line !== "" && width + characterWidth > maxWidth) {
-          lines.push(line);
+      if (!text) return lines;
+      document.font(resumeFont).fontSize(fontSize);
+      for (const paragraph of text.replace(/\r\n?/g, "\n").split("\n")) {
+        let line = "";
+        let whitespace = "";
+        for (const token of paragraph.match(/\s+|\S+/gu) ?? []) {
+          if (/^\s+$/u.test(token)) {
+            whitespace += token;
+            continue;
+          }
+          const candidate = line + whitespace + token;
+          whitespace = "";
+          if (document.widthOfString(candidate) <= maxWidth) {
+            line = candidate;
+            continue;
+          }
+          if (line) lines.push(line.trimEnd());
           line = "";
-          width = 0;
+          for (const character of Array.from(token)) {
+            if (line && document.widthOfString(line + character) > maxWidth) {
+              lines.push(line);
+              line = "";
+            }
+            line += character;
+          }
         }
-        line += character;
-        width += characterWidth;
+        lines.push(line);
       }
-
-      if (line !== "") lines.push(line);
       return lines;
     };
 
