@@ -54,13 +54,25 @@ export const createSupabaseStorage = (options: {
   }
   const fetchImpl = options.fetchImpl ?? globalThis.fetch;
   const bucket = encodeURIComponent(options.bucket);
+  // 같은 경로에 이미 객체가 있어 거부됐는지 본다. 본문은 판단에만 쓰고 밖으로 내보내지 않는다
+  const isAlreadyExists = async (response: Response): Promise<boolean> => {
+    if (response.status === 409) return true;
+    try {
+      const body = (await response.json()) as { error?: unknown };
+      return body.error === "Duplicate";
+    } catch {
+      return false;
+    }
+  };
   const request = async (
     path: string,
     init: RequestInit,
     code: string,
+    existsCode?: string,
   ): Promise<Response> => {
+    let response: Response;
     try {
-      const response = await fetchImpl(`${base.origin}/storage/v1${path}`, {
+      response = await fetchImpl(`${base.origin}/storage/v1${path}`, {
         ...init,
         redirect: "error",
         signal: AbortSignal.timeout(10_000),
@@ -70,11 +82,15 @@ export const createSupabaseStorage = (options: {
           "cache-control": "no-store",
         },
       });
-      if (!response.ok) throw new StorageError(code);
-      return response;
     } catch {
       throw new StorageError(code);
     }
+    if (!response.ok) {
+      if (existsCode && (await isAlreadyExists(response)))
+        throw new StorageError(existsCode);
+      throw new StorageError(code);
+    }
+    return response;
   };
   return {
     putJson: async (path: string, value: unknown): Promise<void> => {
@@ -82,6 +98,7 @@ export const createSupabaseStorage = (options: {
         `/object/${bucket}/${objectPath(path)}`,
         { method: "POST", body: JSON.stringify(value) },
         "STORAGE_WRITE_FAILED",
+        "STORAGE_OBJECT_EXISTS",
       );
     },
     getJson: async (path: string): Promise<unknown> => {
@@ -95,6 +112,21 @@ export const createSupabaseStorage = (options: {
       } catch {
         throw new StorageError("STORAGE_READ_FAILED");
       }
+    },
+    // 원문이 공개되지 않도록 버킷이 비공개인지 확인한다. 값을 알 수 없으면 공개로 보고 거부한다
+    assertBucketPrivate: async (): Promise<void> => {
+      const response = await request(
+        `/bucket/${bucket}`,
+        { method: "GET" },
+        "STORAGE_BUCKET_CHECK_FAILED",
+      );
+      let isPublic: unknown;
+      try {
+        isPublic = ((await response.json()) as { public?: unknown }).public;
+      } catch {
+        throw new StorageError("STORAGE_BUCKET_CHECK_FAILED");
+      }
+      if (isPublic !== false) throw new StorageError("STORAGE_BUCKET_PUBLIC");
     },
     // 지웠다고 응답한 경로만 반환하므로 호출자가 요청과 비교해 일부 실패를 알아낸다
     removeObjects: async (paths: string[]): Promise<string[]> => {

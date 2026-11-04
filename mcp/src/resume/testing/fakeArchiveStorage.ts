@@ -27,7 +27,11 @@ export const createFakeArchiveStorage = (
     failures,
     putJson: async (path: string, value: unknown): Promise<void> => {
       calls.putJson += 1;
-      if (objects.has(path)) throw new Error("STORAGE_WRITE_FAILED");
+      // 실제 Storage 어댑터처럼 "이미 있음"을 다른 쓰기 오류와 구분해 알린다
+      if (objects.has(path))
+        throw Object.assign(new Error("STORAGE_OBJECT_EXISTS"), {
+          code: "STORAGE_OBJECT_EXISTS",
+        });
       put(path, value);
     },
     getJson: async (path: string): Promise<unknown> => {

@@ -190,4 +190,106 @@ describe("이력서 디버깅 아카이브 재현", () => {
     expect(list).toHaveLength(2);
     expect(list[0]).toMatchObject({ action: "validate", status: "completed" });
   });
+
+  describe("인스턴스 사이의 중복 실행 잠금", () => {
+    const lockPath = `${archiveBase}/locks/original-validate.json`;
+    const input = { source: original, action: "validate" } as const;
+    const locksOf = (storage: ReturnType<typeof createFakeArchiveStorage>) =>
+      [...storage.objects.keys()].filter((path) => path.includes("/locks/"));
+
+    it("같은 Storage를 쓰는 다른 인스턴스의 동시 요청도 하나만 실행하고 끝나면 잠금이 남지 않는다", async () => {
+      const { storage } = setup(validResponse);
+      // Cloud Run 인스턴스 둘이 같은 Storage를 쓰는 상황이다
+      const first = createResumeArchiveReproducer(storage);
+      const second = createResumeArchiveReproducer(storage);
+
+      const [a, b] = await Promise.allSettled([
+        first.reproduce(key, input),
+        second.reproduce(key, input),
+      ]);
+
+      expect([a.status, b.status].sort()).toEqual(["fulfilled", "rejected"]);
+      const rejected = (
+        a.status === "rejected" ? a : b
+      ) as PromiseRejectedResult;
+      expect(rejected.reason).toMatchObject({
+        code: "REPRODUCTION_IN_PROGRESS",
+      });
+      expect(locksOf(storage)).toEqual([]);
+      await expect(second.reproduce(key, input)).resolves.toBeDefined();
+    });
+
+    it("실패한 재현도 잠금을 풀고 존재하지 않는 대상은 잠금을 만들지 않는다", async () => {
+      const { storage, reproducer } = setup('{"claims": [끊긴');
+
+      const failed = await reproducer.reproduce(key, input);
+      expect(failed.record.status).toBe("failed");
+      expect(locksOf(storage)).toEqual([]);
+
+      await expect(
+        reproducer.reproduce({ ...key, attemptId: "att-none" }, input),
+      ).rejects.toBeInstanceOf(ArchiveNotFoundError);
+      expect(locksOf(storage)).toEqual([]);
+    });
+
+    it("방금 잡힌 잠금은 거절하고 만료됐거나 깨진 잠금은 치우고 진행한다", async () => {
+      const fresh = {
+        [lockPath]: { kind: "lock", createdAt: new Date().toISOString() },
+      };
+      const busy = setup(validResponse, fresh);
+      await expect(busy.reproducer.reproduce(key, input)).rejects.toMatchObject(
+        { code: "REPRODUCTION_IN_PROGRESS" },
+      );
+      expect(busy.storage.objects.has(lockPath)).toBe(true);
+
+      for (const stale of [
+        { kind: "lock", createdAt: "2000-01-01T00:00:00.000Z" },
+        { kind: "lock" },
+        "깨진 값",
+      ]) {
+        const { storage, reproducer } = setup(validResponse, {
+          [lockPath]: stale,
+        });
+        await expect(reproducer.reproduce(key, input)).resolves.toBeDefined();
+        expect(locksOf(storage)).toEqual([]);
+      }
+    });
+
+    it("잠금 쓰기가 이미 있음으로 거부된 뒤 읽기 전에 잠금이 풀려도 겹친 요청이므로 실행 중으로 거절한다", async () => {
+      const { storage, reproducer } = setup(validResponse);
+      const getJson = storage.getJson;
+      // 다른 인스턴스가 먼저 잠금을 잡았다가 이쪽이 읽기 전에 끝내고 푼 상황이다
+      storage.putJson = async () => {
+        throw Object.assign(new Error("STORAGE_OBJECT_EXISTS"), {
+          code: "STORAGE_OBJECT_EXISTS",
+        });
+      };
+      storage.getJson = async (path: string) => {
+        if (path.includes("/locks/")) throw new Error("STORAGE_READ_FAILED");
+        return getJson(path);
+      };
+
+      await expect(reproducer.reproduce(key, input)).rejects.toMatchObject({
+        code: "REPRODUCTION_IN_PROGRESS",
+      });
+    });
+
+    it("잠금을 쓰지 못한 원인이 저장소 오류이면 실행 중이라고 오해하지 않고 그 오류를 전한다", async () => {
+      const { storage, reproducer } = setup(validResponse);
+      const putJson = storage.putJson;
+      storage.putJson = async (path: string, value: unknown) => {
+        if (path.includes("/locks/")) throw new Error("STORAGE_WRITE_FAILED");
+        return putJson(path, value);
+      };
+
+      await expect(reproducer.reproduce(key, input)).rejects.toThrow(
+        "STORAGE_WRITE_FAILED",
+      );
+      expect(
+        [...storage.objects.keys()].some((path) =>
+          path.includes("/reproductions/"),
+        ),
+      ).toBe(false);
+    });
+  });
 });

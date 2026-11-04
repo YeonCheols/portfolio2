@@ -277,6 +277,9 @@ const bodyKey = (body: Record<string, unknown>) => ({
 // 수정본 응답은 최대 100만 자라 일반 요청보다 큰 본문을 받는다
 const maxDebugBodyBytes = 4 * 1024 * 1024;
 
+// 재현한 PDF를 응답 본문에 싣는 최대 크기. 넘으면 본문은 생략하고 크기만 기록으로 알린다
+export const maxPdfResponseBytes = 5 * 1024 * 1024;
+
 // "메서드 경로"로 찾는다. 읽기는 GET, 기록을 바꾸는 동작은 모두 POST다
 const debugRoutes: Record<string, DebugRoute> = {
   "GET archives": {
@@ -343,7 +346,11 @@ const debugRoutes: Record<string, DebugRoute> = {
           : {}) as ReproductionSource,
         action: body.action as ReproductionAction,
       });
-      return { record, ...(pdf ? { pdfBase64: pdf.toString("base64") } : {}) };
+      if (!pdf) return { record };
+      // 본문이 너무 크면 싣지 않고 생략했음을 알린다. 크기는 기록의 pdf.byteLength에 있다
+      return pdf.length > maxPdfResponseBytes
+        ? { record, pdfOmitted: true }
+        : { record, pdfBase64: pdf.toString("base64") };
     },
   },
   "POST archives/delete": {

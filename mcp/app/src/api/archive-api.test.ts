@@ -244,4 +244,24 @@ describe("archive-api", () => {
       "요청을 처리하지 못했습니다. 다시 시도해 주세요.",
     );
   });
+
+  it("서버가 PDF 본문을 생략했다고 알리면 그 사실을 결과에 담는다", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse({
+          ok: true,
+          record: { reproductionId: "rep-1" },
+          pdfOmitted: true,
+        }),
+      ),
+    );
+
+    await expect(
+      reproduceArchive(key, { source: { kind: "original" }, action: "pdf" }),
+    ).resolves.toEqual({
+      record: { reproductionId: "rep-1" },
+      pdfOmitted: true,
+    });
+  });
 });

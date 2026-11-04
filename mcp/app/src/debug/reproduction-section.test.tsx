@@ -146,4 +146,35 @@ describe("ReproductionSection", () => {
     expect(history.textContent).toContain("원본");
     expect(history.textContent).toContain("MODEL_REJECTED");
   });
+
+  it("PDF가 커서 본문이 생략되면 내려받기 링크 대신 크기와 안내를 보여준다", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse({
+          ok: true,
+          record: { ...completed, pdf: { byteLength: 6 * 1024 * 1024 } },
+          pdfOmitted: true,
+        }),
+      ),
+    );
+    const user = userEvent.setup();
+    render(
+      <ReproductionSection
+        archiveKey={archiveKey}
+        revisions={[]}
+        history={[]}
+        onRecorded={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "PDF 재현" }));
+
+    const result = await screen.findByRole("status");
+    expect(result.textContent).toContain("재현을 완료했습니다");
+    expect(result.textContent).toContain(
+      "PDF가 커서 내려받기를 제공하지 않습니다. (6144KB)",
+    );
+    expect(screen.queryByRole("link", { name: "PDF 내려받기" })).toBeNull();
+  });
 });

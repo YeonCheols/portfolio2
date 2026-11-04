@@ -94,6 +94,35 @@ export const archiveDirectory = (key: ArchiveKey): string => {
   return `debug/resume/${key.environment}/${key.subjectHash}/${key.generationId}/${key.attemptId}`;
 };
 
+// 폴더를 동시에 조회하는 최대 수. Storage 호출 제한을 넘지 않으면서 순차 조회의 지연을 줄인다
+export const archiveListConcurrency = 8;
+
+// 입력 순서를 유지하며 동시에 limit개까지만 실행한다. 하나가 실패하면 새 작업을 시작하지 않고 그 오류를 던진다
+const mapLimit = async <T, R>(
+  items: readonly T[],
+  limit: number,
+  run: (item: T) => Promise<R>,
+): Promise<R[]> => {
+  const results = new Array<R>(items.length);
+  let next = 0;
+  let failed = false;
+  const worker = async (): Promise<void> => {
+    while (!failed && next < items.length) {
+      const index = next++;
+      try {
+        results[index] = await run(items[index]);
+      } catch (error) {
+        failed = true;
+        throw error;
+      }
+    }
+  };
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, worker),
+  );
+  return results;
+};
+
 const listPageSize = 100;
 const defaultPageSize = 20;
 
@@ -204,33 +233,55 @@ export const createResumeDebugArchiveReader = (
   }): Promise<{ items: ArchiveSummary[]; hasMore: boolean }> => {
     validateQuery(query);
     const root = `debug/resume/${query.environment}`;
-    const items: ArchiveSummary[] = [];
-    for (const subject of await listAllObjects(storage, root)) {
-      if (subject.kind !== "folder") continue;
-      for (const generation of await listAllObjects(
-        storage,
-        `${root}/${subject.name}`,
-      )) {
-        if (generation.kind !== "folder") continue;
-        // 일치하지 않는 폴더는 열지 않아 필터가 Storage 호출 수를 줄인다
-        if (query.generationId && generation.name !== query.generationId)
-          continue;
-        const generationPath = `${root}/${subject.name}/${generation.name}`;
-        for (const attempt of await listAllObjects(storage, generationPath)) {
-          if (attempt.kind !== "folder") continue;
-          if (query.attemptId && attempt.name !== query.attemptId) continue;
-          const summary = summarize(
-            subject.name,
-            generation.name,
-            attempt.name,
-            await listAllObjects(storage, `${generationPath}/${attempt.name}`),
-          );
-          if (query.failedStage && summary.failedAfter !== query.failedStage)
-            continue;
-          items.push(summary);
-        }
-      }
-    }
+    const folders = (entries: StorageEntry[]) =>
+      entries.filter((entry) => entry.kind === "folder");
+    // 단계마다 폴더를 병렬로 조회한다. 일치하지 않는 폴더는 열지 않아 필터가 Storage 호출 수를 줄인다
+    const subjects = folders(await listAllObjects(storage, root));
+    const generations = (
+      await mapLimit(subjects, archiveListConcurrency, async (subject) =>
+        folders(await listAllObjects(storage, `${root}/${subject.name}`))
+          .filter(
+            (generation) =>
+              !query.generationId || generation.name === query.generationId,
+          )
+          .map((generation) => ({
+            subject: subject.name,
+            generation: generation.name,
+          })),
+      )
+    ).flat();
+    const attempts = (
+      await mapLimit(generations, archiveListConcurrency, async (entry) =>
+        folders(
+          await listAllObjects(
+            storage,
+            `${root}/${entry.subject}/${entry.generation}`,
+          ),
+        )
+          .filter(
+            (attempt) => !query.attemptId || attempt.name === query.attemptId,
+          )
+          .map((attempt) => ({ ...entry, attempt: attempt.name })),
+      )
+    ).flat();
+    const summaries = await mapLimit(
+      attempts,
+      archiveListConcurrency,
+      async (entry) =>
+        summarize(
+          entry.subject,
+          entry.generation,
+          entry.attempt,
+          await listAllObjects(
+            storage,
+            `${root}/${entry.subject}/${entry.generation}/${entry.attempt}`,
+          ),
+        ),
+    );
+    const items = summaries.filter(
+      (summary) =>
+        !query.failedStage || summary.failedAfter === query.failedStage,
+    );
     // 폴더 이름에는 시각이 없어 전체를 모은 뒤 첫 기록의 생성 시각으로 최신순을 만든다
     items.sort(
       (a, b) =>

@@ -168,7 +168,11 @@ export const listReproductions = async (
 export const reproduceArchive = async (
   key: ArchiveKey,
   input: { source: ReproductionSource; action: ReproductionAction },
-): Promise<{ record: ReproductionRecord; pdfBase64?: string }> => {
+): Promise<{
+  record: ReproductionRecord;
+  pdfBase64?: string;
+  pdfOmitted?: true;
+}> => {
   const body = await post(`${archivesUrl}/reproductions`, { ...key, ...input });
   if (!isRecord(body.record)) throw invalidShape("재현 결과");
   return {
@@ -176,6 +180,7 @@ export const reproduceArchive = async (
     ...(typeof body.pdfBase64 === "string"
       ? { pdfBase64: body.pdfBase64 }
       : {}),
+    ...(body.pdfOmitted === true ? { pdfOmitted: true as const } : {}),
   };
 };
 

@@ -223,4 +223,92 @@ describe("Supabase Storage", () => {
       storage.removeObjects(["debug/resume/a/1.json"]),
     ).rejects.toThrow("STORAGE_DELETE_FAILED");
   });
+  it("버킷이 비공개로 설정돼 있을 때만 점검을 통과하고 공개이거나 값을 알 수 없으면 거부한다", async () => {
+    const respond = (body: unknown, status = 200) =>
+      jest.fn(async () => new Response(JSON.stringify(body), { status }));
+    const storageWith = (fetchImpl: ReturnType<typeof respond>) =>
+      createSupabaseStorage({
+        url: "https://storage.example.test",
+        secretKey: "sb_secret_fake",
+        bucket: "mcp",
+        fetchImpl,
+      });
+
+    const privateFetch = respond({ id: "mcp", public: false });
+    await expect(
+      storageWith(privateFetch).assertBucketPrivate(),
+    ).resolves.toBeUndefined();
+    expect(privateFetch).toHaveBeenCalledWith(
+      "https://storage.example.test/storage/v1/bucket/mcp",
+      expect.objectContaining({ method: "GET", redirect: "error" }),
+    );
+
+    for (const body of [{ public: true }, {}, { public: "false" }]) {
+      await expect(
+        storageWith(respond(body)).assertBucketPrivate(),
+      ).rejects.toThrow("STORAGE_BUCKET_PUBLIC");
+    }
+    await expect(
+      storageWith(respond({}, 500)).assertBucketPrivate(),
+    ).rejects.toThrow("STORAGE_BUCKET_CHECK_FAILED");
+    await expect(
+      storageWith(
+        jest.fn(async () => new Response("not json")),
+      ).assertBucketPrivate(),
+    ).rejects.toThrow("STORAGE_BUCKET_CHECK_FAILED");
+  });
+  it("저장소가 공개 경로나 다른 객체를 가리키는 서명 주소를 돌려주면 발급을 거부한다", async () => {
+    for (const signedURL of [
+      "/object/public/mcp/debug/resume/run.json?token=fake",
+      "/object/sign/mcp/debug/resume/other.json?token=fake",
+      "/object/sign/mcp/debug/resume/run.json",
+    ]) {
+      const storage = createSupabaseStorage({
+        url: "https://storage.example.test",
+        secretKey: "sb_secret_fake",
+        bucket: "mcp",
+        fetchImpl: jest.fn(
+          async () => new Response(JSON.stringify({ signedURL })),
+        ),
+      });
+      await expect(
+        storage.createSignedUrl("debug/resume/run.json"),
+      ).rejects.toThrow("STORAGE_SIGN_FAILED");
+    }
+  });
+  it("같은 경로에 이미 객체가 있어 거부된 쓰기는 다른 쓰기 오류와 구분해 알린다", async () => {
+    const respond = (body: unknown, status: number) =>
+      jest.fn(async () => new Response(JSON.stringify(body), { status }));
+    const storageWith = (fetchImpl: ReturnType<typeof respond>) =>
+      createSupabaseStorage({
+        url: "https://storage.example.test",
+        secretKey: "sb_secret_fake",
+        bucket: "mcp",
+        fetchImpl,
+      });
+    const duplicate = {
+      statusCode: "409",
+      error: "Duplicate",
+      message: "The resource already exists",
+    };
+
+    // Supabase는 중복을 상태 400에 본문 error: Duplicate로 알린다
+    for (const [body, status] of [
+      [duplicate, 400],
+      [{ error: "x" }, 409],
+    ] as const) {
+      await expect(
+        storageWith(respond(body, status)).putJson("debug/resume/a.json", {}),
+      ).rejects.toThrow("STORAGE_OBJECT_EXISTS");
+    }
+    for (const [body, status] of [
+      [{ error: "Internal", message: "sb_secret_fake leak" }, 500],
+      [{ error: "Bad", message: "other" }, 400],
+    ] as const) {
+      const error = await storageWith(respond(body, status))
+        .putJson("debug/resume/a.json", {})
+        .catch((cause: Error) => cause);
+      expect((error as Error).message).toBe("STORAGE_WRITE_FAILED");
+    }
+  });
 });

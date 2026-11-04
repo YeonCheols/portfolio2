@@ -17,7 +17,11 @@ type ReproductionSectionProps = {
   onRecorded: () => void;
 };
 
-type Outcome = { record: ReproductionRecord; pdfBase64?: string };
+type Outcome = {
+  record: ReproductionRecord;
+  pdfBase64?: string;
+  pdfOmitted?: true;
+};
 
 const sourceLabel = (source: ReproductionSource): string =>
   source.kind === "original" ? "원본" : `수정본 ${source.revisionId}`;
@@ -147,6 +151,12 @@ export const ReproductionSection = ({
               문장 {record.validation.claims} · 근거 없음{" "}
               {record.validation.gaps} · 충돌 {record.validation.conflicts} ·
               확인 필요 {record.validation.uncertain}
+            </p>
+          )}
+          {outcome.pdfOmitted && (
+            <p className="mt-2 text-xs">
+              PDF가 커서 내려받기를 제공하지 않습니다. (
+              {Math.round((record.pdf?.byteLength ?? 0) / 1024)}KB)
             </p>
           )}
           {outcome.pdfBase64 && (

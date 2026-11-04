@@ -1,5 +1,8 @@
 /** @jest-environment node */
-import { createResumeDebugArchiveReader } from "@mcp/resume/output/resumeDebugArchiveReader";
+import {
+  archiveListConcurrency,
+  createResumeDebugArchiveReader,
+} from "@mcp/resume/output/resumeDebugArchiveReader";
 
 // 경로와 생성 시각 집합에서 Supabase 목록 응답과 같은 폴더·파일 구조를 만든다
 const fakeStorage = (files: Record<string, string>) => {
@@ -187,6 +190,66 @@ describe("이력서 디버깅 아카이브 목록", () => {
       "att-tie-1",
       "att-tie-2",
       "att-old",
+    ]);
+  });
+});
+
+describe("이력서 디버깅 아카이브 목록 병렬 순회", () => {
+  it("폴더를 제한된 동시 수로 병렬 조회하고 결과 순서는 최신순 그대로다", async () => {
+    // 3 사용자 × 2 생성 × 2 실행 = 12개. 시작 시각은 번호가 클수록 최신이다
+    const files: Record<string, string> = {};
+    let order = 0;
+    for (const subject of ["s1", "s2", "s3"])
+      for (const generation of ["g1", "g2"])
+        for (const attempt of ["a1", "a2"]) {
+          order += 1;
+          const stamp = `2026-11-04T00:${String(order).padStart(2, "0")}:00.000Z`;
+          files[
+            `${base}/${subject}/${generation}/${attempt}/001-started.json`
+          ] = stamp;
+        }
+    const storage = fakeStorage(files);
+    let inFlight = 0;
+    let peak = 0;
+    const original = storage.listObjects.getMockImplementation()!;
+    storage.listObjects.mockImplementation(async (prefix, page) => {
+      inFlight += 1;
+      peak = Math.max(peak, inFlight);
+      // 호출이 겹칠 수 있게 응답을 조금 늦춘다
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      try {
+        return await original(prefix, page);
+      } finally {
+        inFlight -= 1;
+      }
+    });
+    const reader = createResumeDebugArchiveReader(storage);
+
+    const { items } = await reader.list({
+      environment: "development",
+      pageSize: 100,
+    });
+
+    expect(peak).toBeGreaterThan(1);
+    expect(peak).toBeLessThanOrEqual(archiveListConcurrency);
+    expect(items).toHaveLength(12);
+    expect(
+      items.map(
+        (item) => `${item.subjectHash}/${item.generationId}/${item.attemptId}`,
+      ),
+    ).toEqual([
+      "s3/g2/a2",
+      "s3/g2/a1",
+      "s3/g1/a2",
+      "s3/g1/a1",
+      "s2/g2/a2",
+      "s2/g2/a1",
+      "s2/g1/a2",
+      "s2/g1/a1",
+      "s1/g2/a2",
+      "s1/g2/a1",
+      "s1/g1/a2",
+      "s1/g1/a1",
     ]);
   });
 });

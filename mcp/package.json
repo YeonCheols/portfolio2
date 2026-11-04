@@ -7,6 +7,8 @@
     "start": "node --env-file=.env dist/resume/http/server.js",
     "start:dev": "portfolio-config run --app portfolio-mcp --env development -- node dist/resume/http/server.js",
     "start:prod": "portfolio-config run --app portfolio-mcp --env production -- node dist/resume/http/server.js",
+    "check:storage": "portfolio-config run --app portfolio-mcp --env development -- node scripts/check-bucket-private.mjs",
+    "check:storage:prod": "portfolio-config run --app portfolio-mcp --env production -- node scripts/check-bucket-private.mjs",
     "env:pull": "portfolio-config export --app portfolio-mcp",
     "test": "vitest run --config app/vite.config.ts"
   },

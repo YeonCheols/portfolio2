@@ -5,7 +5,7 @@ import { join } from "path";
 
 import { createPortfolioAdminApi } from "@mcp/auth/adminApi";
 import { adminPagePaths } from "@mcp/auth/adminMenu";
-import { handleAdminRequest } from "@mcp/auth/adminRoutes";
+import { handleAdminRequest, maxPdfResponseBytes } from "@mcp/auth/adminRoutes";
 import type { SettingConnectionTester } from "@mcp/auth/settingConnectionTest";
 import {
   ArchiveNotFoundError,
@@ -1421,6 +1421,39 @@ describe("portfolio-api 관리자 라우트", () => {
         const busy = await post(port, "reproductions", input);
         expect(busy.status).toBe(409);
         expect(JSON.parse(busy.body).code).toBe("REPRODUCTION_IN_PROGRESS");
+      });
+    });
+
+    it("PDF가 응답 상한을 넘으면 본문은 생략하고 생략했음을 알리며 상한 이하는 그대로 싣는다", async () => {
+      const reader = makeReader();
+      const record = { reproductionId: "rep-1", status: "completed" };
+      reader.reproduce
+        .mockResolvedValueOnce({
+          record,
+          pdf: Buffer.alloc(maxPdfResponseBytes + 1),
+        })
+        .mockResolvedValueOnce({
+          record,
+          pdf: Buffer.alloc(maxPdfResponseBytes),
+        });
+      const input = {
+        ...keyBody,
+        source: { kind: "original" },
+        action: "pdf",
+      };
+      await withServer({ reader }, async (port) => {
+        const tooBig = JSON.parse(
+          (await post(port, "reproductions", input)).body,
+        );
+        expect(tooBig).toEqual({ ok: true, record, pdfOmitted: true });
+
+        const atLimit = JSON.parse(
+          (await post(port, "reproductions", input)).body,
+        );
+        expect(atLimit.pdfBase64).toHaveLength(
+          Buffer.alloc(maxPdfResponseBytes).toString("base64").length,
+        );
+        expect(atLimit).not.toHaveProperty("pdfOmitted");
       });
     });
 

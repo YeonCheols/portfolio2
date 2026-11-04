@@ -59,6 +59,9 @@ export class ArchiveBusyError extends Error {
 }
 
 const maxListed = 50;
+// 같은 재현을 한 번에 하나만 실행하게 하는 잠금이 살아 있는 최대 시간. 중단된 실행의 잠금이 영구히 남지 않게 한다
+const lockTtlMs = 120_000;
+const lockIdPattern = /^[A-Za-z0-9_-]{1,128}$/;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -86,8 +89,49 @@ const codeOf = (error: unknown, fallback: string): string =>
 export const createResumeArchiveReproducer = (storage: ArchiveWriteStorage) => {
   const reader = createResumeDebugArchiveReader(storage);
   const writer = createResumeDebugArchiveWriter(storage);
-  // 같은 실행·원본·동작의 중복 실행을 막는다. 이 프로세스 안에서만 유효하다
-  const running = new Set<string>();
+  // 같은 실행·원본·동작의 중복 실행을 Storage의 잠금 객체로 막아 인스턴스가 여럿이어도 유효하다.
+  // 같은 경로에는 다시 쓸 수 없다는 Storage의 성질을 이용하고, 오래된 잠금은 치운다
+  const acquireLock = async (path: string): Promise<void> => {
+    const lock = {
+      schemaVersion: 1,
+      kind: "lock",
+      createdAt: new Date().toISOString(),
+    };
+    try {
+      await storage.putJson(path, lock);
+      return;
+    } catch (writeError) {
+      // 이미 있음이 아니라 저장소 오류이면 잠겨 있는 것이 아니므로 그 오류를 그대로 전한다
+      if ((writeError as { code?: unknown }).code !== "STORAGE_OBJECT_EXISTS")
+        throw writeError;
+    }
+    // 다른 요청이 잠금을 잡았다. 읽기 전에 그 요청이 끝나 잠금이 풀렸어도 이쪽과 겹친 요청이므로 실행 중으로 본다
+    let existing: unknown;
+    try {
+      existing = await storage.getJson(path);
+    } catch {
+      throw new ArchiveBusyError();
+    }
+    const createdAt = isRecord(existing)
+      ? Date.parse(String(existing.createdAt))
+      : Number.NaN;
+    if (Number.isFinite(createdAt) && Date.now() - createdAt < lockTtlMs)
+      throw new ArchiveBusyError();
+    // 만료됐거나 깨진 잠금은 치우고 한 번만 다시 잡는다. 그사이 다른 인스턴스가 잡았으면 실행 중이다
+    await storage.removeObjects([path]);
+    try {
+      await storage.putJson(path, lock);
+    } catch {
+      throw new ArchiveBusyError();
+    }
+  };
+  const releaseLock = async (path: string): Promise<void> => {
+    try {
+      await storage.removeObjects([path]);
+    } catch {
+      // 풀지 못해도 재현 결과는 이미 정해졌다. 잠금은 만료 시간이 지나면 다음 요청이 치운다
+    }
+  };
 
   const run = async (
     selection: unknown,
@@ -156,22 +200,22 @@ export const createResumeArchiveReproducer = (storage: ArchiveWriteStorage) => {
         (source.kind !== "original" && source.kind !== "revision")
       )
         throw new ArchiveQueryError();
-      const lockKey = [
-        directory,
-        source.kind === "revision" ? source.revisionId : "original",
-        action,
-      ].join("|");
-      if (running.has(lockKey)) throw new ArchiveBusyError();
-      running.add(lockKey);
+      if (source.kind === "revision" && !lockIdPattern.test(source.revisionId))
+        throw new ArchiveQueryError();
+      const detail = await reader.get(key);
+      const latest = isRecord(detail.latest) ? detail.latest : {};
+      const snapshot = isRecord(latest.snapshot) ? latest.snapshot : {};
+      let response: unknown = latest.response;
+      if (source.kind === "revision") {
+        const revision = await writer.getRevision(key, source.revisionId);
+        response = isRecord(revision) ? revision.response : undefined;
+      }
+      // 대상이 있는 것을 확인한 뒤에만 잠그므로 없는 실행에 잠금 객체가 생기지 않는다
+      const lockPath = `${directory}/locks/${
+        source.kind === "revision" ? source.revisionId : "original"
+      }-${action}.json`;
+      await acquireLock(lockPath);
       try {
-        const detail = await reader.get(key);
-        const latest = isRecord(detail.latest) ? detail.latest : {};
-        const snapshot = isRecord(latest.snapshot) ? latest.snapshot : {};
-        let response: unknown = latest.response;
-        if (source.kind === "revision") {
-          const revision = await writer.getRevision(key, source.revisionId);
-          response = isRecord(revision) ? revision.response : undefined;
-        }
         const { outcome, pdf } = await run(
           snapshot.selection,
           response,
@@ -196,7 +240,7 @@ export const createResumeArchiveReproducer = (storage: ArchiveWriteStorage) => {
         );
         return { record, ...(pdf ? { pdf } : {}) };
       } finally {
-        running.delete(lockKey);
+        await releaseLock(lockPath);
       }
     },
     listReproductions: async (
