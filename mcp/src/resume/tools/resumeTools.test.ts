@@ -1,12 +1,12 @@
 /** @jest-environment node */
 
-import { ResumeConnectionError } from "@mcp/resume/connection/resumeConnection";
-import { connectedResume, resumeNode } from "@mcp/resume/testing/resumeFixture";
 import { resumeClaimVerifierPersona } from "@mcp/resume/output/runResumeHarness";
+import { connectedResume, resumeNode } from "@mcp/resume/testing/resumeFixture";
 import {
   callResumeTool,
   type ResumeConnection,
 } from "@mcp/resume/tools/resumeTools";
+import { ResumeConnectionError } from "@mcp/resume/connection/shared/connection";
 
 const connection: ResumeConnection = {
   load: async (input) => {

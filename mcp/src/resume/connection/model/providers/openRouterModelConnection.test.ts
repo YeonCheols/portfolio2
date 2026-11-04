@@ -1,8 +1,8 @@
 import {
   fetchOpenRouterModelResult,
   fetchOpenRouterModelText,
-} from "@mcp/resume/connection/openRouterModelConnection";
-import { ResumeConnectionError } from "@mcp/resume/connection/resumeConnection";
+} from "@mcp/resume/connection/model/providers/openRouterModelConnection";
+import { ResumeConnectionError } from "@mcp/resume/connection/shared/connection";
 
 describe("fetchOpenRouterModelText", () => {
   it("구조화 응답 형식을 OpenRouter 요청 본문에 전달한다", async () => {

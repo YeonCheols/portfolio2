@@ -1,15 +1,15 @@
+import type { ResumeModelCall } from "@mcp/resume/connection/model/resumeModelConnection";
 import {
   ResumeConnectionError,
   type ResumeConnectionOptions,
-} from "@mcp/resume/connection/resumeConnection";
-import type { ResumeModelCall } from "@mcp/resume/connection/resumeModelConnection";
+} from "@mcp/resume/connection/shared/connection";
 
-export type OpenRouterModelOptions = ResumeConnectionOptions & {
+export type ChatCompletionModelOptions = ResumeConnectionOptions & {
   model?: string;
 };
 
 // 연결 테스트가 공급자 응답 원문을 보여줄 수 있도록 문장과 원문을 함께 돌려준다
-export type OpenRouterModelResult = { text: string; raw: unknown };
+export type ChatCompletionModelResult = { text: string; raw: unknown };
 
 // 상태 코드로 원인을 나눠, 키 문제와 공급자 쪽 문제를 사용자가 구분하게 한다. 공급자의 오류 본문은 읽지 않는다
 const failureCode = (status: number | undefined): string => {
@@ -20,10 +20,11 @@ const failureCode = (status: number | undefined): string => {
   return "MODEL_REJECTED";
 };
 
-export const fetchOpenRouterModelResult = async (
+export const fetchChatCompletionModelResult = async (
   input: ResumeModelCall,
-  options: OpenRouterModelOptions,
-): Promise<OpenRouterModelResult> => {
+  options: ChatCompletionModelOptions,
+  structuredParameters: Record<string, unknown> = {},
+): Promise<ChatCompletionModelResult> => {
   const model = (options.model ?? "").trim();
   if (
     options.url.trim() === "" ||
@@ -44,7 +45,7 @@ export const fetchOpenRouterModelResult = async (
       model,
       ...(input.responseFormat
         ? {
-            provider: { require_parameters: true },
+            ...structuredParameters,
             response_format: input.responseFormat,
           }
         : {}),
@@ -57,24 +58,23 @@ export const fetchOpenRouterModelResult = async (
   if (response.ok !== true) {
     throw new ResumeConnectionError(failureCode(response.status));
   }
-  let payload: { choices?: { message?: { content?: unknown } }[] };
+  let payload: unknown;
   try {
-    payload = (await response.json()) as {
-      choices?: { message?: { content?: unknown } }[];
-    };
-  } catch (error) {
-    if (error instanceof ResumeConnectionError) throw error;
+    payload = await response.json();
+  } catch {
     throw new ResumeConnectionError("MODEL_REJECTED");
   }
-  const content = payload.choices?.[0]?.message?.content;
+  const isRecord = (value: unknown): value is Record<string, unknown> =>
+    typeof value === "object" && value !== null;
+  const firstChoice =
+    isRecord(payload) && Array.isArray(payload.choices)
+      ? payload.choices[0]
+      : undefined;
+  const message = isRecord(firstChoice) ? firstChoice.message : undefined;
+  const content = isRecord(message) ? message.content : undefined;
   if (typeof content !== "string" || content.trim() === "") {
     throw new ResumeConnectionError("MODEL_REJECTED");
   }
 
   return { text: content, raw: payload };
 };
-
-export const fetchOpenRouterModelText = async (
-  input: ResumeModelCall,
-  options: OpenRouterModelOptions,
-): Promise<string> => (await fetchOpenRouterModelResult(input, options)).text;

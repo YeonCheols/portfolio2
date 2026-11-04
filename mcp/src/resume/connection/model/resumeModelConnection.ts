@@ -2,7 +2,7 @@ import {
   ResumeConnectionError,
   postResumeConnection,
   type ResumeConnectionOptions,
-} from "@mcp/resume/connection/resumeConnection";
+} from "@mcp/resume/connection/shared/connection";
 
 export type ResumeModelCall = {
   persona: string;

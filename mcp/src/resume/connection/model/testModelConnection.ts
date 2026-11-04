@@ -1,21 +1,21 @@
 import type {
-  OpenRouterModelOptions,
-  OpenRouterModelResult,
-} from "@mcp/resume/connection/openRouterModelConnection";
-import {
-  ResumeConnectionError,
-  type ResumeConnectionFetch,
-} from "@mcp/resume/connection/resumeConnection";
+  ChatCompletionModelOptions,
+  ChatCompletionModelResult,
+} from "@mcp/resume/connection/model/chatCompletionModelConnection";
 import type {
   ResumeJsonSchemaResponseFormat,
   ResumeModelCall,
-} from "@mcp/resume/connection/resumeModelConnection";
-import type { ResumeModelSetting } from "@mcp/resume/connection/resumeModelSetting";
+} from "@mcp/resume/connection/model/resumeModelConnection";
+import type { ResumeModelSetting } from "@mcp/resume/connection/model/resumeModelSetting";
+import {
+  ResumeConnectionError,
+  type ResumeConnectionFetch,
+} from "@mcp/resume/connection/shared/connection";
 
 export type ModelConnect = (
   input: ResumeModelCall,
-  options: OpenRouterModelOptions,
-) => Promise<OpenRouterModelResult>;
+  options: ChatCompletionModelOptions,
+) => Promise<ChatCompletionModelResult>;
 
 export type StructuredCheck =
   | { ok: true; latencyMs: number; response: unknown }
@@ -58,7 +58,7 @@ const structuredResponseFormat: ResumeJsonSchemaResponseFormat = {
 };
 
 type CallOutcome =
-  | { ok: true; result: OpenRouterModelResult; latencyMs: number }
+  | { ok: true; result: ChatCompletionModelResult; latencyMs: number }
   | { ok: false; code: string };
 
 export const testModelConnection = async (

@@ -1,11 +1,12 @@
 import {
-  ResumeConnectionError,
-  type ResumeConnectionFetch,
-} from "@mcp/resume/connection/resumeConnection";
-import {
   testModelConnection,
   type ModelConnect,
-} from "@mcp/resume/connection/testModelConnection";
+} from "@mcp/resume/connection/model/testModelConnection";
+import { modelTestConnections } from "@mcp/resume/http/server";
+import {
+  ResumeConnectionError,
+  type ResumeConnectionFetch,
+} from "@mcp/resume/connection/shared/connection";
 
 const setting = {
   provider: "openrouter",
@@ -20,6 +21,34 @@ const reply = (text: string, raw: unknown = { id: "gen-1" }) => ({
 });
 
 describe("testModelConnection", () => {
+  it("신규 공급자도 공통 연결 테스트에서 일반·구조화 호출과 키 가림을 재사용한다", async () => {
+    for (const provider of ["openai", "gemini"]) {
+      const fetchImpl = jest.fn(async (_url: string, _init: RequestInit) => ({
+        ok: true,
+        json: async () => ({
+          echo: setting.apiKey,
+          choices: [{ message: { content: '{"status":"ok"}' } }],
+        }),
+      }));
+      const result = await testModelConnection(
+        { ...setting, provider },
+        { connections: modelTestConnections, fetchImpl },
+      );
+      expect(result).toMatchObject({
+        ok: true,
+        structured: { ok: true },
+        response: { echo: "[REDACTED]" },
+      });
+      expect(fetchImpl).toHaveBeenCalledTimes(2);
+      expect(
+        JSON.parse(String(fetchImpl.mock.calls[0][1].body)).response_format,
+      ).toBeUndefined();
+      expect(
+        JSON.parse(String(fetchImpl.mock.calls[1][1].body)).response_format,
+      ).toMatchObject({ type: "json_schema" });
+      expect(JSON.stringify(result)).not.toContain(setting.apiKey);
+    }
+  });
   it("선택한 설정의 모델로 고정 최소 프롬프트를 보내고 성공과 소요 시간과 공급자 응답 원문을 반환한다", async () => {
     const raw = { id: "gen-1", choices: [{ message: { content: "ok" } }] };
     const connect = jest.fn<ReturnType<ModelConnect>, Parameters<ModelConnect>>(

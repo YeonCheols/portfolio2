@@ -1,16 +1,9 @@
-import type { ResumeModel } from "@mcp/resume/model/resumeModel";
-
 export class ResumeConnectionError extends Error {
   constructor(public readonly code: string) {
     super(code);
     this.name = "ResumeConnectionError";
   }
 }
-
-export type ResumeConnectionInput = {
-  source: "repository" | "embedded" | "file";
-  xml?: string;
-};
 
 export type ResumeConnectionFetch = (
   url: string,
@@ -47,16 +40,4 @@ export const postResumeConnection = async <T extends Record<string, unknown>>(
   if (!payload.ok) throw new ResumeConnectionError(payload.code);
 
   return payload;
-};
-
-export const fetchResumeModel = async (
-  input: ResumeConnectionInput,
-  options: ResumeConnectionOptions,
-): Promise<ResumeModel> => {
-  const payload = await postResumeConnection<{ model: ResumeModel }>(options, {
-    source: input.source,
-    xml: input.xml,
-  });
-
-  return payload.model;
 };

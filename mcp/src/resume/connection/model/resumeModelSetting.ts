@@ -1,7 +1,7 @@
 import {
   ResumeConnectionError,
   type ResumeConnectionFetch,
-} from "@mcp/resume/connection/resumeConnection";
+} from "@mcp/resume/connection/shared/connection";
 
 export type ResumeModelSetting = {
   provider: string;

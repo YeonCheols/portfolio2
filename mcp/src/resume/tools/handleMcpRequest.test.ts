@@ -1,9 +1,9 @@
 /** @jest-environment node */
 
-import { ResumeConnectionError } from "@mcp/resume/connection/resumeConnection";
 import { connectedResume } from "@mcp/resume/testing/resumeFixture";
 import { handleMcpRequest } from "@mcp/resume/tools/handleMcpRequest";
 import type { ResumeConnection } from "@mcp/resume/tools/resumeTools";
+import { ResumeConnectionError } from "@mcp/resume/connection/shared/connection";
 
 const connection: ResumeConnection = {
   load: async (input) => {
