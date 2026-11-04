@@ -14,6 +14,26 @@ const environment = () => ({
 });
 
 describe("readMcpRuntimeConfig", () => {
+  it("Supabase 연결 세 값이 있으면 MCP 공통 Storage를 준비하고 부분 설정은 거부한다", () => {
+    const storage = {
+      SUPABASE_URL: "https://storage.example.test",
+      SUPABASE_SECRET_KEY: "sb_secret_fake",
+      MCP_STORAGE_BUCKET: "mcp",
+    };
+    expect(
+      readMcpRuntimeConfig({ ...environment(), ...storage }).storage,
+    ).toEqual({
+      url: storage.SUPABASE_URL,
+      secretKey: storage.SUPABASE_SECRET_KEY,
+      bucket: "mcp",
+    });
+    expect(readMcpRuntimeConfig(environment()).storage).toBeUndefined();
+    for (const key of Object.keys(storage)) {
+      const partial: Record<string, string> = { ...environment(), ...storage };
+      delete partial[key];
+      expect(() => readMcpRuntimeConfig(partial)).toThrow(key);
+    }
+  });
   it("정적 연결 정보만 준비하고 모델 이름과 모델 키는 설정에 포함하지 않는다", () => {
     const config = readMcpRuntimeConfig({
       ...environment(),

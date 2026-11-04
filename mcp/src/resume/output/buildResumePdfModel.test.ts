@@ -30,6 +30,194 @@ const node = (
 });
 
 describe("buildResumePdfModel", () => {
+  it("구조화 출력에 없는 프로젝트 URL의 재작성 문장은 누락시키지 않는다", () => {
+    const project = node(
+      "projects",
+      "project",
+      "",
+      [
+        node("projects", "title", "검색"),
+        node("projects", "link", "https://example.com"),
+      ],
+      { id: "project" },
+    );
+    const model = buildResumePdfModel({
+      resume: "",
+      selection: [project],
+      claims: [
+        {
+          text: "사이트: https://example.com",
+          sourceIds: ["project"],
+          sources: [project],
+          formItem: "link",
+          evidence: [{ sourceId: "project", quote: "https://example.com" }],
+        },
+      ],
+    });
+    expect(model.unassignedProjects[0]?.narratives).toEqual([
+      "사이트: https://example.com",
+    ]);
+  });
+  it("부분 인용으로는 전체 설명을 대체하지 않고 같은 내용을 덧붙이지 않는다", () => {
+    const project = node(
+      "projects",
+      "project",
+      "",
+      [
+        node("projects", "title", "검색"),
+        node("projects", "technicalStructure", "계층 분리와 캐시 동기화"),
+      ],
+      { id: "project" },
+    );
+    const model = buildResumePdfModel({
+      resume: "",
+      selection: [project],
+      claims: [
+        {
+          text: "계층을 분리했습니다",
+          sourceIds: ["project"],
+          sources: [project],
+          formItem: "technicalStructure",
+          evidence: [{ sourceId: "project", quote: "계층 분리" }],
+        },
+      ],
+    });
+    expect(model.unassignedProjects[0]?.details).toEqual([
+      { label: "기술적 구조", value: "계층 분리와 캐시 동기화" },
+    ]);
+    expect(model.unassignedProjects[0]?.narratives).toEqual([]);
+  });
+  it("활동 설명은 한 번만 재작성하고 학력과 포트폴리오의 구조화 정보를 문장으로 반복하지 않는다", () => {
+    const activity = node(
+      "activities",
+      "activity",
+      "",
+      [
+        node("activities", "organization", "연구 모임"),
+        node("activities", "text", "코드 리뷰 진행"),
+      ],
+      { id: "activity" },
+    );
+    const education = node(
+      "educationHistory",
+      "education",
+      "",
+      [
+        node("educationHistory", "institution", "예시대학"),
+        node("educationHistory", "completion", "졸업"),
+      ],
+      { id: "education" },
+    );
+    const portfolio = node(
+      "portfolioReferences",
+      "portfolioReference",
+      "",
+      [node("portfolioReferences", "value", "https://example.com")],
+      { id: "portfolio" },
+    );
+    const model = buildResumePdfModel({
+      resume: "",
+      selection: [activity, education, portfolio],
+      claims: [
+        {
+          text: "코드 리뷰를 진행했습니다",
+          sourceIds: ["activity"],
+          sources: [activity],
+          formItem: "text",
+          evidence: [{ sourceId: "activity", quote: "코드 리뷰 진행" }],
+        },
+        {
+          text: "예시대학을 졸업했습니다",
+          sourceIds: ["education"],
+          sources: [education],
+          evidence: [{ sourceId: "education", quote: "예시대학\n졸업" }],
+        },
+        {
+          text: "포트폴리오: https://example.com",
+          sourceIds: ["portfolio"],
+          sources: [portfolio],
+          evidence: [{ sourceId: "portfolio", quote: "https://example.com" }],
+        },
+      ],
+    });
+    expect(model.activities[0]?.narratives).toEqual([
+      "코드 리뷰를 진행했습니다",
+    ]);
+    expect(model.education[0]?.details).toEqual([
+      { label: "졸업 구분", value: "졸업" },
+    ]);
+    expect(model.education[0]?.narratives).toEqual([]);
+    expect(model.portfolio[0]?.title).toBe("https://example.com");
+    expect(model.portfolio[0]?.narratives).toEqual([]);
+  });
+  it("프로젝트 기술 구조 재작성은 해당 항목만 대체하고 역할을 보존한다", () => {
+    const project = node(
+      "projects",
+      "project",
+      "",
+      [
+        node("projects", "title", "검색"),
+        node("projects", "role", "프론트엔드 개발"),
+        node("projects", "technicalStructure", "기능별 계층 분리"),
+      ],
+      { id: "project" },
+    );
+    const model = buildResumePdfModel({
+      resume: "",
+      selection: [project],
+      claims: [
+        {
+          text: "기능별로 계층을 분리했습니다",
+          sourceIds: ["project"],
+          sources: [project],
+          formItem: "technicalStructure",
+          evidence: [{ sourceId: "project", quote: "기능별 계층 분리" }],
+        },
+      ],
+    });
+    expect(model.unassignedProjects[0]?.details).toEqual([
+      { label: "역할", value: "프론트엔드 개발" },
+      { label: "기술적 구조", value: "기능별로 계층을 분리했습니다" },
+    ]);
+    expect(model.unassignedProjects[0]?.narratives).toEqual([]);
+  });
+  it("업무 전체 원문을 인용한 재작성은 원문을 대체하고 미대응 설명은 보존한다", () => {
+    const work = node(
+      "workItems",
+      "workItem",
+      "",
+      [
+        node("workItems", "title", "검색 개선"),
+        node("workItems", "text", "검색과 필터 구현"),
+        node("workItems", "text", "키보드 접근성 개선"),
+      ],
+      { id: "work", projectRef: "project" },
+    );
+    const model = buildResumePdfModel({
+      resume: "",
+      selection: [
+        node("projects", "project", "", [node("projects", "title", "검색")], {
+          id: "project",
+        }),
+        work,
+      ],
+      claims: [
+        {
+          text: "검색과 필터를 구현했습니다",
+          sourceIds: ["work"],
+          sources: [work],
+          formItem: "text",
+          evidence: [{ sourceId: "work", quote: "검색과 필터 구현" }],
+        },
+      ],
+    });
+    const item = model.unassignedProjects[0]?.workItems[0];
+    expect(item?.descriptions).toEqual([
+      "검색과 필터를 구현했습니다",
+      "키보드 접근성 개선",
+    ]);
+    expect(item?.narratives).toEqual([]);
+  });
   it("선택 원문을 프로필·기술·회사별 프로젝트·병역의 구조화 데이터로 만든다", () => {
     const model = buildResumePdfModel({
       resume: "프로필\n테스트 개발자",

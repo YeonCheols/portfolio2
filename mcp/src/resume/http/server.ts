@@ -1,4 +1,5 @@
 import { createPortfolioAdminApi } from "@mcp/auth/adminApi";
+import { createSupabaseStorage } from "@mcp/storage/supabaseStorage";
 import { createPortfolioAdminOAuth } from "@mcp/auth/adminOAuth";
 import { createSettingConnectionTester } from "@mcp/auth/settingConnectionTest";
 import {
@@ -117,6 +118,7 @@ export const startResumeMcpServer = () => {
   return createResumeMcpServer({
     introspect,
     environment: config.modelSetting.environment,
+    storage: config.storage ? createSupabaseStorage(config.storage) : undefined,
     log: (message) => console.log(message),
     protectedResourceMetadata: {
       resource: publicUrl,

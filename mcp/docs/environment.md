@@ -5,7 +5,7 @@ MCP 프로젝트에는 원본 값을 복제해 커밋하지 않고 CLI로 필요
 
 ## 준비
 
-- `portfolio-config` 0.2.0 이상과 GitHub CLI(`gh`)가 설치되어 있어야 합니다.
+- `portfolio-config` 0.2.1 이상과 GitHub CLI(`gh`)가 설치되어 있어야 합니다.
 - 실행 폴더에서 `portfolio-config --version`으로 PATH 등록을 확인합니다.
 - 이 저장소의 `git gh` 인증에 portfolio-config 저장소 읽기 권한이 필요합니다. 별칭이 없는 독립 프로젝트는 일반 `gh` 인증을 사용합니다.
 - 중앙 파일의 `__REQUIRED_*__` 항목은 실제 값으로 채워야 합니다. 미입력 상태에서는 파일 저장을 거부합니다.
@@ -110,7 +110,31 @@ portfolio-api의 migration과 새 API 배포를 먼저 준비한 뒤 MCP를 배�
 
 원문 수신 전 재실행은 `GENERATION_NOT_READY`, 알 수 없거나 이전·다른 소유자·다른 환경의 ID는 `GENERATION_NOT_FOUND`입니다. 새 생성 이후 이전 작업이 늦게 끝나도 결과를 다시 저장하거나 PDF를 반환하지 않습니다. 파싱 실패 원문도 그대로 남으므로 잘못된 JSON은 같은 ID로 재실행해도 동일하게 실패하며, 재작성하려면 명시적인 새 생성을 요청해야 합니다.
 
-저장소는 Cloud Run의 Node 프로세스 메모리이며 같은 서버 인스턴스에서만 재실행할 수 있습니다. 프로세스 재시작·리비전 교체·인스턴스 종료 시 소실되고 다른 인스턴스와 공유되지 않습니다. 다중 인스턴스 라우팅으로 결과가 없어도 자동 유료 호출은 하지 않습니다. 영속 저장소나 인스턴스 간 공유, 시간 기반 만료는 이번 구현에 포함하지 않습니다.
+도구의 `generationId` 재실행 저장소는 Cloud Run의 Node 프로세스 메모리이며 같은 서버 인스턴스에서만 재실행할 수 있습니다. 프로세스 재시작·리비전 교체·인스턴스 종료 시 소실되고 다른 인스턴스와 공유되지 않습니다. 다중 인스턴스 라우팅으로 결과가 없어도 자동 유료 호출은 하지 않습니다. 아래 Storage 디버깅 기록은 이 실행 메모리를 복구하거나 대체하지 않습니다.
+
+## MCP 공통 Storage와 이력서 디버깅 기록
+
+중앙 MCP 설정의 `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `MCP_STORAGE_BUCKET`을 시작 시 읽습니다. 세 값이 모두 없으면 기존 메모리 실행을 유지하고, 일부만 있으면 시작을 거부합니다. 연결은 HTTPS 프로젝트 origin과 비공개 버킷을 사용하며 서버용 키는 브라우저에 전달하거나 로그에 출력하지 않습니다. `mcp` 버킷은 미리 생성해야 하며 런타임이 버킷을 자동 생성하거나 공개로 변경하지 않습니다.
+
+`src/storage/supabaseStorage.ts`는 MCP 공통 JSON 업로드·재조회·5분 만료 서명 URL 발급을 소유합니다. 환경 변수에는 버킷 이름만 두고 이력서의 하위 경로는 `src/resume/output/resumeDebugArchive.ts`가 지정합니다.
+
+```text
+mcp/
+  debug/resume/{environment}/{subjectHash}/{generationId}/{attemptId}/
+    001-started.json
+    002-source.json
+    ...
+```
+
+`mcp`는 버킷 이름이며 실제 객체 키는 `debug/resume/`에서 시작합니다. 인증 서버의 `sub`는 SHA-256 해시로 경로를 나누고, 새 생성·재검증·PDF 변환마다 독립된 attempt ID를 사용합니다. 각 단계는 새 객체로 저장하며 기존 기록을 덮어쓰지 않습니다.
+
+기록은 버전·시각·동작·단계와 그때까지 확보한 소스/양식 스냅샷, 모델 요청, 파싱 전 응답 문자열, 검증 결과를 포함합니다. 실패 기록에는 오류 코드와 마지막으로 보관한 단계(`failedAfter`)를 담고 공급자 예외 메시지·HTTP 헤더·서버 키·OAuth 토큰은 담지 않습니다. 선택 원문 자체는 개인정보를 포함할 수 있으므로 공개 버킷이나 공개 URL로 제공하지 않습니다.
+
+모델 응답은 메모리에 먼저 보존하고 Storage 저장 완료를 기다린 뒤 파싱합니다. 새 생성으로 메모리의 이전 결과가 교체되더라도 늦게 도착한 응답은 이전 실행의 디버깅 경로에 남기며, 현재 생성 메모리를 되살리지 않습니다. 파싱·출처 검증·PDF 실패도 확보한 원문과 함께 기록합니다.
+
+Storage가 설정된 상태에서 저장이 실패하면 `DEBUG_STORAGE_FAILED`로 표시하고 저장 성공으로 간주하거나 모델을 자동 재호출하지 않습니다. 응답을 받은 뒤 저장에 실패한 경우 메모리의 원문은 유지합니다. 보관용 HTTP 요청은 10초 제한이며 임의 재시도나 다른 저장소로의 fallback은 없습니다.
+
+DB 실행 목록·관리 화면 연결·Storage 기록으로부터의 재실행 UI는 이 파이프라인과 별도 후속 작업입니다. 관리자 화면에서 원문을 조회할 때에는 인증을 확인한 뒤 서명 URL을 발급해야 하며 서버용 키를 직접 전달하지 않습니다. 기록 정리·자동 삭제·보관 기간 작업은 이번 범위에 포함하지 않습니다.
 
 ## AI 공급자 연결
 
@@ -130,7 +154,7 @@ OpenAI는 [Chat Completions](https://developers.openai.com/api/reference/resourc
 
 ## 컨테이너 시작과 운영 배포
 
-이미지에는 체크섬을 확인한 Linux musl CLI 0.2.0과 gh만 포함합니다. 앱 설정 파일과 GitHub 인증은 이미지에 넣지 않습니다.
+이미지에는 체크섬을 확인한 Linux musl CLI 0.2.1과 gh만 포함합니다. 앱 설정 파일과 GitHub 인증은 이미지에 넣지 않습니다.
 `start-with-config.sh`가 컨테이너 시작 시 `portfolio-config run`으로 정적 환경을 가져온 뒤 기본 CMD의 Node 서버를 실행합니다.
 
 - `PORTFOLIO_CONFIG_ENVIRONMENT`: 기본값은 production이며 development도 선택할 수 있습니다.

@@ -47,9 +47,9 @@ jobs:
             --out-file="$RUNNER_TEMP/portfolio-config-read-token"
           GH_TOKEN="$(cat "$RUNNER_TEMP/portfolio-config-read-token")"
           export GH_TOKEN
-          gh api repos/YeonCheols/portfolio-config/contents/scripts/install.sh?ref=cli-v0.2.0 \
+          gh api repos/YeonCheols/portfolio-config/contents/scripts/install.sh?ref=cli-v0.2.1 \
             --header 'Accept: application/vnd.github.raw+json' > "$RUNNER_TEMP/install-portfolio-config.sh"
-          bash "$RUNNER_TEMP/install-portfolio-config.sh" cli-v0.2.0 "$RUNNER_TEMP/portfolio-config-bin"
+          bash "$RUNNER_TEMP/install-portfolio-config.sh" cli-v0.2.1 "$RUNNER_TEMP/portfolio-config-bin"
 
       - name: Artifact Registry 로그인
         run: gcloud auth configure-docker "${{ vars.GCP_REGION }}-docker.pkg.dev" --quiet

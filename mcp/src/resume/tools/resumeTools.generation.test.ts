@@ -30,6 +30,211 @@ const context = () => ({
 
 describe("이력서 생성 원본 수명주기", () => {
   beforeEach(() => jest.clearAllMocks());
+  it("PDF 실패 기록은 원문을 유지하고 예외 메시지 대신 안전한 코드만 보관한다", async () => {
+    const storage = {
+      putJson: jest.fn(async (_path: string, _record: unknown) => {}),
+    };
+    const generation = { ...context(), storage };
+    const model = { generate: jest.fn(async () => raw) };
+    const connection = { load: jest.fn(async () => connectedResume()) };
+    const first = await callResumeTool(
+      "generate_resume",
+      args,
+      connection,
+      model,
+      generation,
+    );
+    if (!first.ok) throw new Error(first.code);
+    const { generationId } = JSON.parse(first.text);
+    jest
+      .mocked(createResumePdf)
+      .mockRejectedValueOnce(new Error("private-provider-exception"));
+    expect(
+      await callResumeTool(
+        "convert_resume_to_pdf",
+        { generationId },
+        connection,
+        model,
+        generation,
+      ),
+    ).toEqual({ ok: false, code: "PDF_GENERATION_FAILED", generationId });
+    expect(storage.putJson).toHaveBeenLastCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        stage: "failed",
+        operation: "convert_resume_to_pdf",
+        response: raw,
+        errorCode: "PDF_GENERATION_FAILED",
+      }),
+    );
+    expect(JSON.stringify(storage.putJson.mock.calls)).not.toContain(
+      "private-provider-exception",
+    );
+    expect(model.generate).toHaveBeenCalledTimes(1);
+    expect(connection.load).toHaveBeenCalledTimes(1);
+  });
+  it("새 요청 후 도착한 이전 모델 응답도 별도 기록으로 남기고 현재 생성은 복원하지 않는다", async () => {
+    const storage = {
+      putJson: jest.fn(async (_path: string, _record: unknown) => {}),
+    };
+    const generation = { ...context(), storage };
+    let finish: (value: string) => void = () => {
+      throw new Error("model not started");
+    };
+    let started: () => void = () => {};
+    const ready = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    const model = {
+      generate: jest.fn(() => {
+        started();
+        return new Promise<string>((resolve) => {
+          finish = resolve;
+        });
+      }),
+    };
+    const connection = { load: async () => connectedResume() };
+    const first = callResumeTool(
+      "generate_resume",
+      args,
+      connection,
+      model,
+      generation,
+    );
+    await ready;
+    const second = await callResumeTool(
+      "generate_resume",
+      args,
+      connection,
+      { generate: async () => raw },
+      generation,
+    );
+    if (!second.ok) throw new Error(second.code);
+    const latest = JSON.parse(second.text).generationId;
+    finish(raw);
+    expect(await first).toMatchObject({
+      ok: false,
+      code: "GENERATION_NOT_FOUND",
+    });
+    expect(storage.putJson).toHaveBeenLastCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        stage: "failed",
+        response: raw,
+        errorCode: "GENERATION_NOT_FOUND",
+      }),
+    );
+    expect(generation.store.read(generation.scope, latest).response).toBe(raw);
+  });
+  it("응답 보관 중 Storage가 실패하면 오류를 표시하고 모델 응답은 메모리에 유지한다", async () => {
+    const storage = {
+      putJson: jest.fn(async (_path: string, record: unknown) => {
+        if ((record as { stage: string }).stage === "model_response")
+          throw new Error("storage unavailable");
+      }),
+    };
+    const generation = { ...context(), storage };
+    const model = { generate: jest.fn(async () => raw) };
+    const result = await callResumeTool(
+      "generate_resume",
+      args,
+      { load: async () => connectedResume() },
+      model,
+      generation,
+    );
+    expect(result).toMatchObject({ ok: false, code: "DEBUG_STORAGE_FAILED" });
+    if (result.ok || !result.generationId)
+      throw new Error("generation ID missing");
+    expect(
+      generation.store.read(generation.scope, result.generationId).response,
+    ).toBe(raw);
+    expect(model.generate).toHaveBeenCalledTimes(1);
+  });
+  it("파싱 실패 응답과 입력 스냅샷을 Storage에 보관하고 다음 요청이 이전 기록을 덮어쓰지 않는다", async () => {
+    const storage = {
+      putJson: jest.fn(async (_path: string, _record: unknown) => {}),
+    };
+    const generation = { ...context(), storage };
+    const model = { generate: jest.fn(async () => "broken JSON {") };
+    const connection = { load: jest.fn(async () => connectedResume()) };
+    const first = await callResumeTool(
+      "generate_resume",
+      args,
+      connection,
+      model,
+      generation,
+    );
+    expect(first.ok).toBe(false);
+    const record = storage.putJson.mock.calls.find(
+      ([, value]) => (value as { stage?: string }).stage === "failed",
+    )?.[1];
+    expect(record).toMatchObject({
+      stage: "failed",
+      response: "broken JSON {",
+      snapshot: expect.objectContaining({ selection: expect.anything() }),
+      errorCode: "MODEL_REJECTED",
+    });
+    expect(
+      Array.isArray(
+        (record as { snapshot: { selection: unknown } }).snapshot.selection,
+      ),
+    ).toBe(true);
+    const firstPaths = storage.putJson.mock.calls.map(([path]) => path);
+    await callResumeTool(
+      "generate_resume",
+      args,
+      connection,
+      model,
+      generation,
+    );
+    const allPaths = storage.putJson.mock.calls.map(([path]) => path);
+    expect(new Set(allPaths).size).toBe(allPaths.length);
+    expect(firstPaths.every((path) => allPaths.includes(path))).toBe(true);
+  });
+  it("원문에 없는 수치가 있으면 재검증에서도 PDF를 만들지 않고 원본을 보존한다", async () => {
+    const generation = context();
+    const response = JSON.stringify({
+      claims: [
+        ...JSON.parse(raw).claims,
+        {
+          text: "테스트 사용자 50명입니다",
+          sourceIds: ["profile-test"],
+          formItem: "name",
+          evidence: [{ sourceId: "profile-test", quote: "테스트 사용자" }],
+        },
+      ],
+    });
+    const model = { generate: jest.fn(async () => response) };
+    const connection = { load: jest.fn(async () => connectedResume()) };
+    const generated = await callResumeTool(
+      "generate_resume",
+      args,
+      connection,
+      model,
+      generation,
+    );
+    if (!generated.ok) throw new Error(generated.code);
+    const { generationId, validationIssues } = JSON.parse(generated.text);
+    expect(validationIssues).toContainEqual({
+      code: "UNSUPPORTED_NUMERIC_FACT",
+      sourceIds: ["profile-test"],
+    });
+    expect(
+      await callResumeTool(
+        "convert_resume_to_pdf",
+        { generationId },
+        connection,
+        model,
+        generation,
+      ),
+    ).toEqual({ ok: false, code: "UNVERIFIED_CLAIMS", generationId });
+    expect(createResumePdf).not.toHaveBeenCalled();
+    expect(generation.store.read(generation.scope, generationId).response).toBe(
+      response,
+    );
+    expect(model.generate).toHaveBeenCalledTimes(1);
+    expect(connection.load).toHaveBeenCalledTimes(1);
+  });
   it("최초 생성부터 재검증과 반복 PDF까지 같은 원본으로 모델을 총 한 번만 호출한다", async () => {
     const generation = context();
     const model = { generate: jest.fn(async () => raw) };

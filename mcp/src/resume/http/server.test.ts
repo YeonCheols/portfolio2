@@ -120,6 +120,9 @@ describe("startResumeMcpServer", () => {
       "RESUME_MODEL_SETTING_URL",
       "RESUME_MODEL_SETTING_TOKEN",
       "RESUME_MODEL_ENVIRONMENT",
+      "SUPABASE_URL",
+      "SUPABASE_SECRET_KEY",
+      "MCP_STORAGE_BUCKET",
     ] as const;
     const previous = Object.fromEntries(
       keys.map((key) => [key, process.env[key]]),
@@ -142,6 +145,10 @@ describe("startResumeMcpServer", () => {
     try {
       expect(() => startResumeMcpServer()).not.toThrow();
       expect(listen).toHaveBeenCalledTimes(1);
+      process.env.SUPABASE_URL = "https://storage.example.test";
+      process.env.SUPABASE_SECRET_KEY = "sb_secret_fake";
+      process.env.MCP_STORAGE_BUCKET = "mcp/invalid-bucket";
+      expect(() => startResumeMcpServer()).toThrow("STORAGE_CONFIG_INVALID");
     } finally {
       listen.mockRestore();
       for (const key of keys) {
