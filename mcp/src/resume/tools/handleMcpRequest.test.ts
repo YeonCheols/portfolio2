@@ -1,5 +1,6 @@
 /** @jest-environment node */
 
+import { createResumeGenerationStore } from "@mcp/resume/output/resumeGenerationStore";
 import { connectedResume } from "@mcp/resume/testing/resumeFixture";
 import { handleMcpRequest } from "@mcp/resume/tools/handleMcpRequest";
 import type { ResumeConnection } from "@mcp/resume/tools/resumeTools";
@@ -103,31 +104,33 @@ describe("handleMcpRequest", () => {
     });
   });
 
-  it("도구 목록에 이력서 생성을 포함한다", async () => {
+  it("도구 목록은 새 생성 입력과 기존 생성 ID 재실행 입력을 구분한다", async () => {
     const response = await handleMcpRequest(
       { jsonrpc: "2.0", id: 8, method: "tools/list" },
       connection,
     );
-
     expect(response).toMatchObject({
       result: {
         tools: expect.arrayContaining([
           expect.objectContaining({
             name: "generate_resume",
-            description:
-              "어떤 AI든 같은 작성자 역할로 양식의 각 섹션을 다시 쓰게 하고, 받은 문장을 검사해 최종 본문을 만든다",
-            inputSchema: expect.objectContaining({
-              type: "object",
-              properties: expect.objectContaining({
-                template: {
-                  type: "string",
-                  enum: ["기본형", "경력 중심형", "프로젝트 중심형"],
-                },
-                interpretation: { type: "string" },
-                claims: expect.objectContaining({ type: "array" }),
-              }),
-              required: expect.arrayContaining(["template", "source"]),
-            }),
+            inputSchema: {
+              oneOf: [
+                expect.objectContaining({
+                  required: [
+                    "source",
+                    "elementIds",
+                    "sectionOrder",
+                    "template",
+                  ],
+                  additionalProperties: false,
+                }),
+                expect.objectContaining({
+                  required: ["generationId"],
+                  additionalProperties: false,
+                }),
+              ],
+            },
           }),
         ]),
       },
@@ -194,7 +197,6 @@ describe("handleMcpRequest", () => {
       "preview_resume",
       "read_resume_selection",
       "check_resume_draft",
-      "generate_resume",
       "render_resume_template",
       "render_resume_form",
     ].forEach((name) => {
@@ -210,18 +212,29 @@ describe("handleMcpRequest", () => {
         expect.arrayContaining(["source", "elementIds", "sectionOrder"]),
       );
     });
-    expect(byName.convert_resume_to_pdf.inputSchema.required).toEqual(
-      expect.arrayContaining([
-        "generatedResume",
-        "source",
-        "elementIds",
-        "sectionOrder",
-        "template",
-      ]),
-    );
+    expect(byName.convert_resume_to_pdf.inputSchema.required).toEqual([
+      "generationId",
+    ]);
   });
 
-  it("생성한 이력서 결과를 PDF 변환 도구에 전달하면 바이너리 리소스를 반환한다", async () => {
+  it("생성 ID를 PDF에 전달하면 모델 추가 호출 없이 실제 PDF 바이너리 리소스를 반환한다", async () => {
+    const generation = {
+      store: createResumeGenerationStore(),
+      scope: { subject: "fixture-user", environment: "production" },
+    };
+    const model = {
+      generate: jest.fn(async () =>
+        JSON.stringify({
+          claims: [
+            {
+              text: "테스트 사용자입니다",
+              sourceIds: ["profile-test"],
+              evidence: [{ sourceId: "profile-test", quote: "테스트 사용자" }],
+            },
+          ],
+        }),
+      ),
+    };
     const generated = await handleMcpRequest(
       {
         jsonrpc: "2.0",
@@ -235,103 +248,53 @@ describe("handleMcpRequest", () => {
             elementIds: ["profile-test"],
             sectionOrder: ["profile"],
             template: "기본형",
-            claims: [
-              { text: "테스트 사용자입니다", sourceIds: ["profile-test"] },
-            ],
           },
         },
       },
       connection,
-      {
-        generate: async () =>
-          JSON.stringify({
-            reviews: [
-              {
-                claimIndex: 0,
-                status: "supported",
-                evidence: [
-                  { sourceId: "profile-test", quote: "테스트 사용자" },
-                ],
-                reason: "이름이 원문에 있습니다",
-              },
-            ],
-          }),
-      },
+      model,
+      generation,
     );
-    const generatedText =
-      generated && "result" in generated
-        ? (generated.result as { content: { text: string }[] }).content[0].text
-        : "";
-    expect(JSON.parse(generatedText).selection).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          id: "profile-test",
-          section: "profile",
-        }),
-      ]),
-    );
+    expect(generated).toMatchObject({ result: { isError: false } });
+    if (
+      !generated ||
+      !("result" in generated) ||
+      !generated.result ||
+      !("content" in generated.result)
+    )
+      throw new Error("result missing");
+    const generatedText = generated.result.content?.[0];
+    if (!generatedText || !("text" in generatedText))
+      throw new Error("text missing");
+    const { generationId } = JSON.parse(generatedText.text);
     const converted = await handleMcpRequest(
       {
         jsonrpc: "2.0",
         id: 11,
         method: "tools/call",
-        params: {
-          name: "convert_resume_to_pdf",
-          arguments: {
-            generatedResume: generatedText,
-            source: "embedded",
-            xml: 'schemaVersion="0.2.0"',
-            elementIds: ["profile-test"],
-            sectionOrder: ["profile"],
-            template: "기본형",
-          },
-        },
+        params: { name: "convert_resume_to_pdf", arguments: { generationId } },
       },
       connection,
-      {
-        generate: async () =>
-          JSON.stringify({
-            reviews: [
-              {
-                claimIndex: 0,
-                status: "supported",
-                evidence: [
-                  { sourceId: "profile-test", quote: "테스트 사용자" },
-                ],
-                reason: "이름이 원문에 있습니다",
-              },
-            ],
-          }),
-      },
+      model,
+      generation,
     );
-    const content =
-      converted && "result" in converted
-        ? (converted.result as { content: unknown[] }).content
-        : [];
-    const pdfResource = content.find(
-      (
-        item,
-      ): item is {
-        type: "resource";
-        resource: { mimeType: string; blob: string };
-      } =>
-        typeof item === "object" &&
-        item !== null &&
-        "type" in item &&
-        item.type === "resource",
+    expect(converted).toMatchObject({ result: { isError: false } });
+    if (
+      !converted ||
+      !("result" in converted) ||
+      !converted.result ||
+      !("content" in converted.result)
+    )
+      throw new Error("content missing");
+    const resource = converted.result.content?.find(
+      (item) => "resource" in item,
     );
-
-    expect(pdfResource?.resource.mimeType).toBe("application/pdf");
+    if (!resource || !("resource" in resource)) throw new Error("PDF missing");
+    expect(resource.resource.mimeType).toBe("application/pdf");
     expect(
-      Buffer.from(pdfResource?.resource.blob ?? "", "base64").toString(
-        "ascii",
-        0,
-        5,
-      ),
+      Buffer.from(resource.resource.blob, "base64").subarray(0, 5).toString(),
     ).toBe("%PDF-");
-    expect(converted).toMatchObject({
-      result: { isError: false },
-    });
+    expect(model.generate).toHaveBeenCalledTimes(1);
   });
 
   it("템플릿 출력과 양식 출력은 같은 템플릿 이름만 계약으로 알린다", async () => {

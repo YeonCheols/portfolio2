@@ -1,5 +1,5 @@
-import type PDFDocumentType from "pdfkit";
 import path from "node:path";
+import type PDFDocumentType from "pdfkit";
 import type {
   CheckedDraftClaim,
   ResumeSelectionNode,
@@ -557,8 +557,8 @@ export const createResumePdf = (input: ResumePdfInput): Promise<Buffer> =>
       info: { Title: "이력서", Author: "portfolio-resume" },
     });
     const model = buildResumePdfModel(input);
-    const chunks: Buffer[] = [];
-    document.on("data", (chunk: Buffer) => chunks.push(chunk));
+    const chunks: Uint8Array[] = [];
+    document.on("data", (chunk: Uint8Array) => chunks.push(chunk));
     document.on("error", reject);
     document.on("end", () => resolve(Buffer.concat(chunks)));
 

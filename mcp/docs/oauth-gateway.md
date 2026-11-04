@@ -22,6 +22,8 @@ MCP client ── OAuth 2.1 + PKCE ──> portfolio-api
 5. access token이 만료되면 client가 refresh token으로 portfolio-api의 token endpoint를 호출합니다. portfolio-api가 refresh token을 회전하고 새 access/refresh token을 돌려줍니다.
 6. client는 각 MCP 요청에 access token을 보냅니다. MCP 서버는 `MCP_AUTH_SERVICE_TOKEN`으로 `POST /auth/introspect`를 호출하고 `active: true`인 경우에만 요청을 처리합니다.
 
+이력서 생성·재실행·PDF 변환은 introspection 응답의 `active: true`와 요청자 `sub`를 사용합니다. 클라이언트 인자나 토큰 원문을 소유자 식별자로 사용하지 않으며 `sub`가 없으면 생성 메모리에 접근하지 않습니다. 메모리 범위의 환경은 서버 런타임 설정이 결정합니다.
+
 MCP 서버는 token introspection 결과를 캐시하지 않습니다. portfolio-api 요청이 실패하면 MCP 요청은 `503 AUTH_UNAVAILABLE`로 종료되고 인증을 우회하지 않습니다. 비활성 또는 누락된 access token은 `401`로 거부됩니다.
 
 ## API 및 런타임 설정

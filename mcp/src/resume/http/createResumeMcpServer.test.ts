@@ -1,7 +1,8 @@
+/** @jest-environment node */
+
 import http from "http";
 
 import { createResumeMcpServer } from "@mcp/resume/http/createResumeMcpServer";
-import { resumeClaimVerifierPersona } from "@mcp/resume/output/runResumeHarness";
 import { connectedResume } from "@mcp/resume/testing/resumeFixture";
 
 const validResumeXml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -48,31 +49,94 @@ const request = (
   });
 
 describe("createResumeMcpServer", () => {
+  it("인증된 생성 결과를 다른 요청에서 재사용하면 모델을 다시 호출하지 않고 다른 사용자는 거부한다", async () => {
+    const generate = jest.fn(async () =>
+      JSON.stringify({
+        claims: [
+          {
+            text: "테스트 사용자입니다",
+            sourceIds: ["profile-test"],
+            evidence: [{ sourceId: "profile-test", quote: "테스트 사용자" }],
+          },
+        ],
+      }),
+    );
+    const createModel = jest.fn(() => ({ generate }));
+    const server = createResumeMcpServer({
+      introspect: async (token) => ({
+        active: token !== "inactive",
+        sub: token,
+      }),
+      environment: "production",
+      connection: { load: async () => connectedResume() },
+      model: createModel,
+    });
+    await new Promise<void>((resolve) =>
+      server.listen(0, "127.0.0.1", resolve),
+    );
+    const address = server.address();
+    if (!address || typeof address === "string")
+      throw new Error("port missing");
+    const call = async (token: string, args: Record<string, unknown>) =>
+      request(address.port, {
+        method: "POST",
+        path: "/mcp",
+        headers: { authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          params: { name: "generate_resume", arguments: args },
+        }),
+      });
+    try {
+      const created = JSON.parse(
+        (
+          await call("user-a", {
+            source: "embedded",
+            xml: validResumeXml,
+            template: "기본형",
+            elementIds: ["profile-test"],
+            sectionOrder: ["profile"],
+          })
+        ).body,
+      );
+      expect(created.result.isError).toBe(false);
+      const { generationId } = JSON.parse(created.result.content[0].text);
+      expect(generationId).toEqual(expect.any(String));
+      const resumed = JSON.parse((await call("user-a", { generationId })).body);
+      expect(resumed.result.isError).toBe(false);
+      const denied = JSON.parse((await call("user-b", { generationId })).body);
+      expect(denied.result.isError).toBe(true);
+      expect(denied.result.content[0].text).toContain("GENERATION_NOT_FOUND");
+      expect((await call("inactive", { generationId })).status).toBe(401);
+      expect(generate).toHaveBeenCalledTimes(1);
+      expect(createModel).toHaveBeenCalledTimes(1);
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
   it("이력서 생성은 서버에 연결된 외부 AI를 호출한다", async () => {
     const requests: { persona: string; prompt: string }[] = [];
     const server = createResumeMcpServer({
-      introspect: async (token) => token === "test-token",
+      introspect: async (token) => ({
+        active: token === "test-token",
+        sub: "test-user",
+      }),
+      environment: "production",
       connection: { load: async () => connectedResume() },
       model: {
         generate: async (input) => {
           requests.push(input);
-          if (input.persona === resumeClaimVerifierPersona) {
-            return JSON.stringify({
-              reviews: [
-                {
-                  claimIndex: 0,
-                  status: "supported",
-                  evidence: [
-                    { sourceId: "profile-test", quote: "테스트 사용자" },
-                  ],
-                  reason: "이름이 원문에 있습니다",
-                },
-              ],
-            });
-          }
           return JSON.stringify({
             claims: [
-              { text: "테스트 사용자입니다", sourceIds: ["profile-test"] },
+              {
+                text: "테스트 사용자입니다",
+                sourceIds: ["profile-test"],
+                evidence: [
+                  { sourceId: "profile-test", quote: "테스트 사용자" },
+                ],
+              },
             ],
           });
         },
@@ -112,7 +176,7 @@ describe("createResumeMcpServer", () => {
       });
 
       expect(response.status).toBe(200);
-      expect(requests).toHaveLength(2);
+      expect(requests).toHaveLength(1);
       expect(response.body).toContain("테스트 사용자입니다");
       expect(response.body).not.toContain("gemini");
     } finally {
@@ -122,7 +186,7 @@ describe("createResumeMcpServer", () => {
     }
   });
 
-  it("모델 팩토리는 MCP 요청마다 한 번 호출하고 그 요청의 모든 모델 호출이 같은 클라이언트를 쓴다", async () => {
+  it("모델 팩토리는 새 생성 요청에만 클라이언트를 만들고 모델을 한 번 호출한다", async () => {
     const clients: { calls: string[] }[] = [];
     const createModel = jest.fn(() => {
       const client = { calls: [] as string[] };
@@ -131,30 +195,26 @@ describe("createResumeMcpServer", () => {
       return {
         generate: async (input: { persona: string; prompt: string }) => {
           client.calls.push(input.persona);
-          if (input.persona === resumeClaimVerifierPersona) {
-            return JSON.stringify({
-              reviews: [
-                {
-                  claimIndex: 0,
-                  status: "supported",
-                  evidence: [
-                    { sourceId: "profile-test", quote: "테스트 사용자" },
-                  ],
-                  reason: "이름이 원문에 있습니다",
-                },
-              ],
-            });
-          }
           return JSON.stringify({
             claims: [
-              { text: "테스트 사용자입니다", sourceIds: ["profile-test"] },
+              {
+                text: "테스트 사용자입니다",
+                sourceIds: ["profile-test"],
+                evidence: [
+                  { sourceId: "profile-test", quote: "테스트 사용자" },
+                ],
+              },
             ],
           });
         },
       };
     });
     const server = createResumeMcpServer({
-      introspect: async (token) => token === "test-token",
+      introspect: async (token) => ({
+        active: token === "test-token",
+        sub: "test-user",
+      }),
+      environment: "production",
       connection: { load: async () => connectedResume() },
       model: createModel,
     });
@@ -199,8 +259,8 @@ describe("createResumeMcpServer", () => {
       expect(first.body).toContain("테스트 사용자입니다");
       expect(createModel).toHaveBeenCalledTimes(2);
       expect(clients).toHaveLength(2);
-      expect(clients[0].calls).toHaveLength(2);
-      expect(clients[1].calls).toHaveLength(2);
+      expect(clients[0].calls).toHaveLength(1);
+      expect(clients[1].calls).toHaveLength(1);
     } finally {
       await new Promise<void>((resolve, reject) => {
         server.close((error) => (error ? reject(error) : resolve()));
@@ -211,7 +271,11 @@ describe("createResumeMcpServer", () => {
   it("헬스 확인은 열고 인증 없는 도구 호출은 본문 없이 거부한다", async () => {
     const log = jest.fn();
     const server = createResumeMcpServer({
-      introspect: async (token) => token === "test-token",
+      introspect: async (token) => ({
+        active: token === "test-token",
+        sub: "test-user",
+      }),
+      environment: "production",
       protectedResourceMetadata: {
         resource: "https://mcp.example.test/mcp",
         authorization_servers: ["https://api.example.test/auth"],

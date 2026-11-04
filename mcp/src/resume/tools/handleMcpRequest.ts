@@ -1,4 +1,5 @@
 import { resumeTemplateNames } from "@mcp/resume/model/resumeTemplate";
+import type { ResumeGenerationContext } from "@mcp/resume/output/resumeGenerationStore";
 import type { ResumeModelClient } from "@mcp/resume/output/runResumeHarness";
 import {
   callResumeTool,
@@ -50,6 +51,18 @@ const draftInputSchema = {
           text: { type: "string" },
           sourceIds: { type: "array", items: { type: "string" } },
           formItem: { type: "string" },
+          evidence: {
+            type: "array",
+            items: {
+              type: "object",
+              properties: {
+                sourceId: { type: "string" },
+                quote: { type: "string" },
+              },
+              required: ["sourceId", "quote"],
+              additionalProperties: false,
+            },
+          },
         },
         required: ["text", "sourceIds"],
       },
@@ -58,19 +71,31 @@ const draftInputSchema = {
   required: ["source", "elementIds", "sectionOrder", "template", "claims"],
 };
 
-const generateInputSchema = {
+const generationReferenceSchema = {
   type: "object",
-  allOf: templateInputSchema.allOf,
   properties: {
-    source: templateInputSchema.properties.source,
-    xml: templateInputSchema.properties.xml,
-    elementIds: templateInputSchema.properties.elementIds,
-    sectionOrder: templateInputSchema.properties.sectionOrder,
-    template: { type: "string", enum: [...resumeTemplateNames] },
-    interpretation: { type: "string" },
-    claims: draftInputSchema.properties.claims,
+    generationId: {
+      type: "string",
+      minLength: 1,
+      description: "generate_resume 응답 또는 오류의 생성 식별자",
+    },
   },
-  required: ["source", "elementIds", "sectionOrder", "template"],
+  required: ["generationId"],
+  additionalProperties: false,
+};
+
+const generateInputSchema = {
+  oneOf: [
+    {
+      ...templateInputSchema,
+      properties: {
+        ...templateInputSchema.properties,
+        claims: draftInputSchema.properties.claims,
+      },
+      additionalProperties: false,
+    },
+    generationReferenceSchema,
+  ],
 };
 
 const sourceInputSchema = {
@@ -95,28 +120,7 @@ const composeInputSchema = {
   required: ["source", "elementIds", "sectionOrder"],
 };
 
-const resumePdfInputSchema = {
-  type: "object",
-  allOf: templateInputSchema.allOf,
-  properties: {
-    source: templateInputSchema.properties.source,
-    xml: templateInputSchema.properties.xml,
-    elementIds: templateInputSchema.properties.elementIds,
-    sectionOrder: templateInputSchema.properties.sectionOrder,
-    template: templateInputSchema.properties.template,
-    generatedResume: {
-      type: "string",
-      description: "generate_resume 도구가 반환한 JSON 문자열",
-    },
-  },
-  required: [
-    "source",
-    "elementIds",
-    "sectionOrder",
-    "template",
-    "generatedResume",
-  ],
-};
+const resumePdfInputSchema = generationReferenceSchema;
 
 const tools = [
   {
@@ -148,7 +152,7 @@ const tools = [
   {
     name: "generate_resume",
     description:
-      "어떤 AI든 같은 작성자 역할로 양식의 각 섹션을 다시 쓰게 하고, 받은 문장을 검사해 최종 본문을 만든다",
+      "새 이력서는 모델을 1회 호출해 작성하고 원문 근거를 내부 검사한다. generationId만 보내면 보관된 원본으로 내부 검사만 재실행한다",
     inputSchema: generateInputSchema,
   },
   {
@@ -163,7 +167,8 @@ const tools = [
   },
   {
     name: "convert_resume_to_pdf",
-    description: "generate_resume 결과를 PDF 바이너리 리소스로 변환한다",
+    description:
+      "generationId의 서버 보관 원본을 내부 검증하고 모델 호출 없이 PDF로 변환한다",
     inputSchema: resumePdfInputSchema,
   },
 ];
@@ -172,6 +177,7 @@ export const handleMcpRequest = async (
   request: McpJsonRpcRequest,
   connection: ResumeConnection,
   model?: ResumeModelClient,
+  generation?: ResumeGenerationContext,
 ) => {
   const id = request.id ?? null;
 
@@ -201,6 +207,7 @@ export const handleMcpRequest = async (
       request.params?.arguments ?? {},
       connection,
       model,
+      generation,
     );
     return {
       jsonrpc: "2.0" as const,
@@ -210,7 +217,17 @@ export const handleMcpRequest = async (
           ? "content" in result
             ? result.content
             : [{ type: "text" as const, text: result.text }]
-          : [{ type: "text" as const, text: result.code }],
+          : [
+              {
+                type: "text" as const,
+                text: result.generationId
+                  ? JSON.stringify({
+                      code: result.code,
+                      generationId: result.generationId,
+                    })
+                  : result.code,
+              },
+            ],
         isError: !result.ok,
       },
     };

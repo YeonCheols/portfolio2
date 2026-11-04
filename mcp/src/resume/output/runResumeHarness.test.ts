@@ -1,10 +1,8 @@
 import type { ResumeSelectionNode } from "@mcp/resume/output/checkResumeDraft";
 import {
   generateResume,
-  resumeClaimVerifierPersona,
   resumeWriterPersona,
   runResumeHarness,
-  verifyResumeClaims,
   type ResumeModelRequest,
 } from "@mcp/resume/output/runResumeHarness";
 
@@ -27,7 +25,47 @@ const employment: ResumeSelectionNode = {
   ],
 };
 
-const recordingClient = (responses: string[]) => {
+const generateWithEvidence: typeof generateResume = (selection, input) => {
+  const find = (
+    nodes: readonly ResumeSelectionNode[],
+    id: string,
+  ): ResumeSelectionNode | undefined => {
+    for (const node of nodes) {
+      if (node.id === id) return node;
+      const child = find(node.children, id);
+      if (child) return child;
+    }
+    return undefined;
+  };
+  const text = (node: ResumeSelectionNode): string =>
+    [node.text, ...node.children.map(text)].filter(Boolean).join("\n");
+  return generateResume(selection, {
+    ...input,
+    claims: input.claims?.map((claim) => ({
+      ...claim,
+      evidence: claim.sourceIds.map((sourceId) => ({
+        sourceId,
+        quote: find(selection, sourceId)
+          ? text(find(selection, sourceId)!)
+          : "",
+      })),
+    })),
+  });
+};
+
+const recordingClient = (fixtures: string[]) => {
+  const draft = fixtures.length ? JSON.parse(fixtures[0]) : { claims: [] };
+  if (fixtures[1]) {
+    const { reviews } = JSON.parse(fixtures[1]);
+    draft.claims = draft.claims.map((claim: object, index: number) => ({
+      ...claim,
+      evidence:
+        reviews.find(
+          (review: { claimIndex: number }) => review.claimIndex === index,
+        )?.evidence ?? [],
+    }));
+  }
+  const responses = [JSON.stringify(draft)];
   const requests: ResumeModelRequest[] = [];
   return {
     requests,
@@ -53,8 +91,28 @@ describe("runResumeHarness", () => {
     children: [],
   });
 
+  it("소스 근거를 포함해 생성하면 외부 모델은 한 번만 호출한다", async () => {
+    const client = recordingClient([
+      JSON.stringify({
+        claims: [
+          {
+            text: "선택한 회사에서 근무했습니다",
+            sourceIds: ["employment-selected"],
+            evidence: [
+              { sourceId: "employment-selected", quote: "선택한 회사" },
+            ],
+          },
+        ],
+      }),
+    ]);
+    const result = await runResumeHarness([employment], client);
+    expect(client.requests).toHaveLength(1);
+    expect(result.resume).toBe("경력\n선택한 회사에서 근무했습니다");
+    expect(result).toMatchObject({ validationMode: "source_evidence" });
+    expect(result).not.toHaveProperty("semanticReviews");
+  });
   it("검사를 통과한 프로필 문장을 프로필 절 아래에 배치한다", async () => {
-    const result = await generateResume(
+    const result = await generateWithEvidence(
       [
         {
           id: "profile-selected",
@@ -81,47 +139,41 @@ describe("runResumeHarness", () => {
     expect(result.resume).toBe("프로필\n테스트 사용자입니다");
   });
 
-  it("작성자와 검증자는 같은 원문 사용 원칙을 공유한다", () => {
-    const sharedRule = "연결된 원문에 없는 사실을 만들거나 추론하지 않는다.";
-
-    expect(resumeWriterPersona).toContain(sharedRule);
-    expect(resumeClaimVerifierPersona).toContain(sharedRule);
-  });
-
-  it("여러 원문을 근거로 한 claim은 연결된 모든 원문이 인용되어야 통과한다", async () => {
-    const selection = [
-      source("source-a", "profile", "이름"),
-      source("source-b", "profile", "경력"),
-    ];
-    const result = await verifyResumeClaims(
-      selection,
-      [
-        {
-          text: "테스트 사용자이며 개발 경험이 있습니다",
-          sourceIds: ["source-a", "source-b"],
-        },
-      ],
-      {
-        generate: async () =>
-          JSON.stringify({
-            reviews: [
-              {
-                claimIndex: 0,
-                status: "supported",
-                evidence: [{ sourceId: "source-a", quote: "이름 원문" }],
-                reason: "일부 근거만 인용했습니다",
-              },
-            ],
-          }),
-      },
+  it("작성자는 원문 보존과 출처별 인용을 한 응답에 요청한다", () => {
+    expect(resumeWriterPersona).toContain(
+      "연결된 원문에 없는 사실을 만들거나 추론하지 않는다.",
     );
-
-    expect(result.claims).toEqual([]);
-    expect(result.gaps).toHaveLength(1);
-    expect(result.semanticReviews[0]?.status).toBe("uncertain");
+    expect(resumeWriterPersona).toContain("evidence");
   });
 
-  it("양식 섹션을 한 번의 초안 호출에 모으고 의미 검증은 한 번 수행한다", async () => {
+  it("한 출처의 근거라도 누락되면 문장을 확정하지 않는다", async () => {
+    const client = recordingClient([
+      JSON.stringify({
+        claims: [
+          {
+            text: "두 근거 문장",
+            sourceIds: ["source-a", "source-b"],
+            evidence: [{ sourceId: "source-a", quote: "이름 원문" }],
+          },
+        ],
+      }),
+    ]);
+    const result = await runResumeHarness(
+      [
+        source("source-a", "profile", "이름"),
+        source("source-b", "profile", "경력"),
+      ],
+      client,
+    );
+    expect(result.claims).toEqual([]);
+    expect(result.validationIssues).toContainEqual({
+      code: "INVALID_SOURCE_EVIDENCE",
+      sourceIds: ["source-a", "source-b"],
+    });
+    expect(client.requests).toHaveLength(1);
+  });
+
+  it("양식 섹션을 한 번의 초안 호출에 모으고 근거는 내부에서 검증한다", async () => {
     const profile: ResumeSelectionNode = {
       id: "profile-test",
       section: "profile",
@@ -166,13 +218,12 @@ describe("runResumeHarness", () => {
       { section: "employmentHistory", text: "경력\n회사 선택한 회사" },
     ]);
 
-    expect(client.requests).toHaveLength(2);
+    expect(client.requests).toHaveLength(1);
     expect(client.requests[0]?.persona).toBe(resumeWriterPersona);
     expect(client.requests[0]?.prompt).toContain('"formTitle":"프로필"');
     expect(client.requests[0]?.prompt).toContain('"formTitle":"경력"');
     expect(client.requests[0]?.prompt).toContain("profile-test");
     expect(client.requests[0]?.prompt).toContain("employment-selected");
-    expect(client.requests[1]?.persona).toBe(resumeClaimVerifierPersona);
     expect(result.resume).toBe(
       "프로필\n테스트 사용자입니다\n경력\n선택한 회사에서 일했습니다",
     );
@@ -245,7 +296,7 @@ describe("runResumeHarness", () => {
   });
 
   it("공백뿐인 claim은 근거가 있어도 최종 절 제목을 만들지 않는다", async () => {
-    const result = await generateResume(
+    const result = await generateWithEvidence(
       [source("profile-empty-claim", "profile")],
       {
         claims: [{ text: "   ", sourceIds: ["profile-empty-claim"] }],
@@ -329,7 +380,7 @@ describe("runResumeHarness", () => {
 
     const result = await runResumeHarness([profile], client);
 
-    expect(client.requests).toHaveLength(2);
+    expect(client.requests).toHaveLength(1);
     expect(client.requests[0]?.prompt).toContain('"name"');
     expect(client.requests[0]?.prompt).toContain("test@example.com");
     expect(result.resume).toBe(
@@ -353,7 +404,7 @@ describe("runResumeHarness", () => {
       source("eligibility", "employmentEligibility", "militaryService"),
       source("preferences", "employmentPreferences"),
     ];
-    const result = await generateResume(selection, {
+    const result = await generateWithEvidence(selection, {
       claims: selection.map((item) => ({
         text: `${item.name} 문장`,
         sourceIds: [item.id ?? ""],
@@ -393,7 +444,7 @@ describe("runResumeHarness", () => {
   });
 
   it("이력서 생성 결과에 경력 요약과 보유 기술을 선택 순서대로 포함한다", async () => {
-    const result = await generateResume(
+    const result = await generateWithEvidence(
       [
         source("technology", "technologies", "technology"),
         source("summary", "summaries", "summary"),
@@ -427,7 +478,7 @@ describe("runResumeHarness", () => {
       source("military", "employmentEligibility", "militaryService"),
       source("veteran", "employmentEligibility", "veteran"),
     ];
-    const result = await generateResume(selection, {
+    const result = await generateWithEvidence(selection, {
       claims: [
         { text: "병역은 해당 없음입니다", sourceIds: ["military"] },
         { text: "보훈 대상입니다", sourceIds: ["veteran"] },
@@ -458,7 +509,7 @@ describe("runResumeHarness", () => {
         },
       ],
     };
-    const result = await generateResume([eligibility], {
+    const result = await generateWithEvidence([eligibility], {
       claims: [
         {
           text: "병역은 해당 없음입니다",
@@ -609,7 +660,7 @@ describe("runResumeHarness", () => {
       ],
     };
     const selection = [project, statement];
-    const result = await generateResume(selection, {
+    const result = await generateWithEvidence(selection, {
       claims: [
         ...[
           ["team", "팀에서 일했습니다"],
@@ -713,7 +764,7 @@ describe("runResumeHarness", () => {
       project("project-b", "둘째 프로젝트", "둘째 구조", "둘째 진행 방식"),
     ];
 
-    const result = await generateResume(selection, {
+    const result = await generateWithEvidence(selection, {
       claims: selection.flatMap((item, index) => [
         {
           text: `${index === 0 ? "첫" : "둘째"} 구조 설명입니다`,
@@ -835,7 +886,7 @@ describe("runResumeHarness", () => {
       outcome("outcome-a", "work-a", "첫 성과입니다"),
     ];
 
-    const result = await generateResume(selection, {
+    const result = await generateWithEvidence(selection, {
       claims: [
         {
           text: "첫 업무를 개선했습니다",
@@ -914,7 +965,7 @@ describe("runResumeHarness", () => {
     );
     expect(client.requests[0]).toHaveProperty(
       "responseFormat.json_schema.schema.properties.claims.items.required",
-      ["text", "sourceIds", "formItem"],
+      ["text", "sourceIds", "formItem", "evidence"],
     );
     expect(client.requests[0]).toHaveProperty(
       "responseFormat.json_schema.schema.properties.claims.items.properties.sourceIds.items.enum",
@@ -955,23 +1006,10 @@ describe("runResumeHarness", () => {
     );
     expect(client.requests[0]?.prompt).toContain("마크다운 코드 펜스 없이");
     expect(client.requests[0]?.prompt).toContain("formItem은 빈 문자열");
-    expect(client.requests[1]).toHaveProperty(
-      "responseFormat.json_schema.name",
-      "resume_claim_reviews",
-    );
-    expect(client.requests[1]).toHaveProperty(
-      "responseFormat.json_schema.strict",
-      true,
-    );
-    expect(client.requests[1]).toHaveProperty(
-      "responseFormat.json_schema.schema.properties.reviews.items.required",
-      ["claimIndex", "status", "evidence", "reason"],
-    );
-    expect(client.requests[1]?.prompt).toContain("마크다운 코드 펜스 없이");
-    expect(client.requests).toHaveLength(2);
+    expect(client.requests).toHaveLength(1);
   });
 
-  it("한 번에 생성한 문장 중 의미 검사를 통과한 것만 최종 이력서에 남긴다", async () => {
+  it("한 번에 생성한 문장 중 소스 검사를 통과한 것만 최종 이력서에 남긴다", async () => {
     const client = recordingClient([
       JSON.stringify({
         claims: [
@@ -998,11 +1036,10 @@ describe("runResumeHarness", () => {
 
     const result = await runResumeHarness([employment], client);
 
-    expect(client.requests).toHaveLength(2);
+    expect(client.requests).toHaveLength(1);
     expect(client.requests[0]?.persona).toBe(resumeWriterPersona);
     expect(client.requests[0]?.prompt).toContain("한 번에");
     expect(client.requests[0]?.prompt).toContain("서로 다른 프로젝트");
-    expect(client.requests[1]?.persona).toBe(resumeClaimVerifierPersona);
     expect(result.resume).toBe("경력\n선택한 회사에서 일했습니다");
     expect(result.resume).not.toContain("없는 성과");
     expect(result.claims[0]?.sources[0]?.sourceRefs).toEqual(["source-page-1"]);
@@ -1010,7 +1047,7 @@ describe("runResumeHarness", () => {
     expect(JSON.stringify(result.claims)).toContain("선택한 회사");
   });
 
-  it("원문 의미가 뒷받침하지 않는 claim은 최종 이력서에서 제외한다", async () => {
+  it("원문 근거를 제시하지 못한 claim은 최종 이력서에서 제외한다", async () => {
     const claim = {
       text: "AWS를 10년간 운영했습니다",
       sourceIds: ["technology-source"],
@@ -1036,8 +1073,8 @@ describe("runResumeHarness", () => {
 
     expect(result.resume).toBe("");
     expect(result.claims).toEqual([]);
-    expect(result.gaps).toEqual([claim]);
-    expect(client.requests).toHaveLength(2);
+    expect(result.gaps).toMatchObject([claim]);
+    expect(client.requests).toHaveLength(1);
   });
 
   it("양식의 여러 섹션을 한 번에 생성하고 각 양식 절에 배치한다", async () => {
@@ -1094,7 +1131,7 @@ describe("runResumeHarness", () => {
       { section: "employmentHistory", text: "경력\n회사 선택한 회사" },
     ]);
 
-    expect(client.requests).toHaveLength(2);
+    expect(client.requests).toHaveLength(1);
     expect(client.requests[0]?.prompt).toContain(
       '"name":"name","text":"테스트 사용자"',
     );

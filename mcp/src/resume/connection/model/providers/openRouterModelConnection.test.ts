@@ -2,6 +2,7 @@ import {
   fetchOpenRouterModelResult,
   fetchOpenRouterModelText,
 } from "@mcp/resume/connection/model/providers/openRouterModelConnection";
+import type { ResumeJsonSchemaResponseFormat } from "@mcp/resume/connection/model/resumeModelConnection";
 import { ResumeConnectionError } from "@mcp/resume/connection/shared/connection";
 
 describe("fetchOpenRouterModelText", () => {
@@ -15,7 +16,7 @@ describe("fetchOpenRouterModelText", () => {
         choices: [{ message: { content: '{"claims":[]}' } }],
       }),
     }));
-    const responseFormat = {
+    const responseFormat: ResumeJsonSchemaResponseFormat = {
       type: "json_schema",
       json_schema: {
         name: "resume_claims",

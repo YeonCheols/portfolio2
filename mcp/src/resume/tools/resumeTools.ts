@@ -7,7 +7,6 @@ import {
 } from "@mcp/resume/model/resumeTemplate";
 import {
   checkResumeDraft,
-  type CheckedDraftClaim,
   type DraftClaim,
   type ResumeSelectionNode,
 } from "@mcp/resume/output/checkResumeDraft";
@@ -18,13 +17,13 @@ import {
   renderResumeFormSections,
 } from "@mcp/resume/output/renderResumeForm";
 import { renderResumeTemplate } from "@mcp/resume/output/renderResumeTemplate";
+import type { ResumeGenerationContext } from "@mcp/resume/output/resumeGenerationStore";
 import {
   generateResume,
+  completeResumeGeneration,
   generatedResumePromptTitle,
   generatedResumeSectionNames,
-  verifyResumeClaims,
   type ResumeModelClient,
-  type ResumeSemanticReview,
 } from "@mcp/resume/output/runResumeHarness";
 import { selectTemplateSections } from "@mcp/resume/output/selectTemplateSections";
 import { ResumeConnectionError } from "@mcp/resume/connection/shared/connection";
@@ -38,7 +37,7 @@ export type ResumeToolContent =
 
 export type ResumeToolResult =
   | { ok: true; text: string; content?: ResumeToolContent[] }
-  | { ok: false; code: string };
+  | { ok: false; code: string; generationId?: string };
 
 export type ResumeConnection = {
   load: (input: ResumeConnectionInput) => Promise<ResumeModel>;
@@ -80,7 +79,31 @@ const readClaims = (value: unknown): DraftClaim[] => {
     if (record.formItem !== undefined && typeof record.formItem !== "string") {
       return fail("INVALID_INPUT");
     }
+    if (
+      record.evidence !== undefined &&
+      (!Array.isArray(record.evidence) ||
+        !record.evidence.every(
+          (item: unknown) =>
+            typeof item === "object" &&
+            item !== null &&
+            "sourceId" in item &&
+            typeof item.sourceId === "string" &&
+            "quote" in item &&
+            typeof item.quote === "string",
+        ))
+    )
+      return fail("INVALID_INPUT");
     return {
+      ...(Array.isArray(record.evidence)
+        ? {
+            evidence: record.evidence.map(
+              (item: { sourceId: string; quote: string }) => ({
+                sourceId: item.sourceId,
+                quote: item.quote,
+              }),
+            ),
+          }
+        : {}),
       text: record.text,
       sourceIds: readStringList(record.sourceIds),
       ...(typeof record.formItem === "string"
@@ -88,78 +111,6 @@ const readClaims = (value: unknown): DraftClaim[] => {
         : {}),
     };
   });
-};
-
-const isStringArray = (value: unknown): value is string[] =>
-  Array.isArray(value) && value.every((item) => typeof item === "string");
-
-const isResumeSelectionNode = (
-  value: unknown,
-): value is ResumeSelectionNode => {
-  if (typeof value !== "object" || value === null) return false;
-  const node = value as Record<string, unknown>;
-  return (
-    typeof node.section === "string" &&
-    typeof node.name === "string" &&
-    typeof node.text === "string" &&
-    typeof node.visibility === "string" &&
-    isStringArray(node.sourceRefs) &&
-    Array.isArray(node.children) &&
-    node.children.every(isResumeSelectionNode) &&
-    (node.id === undefined || typeof node.id === "string") &&
-    (node.employmentRef === undefined ||
-      typeof node.employmentRef === "string") &&
-    (node.projectRef === undefined || typeof node.projectRef === "string") &&
-    (node.workItemRef === undefined || typeof node.workItemRef === "string")
-  );
-};
-
-const isCheckedDraftClaim = (value: unknown): value is CheckedDraftClaim => {
-  if (typeof value !== "object" || value === null) return false;
-  const claim = value as Record<string, unknown>;
-  return (
-    typeof claim.text === "string" &&
-    isStringArray(claim.sourceIds) &&
-    Array.isArray(claim.sources) &&
-    claim.sources.every(isResumeSelectionNode) &&
-    (claim.formItem === undefined || typeof claim.formItem === "string")
-  );
-};
-
-const readGeneratedResume = (
-  value: unknown,
-): { resume: string; claims: DraftClaim[] } => {
-  if (typeof value !== "string") return fail("INVALID_INPUT");
-
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(value);
-  } catch {
-    return fail("INVALID_INPUT");
-  }
-
-  if (typeof parsed !== "object" || parsed === null) {
-    return fail("INCOMPLETE_RESUME");
-  }
-  const result = parsed as Record<string, unknown>;
-  if (
-    typeof result.resume !== "string" ||
-    result.resume.trim() === "" ||
-    !Array.isArray(result.claims) ||
-    !Array.isArray(result.gaps) ||
-    !Array.isArray(result.conflicts) ||
-    !Array.isArray(result.uncertain) ||
-    !Array.isArray(result.selection) ||
-    !result.claims.every(isCheckedDraftClaim) ||
-    !result.selection.every(isResumeSelectionNode)
-  ) {
-    return fail("INCOMPLETE_RESUME");
-  }
-
-  return {
-    resume: result.resume,
-    claims: readClaims(result.claims),
-  };
 };
 
 const readTemplate = (value: unknown): ResumeTemplate => {
@@ -332,7 +283,9 @@ export const callResumeTool = async (
   args: Record<string, unknown>,
   connection: ResumeConnection,
   model?: ResumeModelClient,
+  generation?: ResumeGenerationContext,
 ): Promise<ResumeToolResult> => {
+  let generationId: string | undefined;
   try {
     if (name === "validate_resume_xml") {
       const resume = await loadFromArgs(args, connection);
@@ -354,55 +307,85 @@ export const callResumeTool = async (
       };
     }
 
-    if (name === "generate_resume") {
-      const claims =
-        args.claims === undefined ? undefined : readClaims(args.claims);
-      if (claims && claims.length > 0 && !model) {
-        return { ok: false, code: "MISSING_MODEL_CONNECTION" };
-      }
-      const { template, composed } = await loadTemplateResume(args, connection);
-      return {
-        ok: true,
-        text: JSON.stringify(
-          await generateResume(readGeneratedSelection(composed, template), {
-            claims,
-            interpretation:
-              typeof args.interpretation === "string"
-                ? args.interpretation
-                : undefined,
-            model,
-            forms: generatedResumeForms(composed, template),
-          }),
-        ),
-      };
-    }
-
-    if (name === "convert_resume_to_pdf") {
-      const generated = readGeneratedResume(args.generatedResume);
-      const { template, composed } = await loadTemplateResume(args, connection);
-      const selection = readGeneratedSelection(composed, template);
-      const checked =
-        generated.claims.length === 0
-          ? checkResumeDraft(selection, generated.claims)
-          : model
-            ? await verifyResumeClaims(selection, generated.claims, model)
-            : fail("MISSING_MODEL_CONNECTION");
+    if (name === "generate_resume" || name === "convert_resume_to_pdf") {
       if (
-        checked.gaps.length > 0 ||
-        checked.conflicts.length > 0 ||
-        ("semanticReviews" in checked &&
-          Array.isArray(checked.semanticReviews) &&
-          checked.semanticReviews.some(
-            (review: ResumeSemanticReview) => review.status !== "supported",
-          ))
+        !generation?.scope.subject.trim() ||
+        !generation.scope.environment.trim()
       ) {
-        return { ok: false, code: "UNVERIFIED_CLAIMS" };
+        return { ok: false, code: "GENERATION_CONTEXT_REQUIRED" };
       }
+      const { store, scope } = generation;
+      const isPdf = name === "convert_resume_to_pdf";
+      if (args.generatedResume !== undefined)
+        return { ok: false, code: "INVALID_INPUT" };
+      let generated;
+      if (args.generationId !== undefined || isPdf) {
+        if (Object.keys(args).some((key) => key !== "generationId"))
+          return { ok: false, code: "INVALID_INPUT" };
+        if (typeof args.generationId !== "string" || !args.generationId.trim())
+          return { ok: false, code: "GENERATION_ID_REQUIRED" };
+        generationId = args.generationId;
+        const stored = store.read(scope, generationId);
+        if (stored.response === undefined || !stored.snapshot)
+          return { ok: false, code: "GENERATION_NOT_READY", generationId };
+        generated = completeResumeGeneration(
+          stored.snapshot.selection,
+          stored.response,
+        );
+      } else {
+        // 검증된 새 생성 접수 즉시 이전 응답을 폐기합니다. 비동기 소스 조회보다 먼저 실행합니다.
+        readSource(args);
+        readTemplate(args.template);
+        readStringList(args.elementIds);
+        readStringList(args.sectionOrder);
+        const claims =
+          args.claims === undefined ? undefined : readClaims(args.claims);
+        if (args.interpretation !== undefined)
+          return { ok: false, code: "INVALID_INPUT" };
+        generationId = store.begin(scope);
+        if (claims === undefined && !model)
+          return { ok: false, code: "MISSING_MODEL_CONNECTION", generationId };
+        const { template, composed } = await loadTemplateResume(
+          args,
+          connection,
+        );
+        const selection = readGeneratedSelection(composed, template);
+        const forms = generatedResumeForms(composed, template);
+        store.snapshot(scope, generationId, { selection, forms });
+        const id = generationId;
+        if (claims !== undefined) {
+          const response = JSON.stringify({ claims });
+          store.capture(scope, id, undefined, response);
+          generated = completeResumeGeneration(selection, response);
+        } else {
+          generated = await generateResume(selection, {
+            model,
+            forms,
+            onResponse: (request, response) =>
+              store.capture(scope, id, request, response),
+          });
+        }
+      }
+      store.assertCurrent(scope, generationId);
+      if (!isPdf)
+        return {
+          ok: true,
+          text: JSON.stringify({ ...generated, generationId }),
+        };
+      if (
+        !("resume" in generated) ||
+        !generated.resume.trim() ||
+        !("claims" in generated)
+      )
+        return { ok: false, code: "INCOMPLETE_RESUME", generationId };
+      if (generated.gaps.length || generated.conflicts.length)
+        return { ok: false, code: "UNVERIFIED_CLAIMS", generationId };
       const pdf = await createResumePdf({
         resume: generated.resume,
-        claims: checked.claims,
-        selection,
+        claims: generated.claims,
+        selection: generated.selection,
       });
+      store.assertCurrent(scope, generationId);
       return {
         ok: true,
         text: "이력서 PDF를 생성했습니다.",
@@ -411,7 +394,7 @@ export const callResumeTool = async (
           {
             type: "resource",
             resource: {
-              uri: `resume://generated/${crypto.randomUUID()}.pdf`,
+              uri: `resume://generated/${generationId}.pdf`,
               mimeType: "application/pdf",
               blob: pdf.toString("base64"),
             },
@@ -454,9 +437,21 @@ export const callResumeTool = async (
     return { ok: false, code: "UNKNOWN_TOOL" };
   } catch (error) {
     if (error instanceof ResumeConnectionError) {
-      return { ok: false, code: error.code };
+      return {
+        ok: false,
+        code: error.code,
+        ...(generationId ? { generationId } : {}),
+      };
     }
-
+    if (generationId)
+      return {
+        ok: false,
+        code:
+          name === "convert_resume_to_pdf"
+            ? "PDF_GENERATION_FAILED"
+            : "GENERATION_FAILED",
+        generationId,
+      };
     throw error;
   }
 };
