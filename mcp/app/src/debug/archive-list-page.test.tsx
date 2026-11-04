@@ -1,4 +1,5 @@
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { ArchiveListPage } from "./archive-list-page";
@@ -56,15 +57,22 @@ describe("ArchiveListPage", () => {
     const form = screen.getByRole("form", { name: "실행 필터" });
     expect(form.getAttribute("method")).toBe("get");
     expect(form.getAttribute("action")).toBe("/admin/debug/resume");
+    // 선택 상자는 모델 관리 화면과 같은 SelectField이고, GET 폼 제출 값은 숨은 입력이 싣는다
+    expect(within(form).getByRole("button", { name: "환경" }).textContent).toBe(
+      "운영",
+    );
     expect(
-      (within(form).getByLabelText("환경") as HTMLSelectElement).value,
-    ).toBe("production");
+      within(form).getByRole("button", { name: "실패 단계" }).textContent,
+    ).toBe("validation");
     expect(
       (within(form).getByLabelText("생성 ID") as HTMLInputElement).value,
     ).toBe("gen-1");
-    expect(
-      (within(form).getByLabelText("실패 단계") as HTMLSelectElement).value,
-    ).toBe("validation");
+    expect(Object.fromEntries(new FormData(form as HTMLFormElement))).toEqual({
+      environment: "production",
+      generationId: "gen-1",
+      attemptId: "",
+      failedStage: "validation",
+    });
 
     expect(
       screen.getByRole("link", { name: "이전 페이지" }).getAttribute("href"),
@@ -100,6 +108,35 @@ describe("ArchiveListPage", () => {
     render(<ArchiveListPage search="?environment=bogus&page=0" />);
     expect((await screen.findByRole("alert")).textContent).toContain(
       "요청을 처리하지 못했습니다. 다시 시도해 주세요.",
+    );
+  });
+
+  it("선택 상자에서 항목을 고르면 폼 제출 값이 바뀌고 전체를 고르면 조건이 비워진다", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          jsonResponse({ ok: true, items: [], hasMore: false }),
+        ),
+    );
+    const user = userEvent.setup();
+    render(<ArchiveListPage search="?failedStage=pdf" />);
+    const form = await screen.findByRole("form", { name: "실행 필터" });
+
+    await user.click(within(form).getByRole("button", { name: "환경" }));
+    await user.click(screen.getByRole("option", { name: "운영" }));
+    await user.click(within(form).getByRole("button", { name: "실패 단계" }));
+    await user.click(screen.getByRole("option", { name: "전체" }));
+
+    expect(
+      Object.fromEntries(new FormData(form as HTMLFormElement)),
+    ).toMatchObject({
+      environment: "production",
+      failedStage: "",
+    });
+    expect(within(form).getByRole("button", { name: "환경" }).textContent).toBe(
+      "운영",
     );
   });
 });

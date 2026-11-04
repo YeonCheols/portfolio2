@@ -42,6 +42,37 @@ const detail = {
   },
 };
 
+// 상세는 수정본·재현 기록도 함께 불러오므로 호출 순서가 아니라 URL로 응답한다
+const router = (routes: Record<string, () => Response | Promise<Response>>) =>
+  vi.fn(async (url: string) => {
+    const route = Object.entries(routes).find(([part]) => url.includes(part));
+    if (!route) throw new Error(`UNEXPECTED_FETCH ${url}`);
+    return route[1]();
+  });
+
+const extras = {
+  "/revisions?": () =>
+    jsonResponse({
+      ok: true,
+      items: [{ revisionId: "rev-1", createdAt: "2026-11-04T03:00:00.000Z" }],
+    }),
+  "/reproductions?": () =>
+    jsonResponse({
+      ok: true,
+      items: [
+        {
+          reproductionId: "rep-1",
+          createdAt: "2026-11-04T04:00:00.000Z",
+          source: { kind: "original" },
+          action: "validate",
+          status: "failed",
+          failedStage: "validation",
+          errorCode: "MODEL_REJECTED",
+        },
+      ],
+    }),
+};
+
 describe("ArchiveDetailPage", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -49,7 +80,10 @@ describe("ArchiveDetailPage", () => {
   });
 
   it("실행 요약과 저장된 요청·원문 응답·검증 결과·오류 코드를 가공 없이 텍스트로 보여준다", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(detail)));
+    vi.stubGlobal(
+      "fetch",
+      router({ "/detail?": () => jsonResponse(detail), ...extras }),
+    );
 
     const { container } = render(<ArchiveDetailPage archiveKey={archiveKey} />);
 
@@ -76,16 +110,18 @@ describe("ArchiveDetailPage", () => {
 
   it("단계 파일은 서명 URL을 받아 새 탭으로 열고 발급이 실패하면 그 파일에만 안내한다", async () => {
     const open = vi.spyOn(window, "open").mockReturnValue(null);
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse(detail))
-      .mockResolvedValueOnce(
-        jsonResponse({
-          ok: true,
-          url: "https://storage.example.test/sign?t=1",
-        }),
-      )
-      .mockResolvedValueOnce(jsonResponse({ code: "STORAGE_FAILED" }, 502));
+    let signCalls = 0;
+    const fetchMock = router({
+      "/detail?": () => jsonResponse(detail),
+      "/file-url?": () =>
+        ++signCalls === 1
+          ? jsonResponse({
+              ok: true,
+              url: "https://storage.example.test/sign?t=1",
+            })
+          : jsonResponse({ code: "STORAGE_FAILED" }, 502),
+      ...extras,
+    });
     vi.stubGlobal("fetch", fetchMock);
     const user = userEvent.setup();
 
@@ -101,9 +137,11 @@ describe("ArchiveDetailPage", () => {
       "_blank",
       "noopener,noreferrer",
     );
-    expect(fetchMock.mock.calls[1][0]).toContain(
-      "file=002-model_response.json",
-    );
+    expect(
+      fetchMock.mock.calls.some(([url]) =>
+        String(url).includes("file=002-model_response.json"),
+      ),
+    ).toBe(true);
 
     await user.click(
       screen.getByRole("button", { name: "003-failed.json 원본 열기" }),
@@ -128,5 +166,43 @@ describe("ArchiveDetailPage", () => {
       "보관된 실행을 찾을 수 없습니다.",
     );
     expect(screen.getByRole("link", { name: "목록으로" })).toBeTruthy();
+  });
+
+  it("수정본·재현 기록을 함께 불러와 편집·재현·삭제 영역에 전달한다", async () => {
+    vi.stubGlobal(
+      "fetch",
+      router({ "/detail?": () => jsonResponse(detail), ...extras }),
+    );
+
+    render(<ArchiveDetailPage archiveKey={archiveKey} />);
+
+    const revision = await screen.findByRole("region", { name: "수정본 편집" });
+    expect(within(revision).getByText(/rev-1/)).toBeTruthy();
+    expect(
+      screen.getByRole("region", { name: "재현 기록" }).textContent,
+    ).toContain("MODEL_REJECTED");
+    expect(screen.getByRole("button", { name: "이 실행 삭제" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "PDF 재현" })).toBeTruthy();
+  });
+
+  it("수정본이나 재현 기록을 불러오지 못해도 상세는 보여주고 그 영역에 안내한다", async () => {
+    vi.stubGlobal(
+      "fetch",
+      router({
+        "/detail?": () => jsonResponse(detail),
+        "/revisions?": () => jsonResponse({ code: "STORAGE_FAILED" }, 502),
+        "/reproductions?": () => jsonResponse({ ok: true, items: [] }),
+      }),
+    );
+
+    render(<ArchiveDetailPage archiveKey={archiveKey} />);
+
+    expect(
+      await screen.findByRole("heading", { level: 1, name: "실행 상세" }),
+    ).toBeTruthy();
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "수정본 목록을 불러오지 못했습니다.",
+    );
+    expect(screen.getByRole("region", { name: "모델 원문 응답" })).toBeTruthy();
   });
 });

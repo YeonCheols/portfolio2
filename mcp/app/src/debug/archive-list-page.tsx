@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 
 import { listArchives } from "../api/archive-api";
-import type { ArchiveStatus, ArchiveSummary } from "../types";
+import type { ArchiveStatus, ArchiveSummary, ModelEnvironment } from "../types";
 import { AdminLayout } from "../ui/admin-layout";
+import { SelectField } from "../ui/select-field";
 
 import {
   debugPagePath,
@@ -29,6 +30,16 @@ const statusStyle: Record<ArchiveStatus, string> = {
   incomplete: "bg-slate-100 text-slate-700",
 };
 
+const environmentOptions = [
+  { value: "development", label: "개발" },
+  { value: "production", label: "운영" },
+] as const;
+
+const stageOptions = [
+  { value: "", label: "전체" },
+  ...failedStageOptions,
+] as const;
+
 const fieldClass =
   "mt-2 min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-900 outline-none focus-visible:border-blue-500 focus-visible:ring-4 focus-visible:ring-blue-500/10";
 
@@ -38,6 +49,11 @@ const pageLinkClass =
 export const ArchiveListPage = ({ search }: { search: string }) => {
   const query = parseListSearch(search);
   const [state, setState] = useState<ListState>({ status: "loading" });
+  // 선택 상자의 값은 GET 폼 제출 때 숨은 입력이 싣는다
+  const [environment, setEnvironment] = useState<ModelEnvironment>(
+    query.environment,
+  );
+  const [failedStage, setFailedStage] = useState(query.failedStage ?? "");
   // 조건이 같으면 다시 조회하지 않도록 직렬화한 값으로 효과를 묶는다
   const queryKey = listHref(query, query.page);
 
@@ -66,7 +82,7 @@ export const ArchiveListPage = ({ search }: { search: string }) => {
   }, [queryKey]);
 
   return (
-    <AdminLayout current="debug">
+    <AdminLayout current="debug-archive">
       <p className="text-xs font-extrabold uppercase tracking-[.14em] text-blue-700">
         MCP 관리자
       </p>
@@ -84,17 +100,14 @@ export const ArchiveListPage = ({ search }: { search: string }) => {
         method="get"
         className="mt-7 grid grid-cols-1 gap-4 rounded-2xl border border-slate-200 bg-white p-5 sm:grid-cols-4"
       >
-        <label className="text-sm font-semibold">
-          환경
-          <select
-            name="environment"
-            defaultValue={query.environment}
-            className={fieldClass}
-          >
-            <option value="development">개발</option>
-            <option value="production">운영</option>
-          </select>
-        </label>
+        <SelectField<ModelEnvironment>
+          id="filter-environment"
+          label="환경"
+          value={environment}
+          options={environmentOptions}
+          onChange={setEnvironment}
+        />
+        <input type="hidden" name="environment" value={environment} />
         <label className="text-sm font-semibold">
           생성 ID
           <input
@@ -113,21 +126,14 @@ export const ArchiveListPage = ({ search }: { search: string }) => {
             className={fieldClass}
           />
         </label>
-        <label className="text-sm font-semibold">
-          실패 단계
-          <select
-            name="failedStage"
-            defaultValue={query.failedStage ?? ""}
-            className={fieldClass}
-          >
-            <option value="">전체</option>
-            {failedStageOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
+        <SelectField
+          id="filter-failed-stage"
+          label="실패 단계"
+          value={failedStage}
+          options={stageOptions}
+          onChange={setFailedStage}
+        />
+        <input type="hidden" name="failedStage" value={failedStage} />
         <div className="sm:col-span-4">
           <button
             type="submit"

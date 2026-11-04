@@ -339,6 +339,11 @@ describe("SettingsPage", () => {
     const menu = screen.getByRole("navigation", { name: "관리 메뉴" });
     const archive = within(menu).getByRole("link", { name: "디버깅 아카이브" });
     expect(archive.getAttribute("href")).toBe("/admin/debug/resume");
+    // 메뉴 화면으로 돌아가는 링크가 있고 같은 도메인의 항목만 나열한다
+    expect(
+      within(menu).getByRole("link", { name: "메뉴" }).getAttribute("href"),
+    ).toBe("/admin");
+    expect(within(menu).queryByText("포트폴리오 툴 관리")).toBeNull();
     expect(archive.getAttribute("aria-current")).toBeNull();
     expect(
       within(menu)

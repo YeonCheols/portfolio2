@@ -89,7 +89,7 @@ const resumeClaimsResponseFormat = (
   },
 });
 
-const sourceElementIdsOf = (
+export const sourceElementIdsOf = (
   selection: readonly ResumeSelectionNode[],
 ): string[] => {
   const ids = new Set<string>();
@@ -498,7 +498,7 @@ const hasInterpretation = (text: string): boolean => {
   }
 };
 
-const parseClaims = (text: string): DraftClaim[] => {
+export const parseClaims = (text: string): DraftClaim[] => {
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);

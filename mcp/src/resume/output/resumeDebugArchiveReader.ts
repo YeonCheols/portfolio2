@@ -83,7 +83,7 @@ const validateQuery = (query: {
   if (!valid) throw new ArchiveQueryError();
 };
 
-const validateKey = (key: ArchiveKey): string => {
+export const archiveDirectory = (key: ArchiveKey): string => {
   if (
     !environments.includes(key.environment) ||
     ![key.subjectHash, key.generationId, key.attemptId].every((id) =>
@@ -98,7 +98,7 @@ const listPageSize = 100;
 const defaultPageSize = 20;
 
 // Storage 목록은 한 번에 일부만 주므로 같은 prefix의 나머지를 이어서 읽는다
-const listAll = async (
+export const listAllObjects = async (
   storage: ArchiveListStorage,
   prefix: string,
 ): Promise<StorageEntry[]> => {
@@ -153,9 +153,9 @@ export const createResumeDebugArchiveReader = (
   storage: ArchiveReadStorage,
 ) => ({
   signedUrl: async (key: ArchiveKey, fileName: string): Promise<string> => {
-    const path = validateKey(key);
+    const path = archiveDirectory(key);
     // 목록에 있는 단계 파일만 서명해 다른 실행이나 임의 객체로 넘어가지 못하게 한다
-    const entries = await listAll(storage, path);
+    const entries = await listAllObjects(storage, path);
     const listed = entries.some(
       (entry) =>
         entry.kind === "file" &&
@@ -166,8 +166,8 @@ export const createResumeDebugArchiveReader = (
     return storage.createSignedUrl(`${path}/${fileName}`);
   },
   get: async (key: ArchiveKey): Promise<ArchiveDetail> => {
-    const path = validateKey(key);
-    const entries = await listAll(storage, path);
+    const path = archiveDirectory(key);
+    const entries = await listAllObjects(storage, path);
     const files = entries.flatMap((entry): ArchiveFile[] => {
       const stage = entry.kind === "file" ? stageOf(entry.name) : null;
       return stage
@@ -205,9 +205,9 @@ export const createResumeDebugArchiveReader = (
     validateQuery(query);
     const root = `debug/resume/${query.environment}`;
     const items: ArchiveSummary[] = [];
-    for (const subject of await listAll(storage, root)) {
+    for (const subject of await listAllObjects(storage, root)) {
       if (subject.kind !== "folder") continue;
-      for (const generation of await listAll(
+      for (const generation of await listAllObjects(
         storage,
         `${root}/${subject.name}`,
       )) {
@@ -216,14 +216,14 @@ export const createResumeDebugArchiveReader = (
         if (query.generationId && generation.name !== query.generationId)
           continue;
         const generationPath = `${root}/${subject.name}/${generation.name}`;
-        for (const attempt of await listAll(storage, generationPath)) {
+        for (const attempt of await listAllObjects(storage, generationPath)) {
           if (attempt.kind !== "folder") continue;
           if (query.attemptId && attempt.name !== query.attemptId) continue;
           const summary = summarize(
             subject.name,
             generation.name,
             attempt.name,
-            await listAll(storage, `${generationPath}/${attempt.name}`),
+            await listAllObjects(storage, `${generationPath}/${attempt.name}`),
           );
           if (query.failedStage && summary.failedAfter !== query.failedStage)
             continue;

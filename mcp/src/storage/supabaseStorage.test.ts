@@ -179,4 +179,48 @@ describe("Supabase Storage", () => {
       storage.listObjects("debug/resume", { limit: 20, offset: 0 }),
     ).rejects.toThrow("STORAGE_LIST_FAILED");
   });
+  it("여러 객체를 한 번의 삭제 요청으로 지우고 저장소가 지웠다고 알린 경로만 반환한다", async () => {
+    const fetchImpl = jest.fn(
+      async () =>
+        new Response(JSON.stringify([{ name: "debug/resume/a/1.json" }])),
+    );
+    const storage = createSupabaseStorage({
+      url: "https://storage.example.test",
+      secretKey: "sb_secret_fake",
+      bucket: "mcp",
+      fetchImpl,
+    });
+
+    await expect(
+      storage.removeObjects(["debug/resume/a/1.json", "debug/resume/a/2.json"]),
+    ).resolves.toEqual(["debug/resume/a/1.json"]);
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "https://storage.example.test/storage/v1/object/mcp",
+      expect.objectContaining({
+        method: "DELETE",
+        body: JSON.stringify({
+          prefixes: ["debug/resume/a/1.json", "debug/resume/a/2.json"],
+        }),
+      }),
+    );
+    fetchImpl.mockClear();
+    await expect(storage.removeObjects([])).resolves.toEqual([]);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+  it("삭제 경로의 탈출은 요청 전에 거부하고 저장소 오류는 값 없이 반환한다", async () => {
+    const fetchImpl = jest.fn(async () => new Response("{}", { status: 500 }));
+    const storage = createSupabaseStorage({
+      url: "https://storage.example.test",
+      secretKey: "sb_secret_fake",
+      bucket: "mcp",
+      fetchImpl,
+    });
+    await expect(
+      storage.removeObjects(["debug/resume/a/1.json", "../other.json"]),
+    ).rejects.toThrow("STORAGE_PATH_INVALID");
+    expect(fetchImpl).not.toHaveBeenCalled();
+    await expect(
+      storage.removeObjects(["debug/resume/a/1.json"]),
+    ).rejects.toThrow("STORAGE_DELETE_FAILED");
+  });
 });

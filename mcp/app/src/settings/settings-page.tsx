@@ -132,7 +132,7 @@ export const SettingsPage = () => {
   };
 
   return (
-    <AdminLayout current="settings">
+    <AdminLayout current="ai-models">
       <p className="text-xs font-extrabold uppercase tracking-[.14em] text-blue-700">
         MCP 관리자
       </p>

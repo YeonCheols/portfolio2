@@ -3,7 +3,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   getArchiveDetail,
   getArchiveFileUrl,
+  getRevision,
   listArchives,
+  listReproductions,
+  listRevisions,
+  removeArchive,
+  reproduceArchive,
+  saveRevision,
 } from "./archive-api";
 
 const jsonResponse = (body: unknown, status = 200) =>
@@ -118,6 +124,123 @@ describe("archive-api", () => {
       "보관된 실행을 찾을 수 없습니다.",
     );
     await expect(getArchiveDetail(key)).rejects.toThrow(
+      "요청을 처리하지 못했습니다. 다시 시도해 주세요.",
+    );
+  });
+
+  const keyQuery =
+    "environment=development&subjectHash=subj-a&generationId=gen-1&attemptId=att-1";
+
+  it("수정본·재현 기록은 실행 키로 조회하고 단건은 수정본 ID를 함께 보낸다", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse({ ok: true, items: [{ revisionId: "rev-1" }] }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          ok: true,
+          revision: { revisionId: "rev-1", response: "r" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({ ok: true, items: [{ reproductionId: "rep-1" }] }),
+      )
+      .mockResolvedValueOnce(jsonResponse({ ok: true, items: "bad" }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(listRevisions(key)).resolves.toEqual([
+      { revisionId: "rev-1" },
+    ]);
+    await expect(getRevision(key, "rev-1")).resolves.toEqual({
+      revisionId: "rev-1",
+      response: "r",
+    });
+    await expect(listReproductions(key)).resolves.toEqual([
+      { reproductionId: "rep-1" },
+    ]);
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      `/admin/debug/resume/api/archives/revisions?${keyQuery}`,
+      `/admin/debug/resume/api/archives/revision?${keyQuery}&revisionId=rev-1`,
+      `/admin/debug/resume/api/archives/reproductions?${keyQuery}`,
+    ]);
+    await expect(listReproductions(key)).rejects.toThrow(
+      "형식이 올바르지 않습니다",
+    );
+  });
+
+  it("수정본 저장·재현·삭제는 JSON POST로 보내고 서버 코드를 안내 문구로 바꾼다", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ ok: true, revisionId: "rev-1" }))
+      .mockResolvedValueOnce(
+        jsonResponse({ ok: false, code: "UNKNOWN_SOURCE_REF" }, 422),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          ok: true,
+          record: { reproductionId: "rep-1" },
+          pdfBase64: "JVBER",
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({ ok: false, code: "REPRODUCTION_IN_PROGRESS" }, 409),
+      )
+      .mockResolvedValueOnce(jsonResponse({ ok: true, removed: 6 }))
+      .mockResolvedValueOnce(
+        jsonResponse(
+          { ok: false, code: "DELETE_PARTIAL", removed: 5, remaining: 1 },
+          502,
+        ),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({ ok: false, code: "SOMETHING_ELSE_WITH_INTERNALS" }, 502),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      saveRevision(key, { baseFile: "004-failed.json", response: "{}" }),
+    ).resolves.toBe("rev-1");
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("/admin/debug/resume/api/archives/revisions");
+    expect(init).toMatchObject({
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "content-type": "application/json" },
+    });
+    expect(JSON.parse(init.body)).toEqual({
+      ...key,
+      baseFile: "004-failed.json",
+      response: "{}",
+    });
+    await expect(
+      saveRevision(key, { baseFile: "004-failed.json", response: "{}" }),
+    ).rejects.toThrow("출처");
+
+    await expect(
+      reproduceArchive(key, { source: { kind: "original" }, action: "pdf" }),
+    ).resolves.toEqual({
+      record: { reproductionId: "rep-1" },
+      pdfBase64: "JVBER",
+    });
+    expect(JSON.parse(fetchMock.mock.calls[2][1].body)).toEqual({
+      ...key,
+      source: { kind: "original" },
+      action: "pdf",
+    });
+    await expect(
+      reproduceArchive(key, { source: { kind: "original" }, action: "pdf" }),
+    ).rejects.toThrow("이미 같은 재현이 실행 중입니다.");
+
+    await expect(removeArchive(key, "att-1")).resolves.toBe(6);
+    expect(JSON.parse(fetchMock.mock.calls[4][1].body)).toEqual({
+      ...key,
+      confirm: "att-1",
+    });
+    await expect(removeArchive(key, "att-1")).rejects.toThrow(
+      "일부만 삭제되었습니다. 삭제 5개, 남음 1개입니다.",
+    );
+    await expect(removeArchive(key, "att-1")).rejects.toThrow(
       "요청을 처리하지 못했습니다. 다시 시도해 주세요.",
     );
   });

@@ -4,7 +4,7 @@ import type { JsonStorage } from "@mcp/storage/supabaseStorage";
 import type { PortfolioAdminApi } from "@mcp/auth/adminApi";
 import type { createPortfolioAdminOAuth } from "@mcp/auth/adminOAuth";
 import { handleAdminRequest } from "@mcp/auth/adminRoutes";
-import type { ResumeDebugArchiveReader } from "@mcp/resume/output/resumeDebugArchiveReader";
+import type { ResumeDebugArchiveAdmin } from "@mcp/resume/output/resumeDebugArchiveAdmin";
 import type { SettingConnectionTester } from "@mcp/auth/settingConnectionTest";
 import type { IntrospectedSession } from "@mcp/resume/http/portfolioApiIntrospector";
 import { createResumeGenerationStore } from "@mcp/resume/output/resumeGenerationStore";
@@ -65,7 +65,7 @@ export const createResumeMcpServer = (options: {
     authorizationOrigin: string;
     introspect: (token: string) => Promise<IntrospectedSession>;
     testSetting?: SettingConnectionTester;
-    debugArchive?: ResumeDebugArchiveReader;
+    debugArchive?: ResumeDebugArchiveAdmin;
   };
   log?: (message: string) => void;
 }) => {

@@ -14,7 +14,7 @@ describe("App", () => {
     );
 
     expect(
-      screen.getByRole("heading", { level: 1, name: "AI 모델 설정 로그인" }),
+      screen.getByRole("heading", { level: 1, name: "MCP 관리자 로그인" }),
     ).toBeTruthy();
     expect(screen.getByRole("alert")).toBeTruthy();
   });
@@ -65,5 +65,34 @@ describe("App", () => {
         screen.getByRole("heading", { level: 1, name: "실행 상세" }),
       ).toBeTruthy(),
     );
+  });
+
+  it("connect 경로의 next 쿼리를 로그인 화면에 전달한다", () => {
+    render(
+      <App
+        pathname="/admin/ai-models/connect"
+        search="?next=%2Fadmin%2Fdebug%2Fresume"
+      />,
+    );
+
+    const form = screen
+      .getByRole("button", { name: "GitHub로 로그인" })
+      .closest("form");
+    expect(form?.getAttribute("action")).toBe(
+      "/admin/ai-models/oauth/start?next=%2Fadmin%2Fdebug%2Fresume",
+    );
+  });
+
+  it("/admin 경로는 슬래시가 붙어도 관리 메뉴를 보여준다", () => {
+    const { unmount } = render(<App pathname="/admin" search="" />);
+    expect(
+      screen.getByRole("heading", { level: 1, name: "관리 메뉴" }),
+    ).toBeTruthy();
+    unmount();
+
+    render(<App pathname="/admin/" search="" />);
+    expect(
+      screen.getByRole("heading", { level: 1, name: "관리 메뉴" }),
+    ).toBeTruthy();
   });
 });

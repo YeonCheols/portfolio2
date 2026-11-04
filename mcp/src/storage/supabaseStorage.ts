@@ -15,6 +15,8 @@ export class StorageError extends Error {
   }
 }
 
+const removeBatchSize = 100;
+
 const objectPath = (path: string): string => {
   if (
     !path
@@ -93,6 +95,40 @@ export const createSupabaseStorage = (options: {
       } catch {
         throw new StorageError("STORAGE_READ_FAILED");
       }
+    },
+    // 지웠다고 응답한 경로만 반환하므로 호출자가 요청과 비교해 일부 실패를 알아낸다
+    removeObjects: async (paths: string[]): Promise<string[]> => {
+      const valid = paths.map(objectPath);
+      const removed: string[] = [];
+      for (let start = 0; start < valid.length; start += removeBatchSize) {
+        const response = await request(
+          `/object/${bucket}`,
+          {
+            method: "DELETE",
+            body: JSON.stringify({
+              prefixes: valid.slice(start, start + removeBatchSize),
+            }),
+          },
+          "STORAGE_DELETE_FAILED",
+        );
+        try {
+          const data: unknown = await response.json();
+          if (!Array.isArray(data)) throw new Error();
+          for (const item of data) {
+            if (
+              typeof item !== "object" ||
+              item === null ||
+              !("name" in item) ||
+              typeof item.name !== "string"
+            )
+              throw new Error();
+            removed.push(item.name);
+          }
+        } catch {
+          throw new StorageError("STORAGE_DELETE_FAILED");
+        }
+      }
+      return removed;
     },
     listObjects: async (
       prefix: string,

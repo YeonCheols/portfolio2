@@ -1,10 +1,24 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import { getArchiveDetail, getArchiveFileUrl } from "../api/archive-api";
-import type { ArchiveDetail, ArchiveKey, ArchiveStatus } from "../types";
+import {
+  getArchiveDetail,
+  getArchiveFileUrl,
+  listReproductions,
+  listRevisions,
+} from "../api/archive-api";
+import type {
+  ArchiveDetail,
+  ArchiveKey,
+  ArchiveStatus,
+  ReproductionRecord,
+  RevisionSummary,
+} from "../types";
 import { AdminLayout } from "../ui/admin-layout";
 
 import { listHref } from "./archive-search";
+import { DeleteSection } from "./delete-section";
+import { ReproductionSection } from "./reproduction-section";
+import { RevisionSection } from "./revision-section";
 
 type DetailState =
   | { status: "loading" }
@@ -56,15 +70,55 @@ export const ArchiveDetailPage = ({
   const [state, setState] = useState<DetailState>({ status: "loading" });
   const [opening, setOpening] = useState<ReadonlySet<string>>(new Set());
   const [fileErrors, setFileErrors] = useState<Record<string, string>>({});
+  const [revisions, setRevisions] = useState<RevisionSummary[]>([]);
+  const [reproductions, setReproductions] = useState<ReproductionRecord[]>([]);
+  const [extraErrors, setExtraErrors] = useState<string[]>([]);
   const mounted = useRef(true);
   const { environment, subjectHash, generationId, attemptId } = archiveKey;
+  const key = useMemo(
+    () => ({ environment, subjectHash, generationId, attemptId }),
+    [environment, subjectHash, generationId, attemptId],
+  );
+
+  // 보조 정보의 실패가 상세 전체를 막지 않도록 영역별로 따로 불러온다
+  const reportExtra = useCallback((message: string, clear: boolean) => {
+    setExtraErrors((current) => {
+      const rest = current.filter((item) => item !== message);
+      return clear ? rest : [...rest, message];
+    });
+  }, []);
+  const loadRevisions = useCallback(async () => {
+    const message = "수정본 목록을 불러오지 못했습니다.";
+    try {
+      const items = await listRevisions(key);
+      if (!mounted.current) return;
+      setRevisions(items);
+      reportExtra(message, true);
+    } catch {
+      if (mounted.current) reportExtra(message, false);
+    }
+  }, [key, reportExtra]);
+  const loadReproductions = useCallback(async () => {
+    const message = "재현 기록을 불러오지 못했습니다.";
+    try {
+      const items = await listReproductions(key);
+      if (!mounted.current) return;
+      setReproductions(items);
+      reportExtra(message, true);
+    } catch {
+      if (mounted.current) reportExtra(message, false);
+    }
+  }, [key, reportExtra]);
 
   useEffect(() => {
     mounted.current = true;
     setState({ status: "loading" });
-    getArchiveDetail({ environment, subjectHash, generationId, attemptId })
+    getArchiveDetail(key)
       .then((detail) => {
-        if (mounted.current) setState({ status: "done", detail });
+        if (!mounted.current) return;
+        setState({ status: "done", detail });
+        void loadRevisions();
+        void loadReproductions();
       })
       .catch((error: unknown) => {
         if (!mounted.current) return;
@@ -76,7 +130,7 @@ export const ArchiveDetailPage = ({
     return () => {
       mounted.current = false;
     };
-  }, [environment, subjectHash, generationId, attemptId]);
+  }, [key, loadRevisions, loadReproductions]);
 
   const openFile = async (name: string) => {
     if (opening.has(name)) return;
@@ -104,7 +158,7 @@ export const ArchiveDetailPage = ({
   };
 
   return (
-    <AdminLayout current="debug">
+    <AdminLayout current="debug-archive">
       <a
         href={listHref({ environment }, 1)}
         className="text-sm font-bold text-blue-700 underline-offset-2 hover:underline"
@@ -130,9 +184,15 @@ export const ArchiveDetailPage = ({
         <DetailBody
           detail={state.detail}
           environment={environment}
+          archiveKey={key}
           opening={opening}
           fileErrors={fileErrors}
           onOpen={openFile}
+          revisions={revisions}
+          reproductions={reproductions}
+          extraErrors={extraErrors}
+          onRevisionSaved={loadRevisions}
+          onReproduced={loadReproductions}
         />
       )}
     </AdminLayout>
@@ -142,15 +202,27 @@ export const ArchiveDetailPage = ({
 const DetailBody = ({
   detail,
   environment,
+  archiveKey,
   opening,
   fileErrors,
   onOpen,
+  revisions,
+  reproductions,
+  extraErrors,
+  onRevisionSaved,
+  onReproduced,
 }: {
   detail: ArchiveDetail;
   environment: string;
+  archiveKey: ArchiveKey;
   opening: ReadonlySet<string>;
   fileErrors: Record<string, string>;
   onOpen: (name: string) => void;
+  revisions: RevisionSummary[];
+  reproductions: ReproductionRecord[];
+  extraErrors: string[];
+  onRevisionSaved: () => void;
+  onReproduced: () => void;
 }) => {
   const { summary, files } = detail;
   const latest = record(detail.latest);
@@ -243,6 +315,29 @@ const DetailBody = ({
           ))}
         </ul>
       </section>
+
+      {extraErrors.map((message) => (
+        <p
+          key={message}
+          role="alert"
+          className="mt-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800"
+        >
+          {message}
+        </p>
+      ))}
+      <RevisionSection
+        archiveKey={archiveKey}
+        detail={detail}
+        revisions={revisions}
+        onSaved={onRevisionSaved}
+      />
+      <ReproductionSection
+        archiveKey={archiveKey}
+        revisions={revisions}
+        history={reproductions}
+        onRecorded={onReproduced}
+      />
+      <DeleteSection archiveKey={archiveKey} />
     </>
   );
 };

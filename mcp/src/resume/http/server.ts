@@ -1,5 +1,5 @@
 import { createPortfolioAdminApi } from "@mcp/auth/adminApi";
-import { createResumeDebugArchiveReader } from "@mcp/resume/output/resumeDebugArchiveReader";
+import { createResumeDebugArchiveAdmin } from "@mcp/resume/output/resumeDebugArchiveAdmin";
 import { createSupabaseStorage } from "@mcp/storage/supabaseStorage";
 import { createPortfolioAdminOAuth } from "@mcp/auth/adminOAuth";
 import { createSettingConnectionTester } from "@mcp/auth/settingConnectionTest";
@@ -138,7 +138,7 @@ export const startResumeMcpServer = () => {
     admin: {
       api: adminApi,
       debugArchive: storage
-        ? createResumeDebugArchiveReader(storage)
+        ? createResumeDebugArchiveAdmin(storage)
         : undefined,
       testSetting: createSettingConnectionTester({
         api: adminApi,

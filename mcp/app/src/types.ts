@@ -71,3 +71,37 @@ export type ArchiveQuery = {
   page?: number;
   pageSize?: number;
 };
+
+export type RevisionSummary = { revisionId: string; createdAt?: string };
+
+export type RevisionRecord = {
+  revisionId: string;
+  createdAt?: string;
+  base?: { file: string };
+  request?: unknown;
+  response: string;
+};
+
+export type ReproductionSource =
+  | { kind: "original" }
+  | { kind: "revision"; revisionId: string };
+
+export type ReproductionAction = "validate" | "pdf";
+
+export type ReproductionRecord = {
+  reproductionId: string;
+  createdAt: string;
+  source: ReproductionSource;
+  action: ReproductionAction;
+  status: "completed" | "failed";
+  failedStage?: "snapshot" | "response" | "validation" | "pdf";
+  errorCode?: string;
+  validation?: {
+    claims: number;
+    gaps: number;
+    conflicts: number;
+    uncertain: number;
+    issues: unknown[];
+  };
+  pdf?: { byteLength: number };
+};
