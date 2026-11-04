@@ -50,6 +50,12 @@ const router = (routes: Record<string, () => Response | Promise<Response>>) =>
     return route[1]();
   });
 
+// 상세 응답이 늦게 와도 화면이 올바로 기다리는지 보려고 응답을 일부러 늦춘다
+const afterDelay = (response: Response) => async () => {
+  await new Promise((resolve) => setTimeout(resolve, 50));
+  return response;
+};
+
 const extras = {
   "/revisions?": () =>
     jsonResponse({
@@ -82,7 +88,7 @@ describe("ArchiveDetailPage", () => {
   it("실행 요약과 저장된 요청·원문 응답·검증 결과·오류 코드를 가공 없이 텍스트로 보여준다", async () => {
     vi.stubGlobal(
       "fetch",
-      router({ "/detail?": () => jsonResponse(detail), ...extras }),
+      router({ "/detail?": afterDelay(jsonResponse(detail)), ...extras }),
     );
 
     const { container } = render(<ArchiveDetailPage archiveKey={archiveKey} />);
@@ -90,7 +96,8 @@ describe("ArchiveDetailPage", () => {
     expect(
       await screen.findByRole("heading", { level: 1, name: "실행 상세" }),
     ).toBeTruthy();
-    expect(screen.getByText("att-1")).toBeTruthy();
+    // 제목은 로딩 중에도 보이므로 불러온 내용이 나타날 때까지 기다린다
+    expect(await screen.findByText("att-1")).toBeTruthy();
     expect(screen.getByText("model_response 직후 실패")).toBeTruthy();
     expect(screen.getByText("INVALID_MODEL_JSON")).toBeTruthy();
 
@@ -112,7 +119,7 @@ describe("ArchiveDetailPage", () => {
     const open = vi.spyOn(window, "open").mockReturnValue(null);
     let signCalls = 0;
     const fetchMock = router({
-      "/detail?": () => jsonResponse(detail),
+      "/detail?": afterDelay(jsonResponse(detail)),
       "/file-url?": () =>
         ++signCalls === 1
           ? jsonResponse({
@@ -126,10 +133,11 @@ describe("ArchiveDetailPage", () => {
     const user = userEvent.setup();
 
     render(<ArchiveDetailPage archiveKey={archiveKey} />);
-    await screen.findByRole("heading", { name: "실행 상세" });
-
+    // 제목은 로딩 중에도 보이므로 단계 파일 버튼이 나타날 때까지 기다린다
     await user.click(
-      screen.getByRole("button", { name: "002-model_response.json 원본 열기" }),
+      await screen.findByRole("button", {
+        name: "002-model_response.json 원본 열기",
+      }),
     );
     await waitFor(() => expect(open).toHaveBeenCalledTimes(1));
     expect(open).toHaveBeenCalledWith(
