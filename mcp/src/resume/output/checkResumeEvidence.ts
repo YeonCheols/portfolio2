@@ -3,6 +3,7 @@ import {
   type CheckedDraft,
   type CheckedDraftClaim,
   type DraftClaim,
+  type DraftValidationIssueCode,
   type ResumeSelectionNode,
 } from "@mcp/resume/output/checkResumeDraft";
 
@@ -11,6 +12,22 @@ const normalize = (value: string): string =>
 
 const sourceText = (source: ResumeSelectionNode): string =>
   [source.text, ...source.children.map(sourceText)].filter(Boolean).join("\n");
+
+const numericFacts = (text: string): string[] =>
+  text.match(/\d+(?:[.,]\d+)*(?:%|퍼센트|년|개월|월|일|명|만|억)?/g) ?? [];
+
+const validationCode = (
+  claim: CheckedDraftClaim,
+): DraftValidationIssueCode | undefined => {
+  if (!hasEvidence(claim)) return "INVALID_SOURCE_EVIDENCE";
+  const facts = new Set(
+    numericFacts((claim.evidence ?? []).map((item) => item.quote).join("\n")),
+  );
+  if (numericFacts(claim.text).some((fact) => !facts.has(fact))) {
+    return "UNSUPPORTED_NUMERIC_FACT";
+  }
+  return undefined;
+};
 
 const hasEvidence = (claim: CheckedDraftClaim): boolean => {
   const evidence = claim.evidence;
@@ -30,20 +47,23 @@ const hasEvidence = (claim: CheckedDraftClaim): boolean => {
   );
 };
 
-// 인용 구절·출처의 일치만 검증하며 문장 전체의 의미를 증명한 상태로 취급하지 않습니다.
+// 인용·수치의 일치는 문장 전체의 의미가 원문과 같다는 증명이 아닙니다.
 export const checkResumeEvidence = (
   selection: readonly ResumeSelectionNode[],
   claims: readonly DraftClaim[],
 ): CheckedDraft => {
   const checked = checkResumeDraft(selection, claims);
-  const accepted = checked.claims.filter(hasEvidence);
-  const rejected = checked.claims.filter((claim) => !hasEvidence(claim));
+  const accepted = checked.claims.filter((claim) => !validationCode(claim));
+  const rejected = checked.claims.flatMap((claim) => {
+    const code = validationCode(claim);
+    return code ? [{ claim, code }] : [];
+  });
   return {
     ...checked,
     claims: accepted,
     gaps: [
       ...checked.gaps,
-      ...rejected.map(({ text, sourceIds, formItem, evidence }) => ({
+      ...rejected.map(({ claim: { text, sourceIds, formItem, evidence } }) => ({
         text,
         sourceIds,
         ...(formItem ? { formItem } : {}),
@@ -52,8 +72,8 @@ export const checkResumeEvidence = (
     ],
     validationIssues: [
       ...checked.validationIssues,
-      ...rejected.map((claim) => ({
-        code: "INVALID_SOURCE_EVIDENCE" as const,
+      ...rejected.map(({ claim, code }) => ({
+        code,
         sourceIds: claim.sourceIds,
       })),
     ],

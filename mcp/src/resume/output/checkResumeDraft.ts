@@ -29,6 +29,7 @@ export type CheckedDraftClaim = {
 };
 
 export type DraftValidationIssueCode =
+  | "UNSUPPORTED_NUMERIC_FACT"
   | "INVALID_SOURCE_EVIDENCE"
   | "EMPTY_TEXT"
   | "NO_SOURCE_IDS"

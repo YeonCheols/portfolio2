@@ -126,24 +126,124 @@ const claimsForNode = (
   ];
 };
 
+const normalizeText = (text: string): string =>
+  text.normalize("NFC").replace(/\s+/g, " ").trim();
+
+const proseFields = new Set([
+  "text",
+  "summary",
+  "responsibility",
+  "technicalStructure",
+  "projectApproach",
+  "topics",
+]);
+
+const publicText = (node: ResumeSelectionNode): string =>
+  node.visibility === "public"
+    ? [node.text, ...node.children.map(publicText)].filter(Boolean).join("\n")
+    : "";
+
+const rewrittenContent = (
+  node: ResumeSelectionNode,
+  claims: readonly CheckedDraftClaim[],
+  fields: readonly { name: string; value: string }[],
+  structuralNames: readonly string[] = ["title"],
+): { values: string[]; narratives: string[] } => {
+  const texts = new Set(claimsForNode(node, claims));
+  const ids = descendantsHaveIds(node);
+  const candidates = claims.filter(
+    (claim) =>
+      texts.has(claim.text.trim()) &&
+      claim.sourceIds.some((id) => ids.has(id)) &&
+      claim.sources.length > 0 &&
+      claim.sources.every((source) => source.visibility === "public"),
+  );
+  const used = new Set<CheckedDraftClaim>();
+  const values = fields.map(({ name, value }) => {
+    if (!proseFields.has(name)) return value;
+    const matches = candidates.filter(
+      (claim) =>
+        (!claim.formItem || claim.formItem === name) &&
+        claim.evidence?.some(
+          (item) =>
+            claim.sourceIds.includes(item.sourceId) &&
+            normalizeText(item.quote).includes(normalizeText(value)),
+        ),
+    );
+    if (matches.length !== 1 || !value) return value;
+    const claim = matches[0];
+    if (used.has(claim)) return "";
+    used.add(claim);
+    return claim.text.trim();
+  });
+  return {
+    values,
+    narratives: [...texts].filter((text) => {
+      if ([...used].some((claim) => claim.text.trim() === text)) return false;
+      if (
+        candidates.some(
+          (claim) =>
+            claim.text.trim() === text &&
+            fields.some(
+              ({ name, value }) => Boolean(value) && claim.formItem === name,
+            ),
+        )
+      )
+        return false;
+      const structural = normalizeText(
+        node.children
+          .filter((child) => structuralNames.includes(child.name))
+          .map(publicText)
+          .filter(Boolean)
+          .join("\n"),
+      );
+      return !candidates.some(
+        (claim) =>
+          claim.text.trim() === text &&
+          claim.evidence?.length &&
+          claim.evidence.every(
+            (item) =>
+              normalizeText(item.quote) !== "" &&
+              structural.includes(normalizeText(item.quote)),
+          ),
+      );
+    }),
+  };
+};
+
 const recordOf = (
   node: ResumeSelectionNode,
   claims: readonly CheckedDraftClaim[],
   titleNames: readonly string[],
   detailNames: readonly [string, string][],
-): ResumePdfRecord => ({
-  ...(node.id ? { id: node.id } : {}),
-  title: titleNames.map((name) => field(node, name)).find(Boolean) ?? "",
-  period: periodOf(node),
-  subtitle: [field(node, "position"), field(node, "department")]
-    .filter(Boolean)
-    .join(" · "),
-  details: detailNames.flatMap(([name, label]) => {
-    const value = field(node, name);
-    return value ? [{ label, value }] : [];
-  }),
-  narratives: claimsForNode(node, claims),
-});
+): ResumePdfRecord => {
+  const fields = detailNames.map(([name]) => ({
+    name,
+    value: field(node, name),
+  }));
+  const content = rewrittenContent(node, claims, fields, [
+    ...titleNames,
+    "period",
+    "position",
+    "department",
+    ...detailNames
+      .map(([name]) => name)
+      .filter((name) => !proseFields.has(name)),
+  ]);
+  return {
+    ...(node.id ? { id: node.id } : {}),
+    title: titleNames.map((name) => field(node, name)).find(Boolean) ?? "",
+    period: periodOf(node),
+    subtitle: [field(node, "position"), field(node, "department")]
+      .filter(Boolean)
+      .join(" · "),
+    details: detailNames.flatMap(([, label], index) => {
+      const value = content.values[index];
+      return value ? [{ label, value }] : [];
+    }),
+    narratives: content.narratives,
+  };
+};
 
 const recordsOf = (
   selection: readonly ResumeSelectionNode[],
@@ -221,37 +321,11 @@ export const buildResumePdfModel = (input: ResumePdfInput): ResumePdfModel => {
           [
             ["team", "팀/역할"],
             ["role", "역할"],
+            ...Object.entries(projectDetailLabels),
           ],
         ),
         ...(node.employmentRef ? { employmentRef: node.employmentRef } : {}),
         workItems: [],
-        details: [
-          ...recordOf(
-            node,
-            claims,
-            ["title"],
-            [
-              ["team", "팀/역할"],
-              ["role", "역할"],
-            ],
-          ).details,
-          ...[
-            "summary",
-            "responsibility",
-            "technicalStructure",
-            "projectApproach",
-          ].flatMap((name) => {
-            const value = field(node, name);
-            return value
-              ? [
-                  {
-                    label: projectDetailLabels[name],
-                    value,
-                  },
-                ]
-              : [];
-          }),
-        ],
       }),
     );
   const projectsById = new Map(
@@ -293,12 +367,19 @@ export const buildResumePdfModel = (input: ResumePdfInput): ResumePdfModel => {
       if (!node.projectRef) return;
       const project = projectsById.get(node.projectRef);
       if (!project) return;
+      const content = rewrittenContent(
+        node,
+        claims,
+        childrenOf(node, "text")
+          .map((child) => ({ name: "text", value: visibleText(child) }))
+          .filter(({ value }) => Boolean(value)),
+      );
       project.workItems.push({
         ...(node.id ? { id: node.id } : {}),
         title: field(node, "title"),
-        descriptions: childrenOf(node, "text").map(visibleText).filter(Boolean),
+        descriptions: content.values.filter(Boolean),
         outcomes: node.id ? (outcomeDescriptions.get(node.id) ?? []) : [],
-        narratives: claimsForNode(node, claims),
+        narratives: content.narratives,
       });
     });
   const employmentById = new Map(
@@ -334,9 +415,15 @@ export const buildResumePdfModel = (input: ResumePdfInput): ResumePdfModel => {
       ["organization", "title"],
       [["reportedDuration", "기간"]],
     ),
-    narratives: [field(node, "text"), ...claimsForNode(node, claims)].filter(
-      Boolean,
-    ),
+    narratives: (() => {
+      const content = rewrittenContent(
+        node,
+        claims,
+        [{ name: "text", value: field(node, "text") }],
+        ["organization", "title", "period", "reportedDuration"],
+      );
+      return [...content.values, ...content.narratives].filter(Boolean);
+    })(),
   }));
   const training = recordsOf(
     selection,

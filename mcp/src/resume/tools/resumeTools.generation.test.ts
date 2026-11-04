@@ -30,6 +30,50 @@ const context = () => ({
 
 describe("이력서 생성 원본 수명주기", () => {
   beforeEach(() => jest.clearAllMocks());
+  it("원문에 없는 수치가 있으면 재검증에서도 PDF를 만들지 않고 원본을 보존한다", async () => {
+    const generation = context();
+    const response = JSON.stringify({
+      claims: [
+        ...JSON.parse(raw).claims,
+        {
+          text: "테스트 사용자 50명입니다",
+          sourceIds: ["profile-test"],
+          formItem: "name",
+          evidence: [{ sourceId: "profile-test", quote: "테스트 사용자" }],
+        },
+      ],
+    });
+    const model = { generate: jest.fn(async () => response) };
+    const connection = { load: jest.fn(async () => connectedResume()) };
+    const generated = await callResumeTool(
+      "generate_resume",
+      args,
+      connection,
+      model,
+      generation,
+    );
+    if (!generated.ok) throw new Error(generated.code);
+    const { generationId, validationIssues } = JSON.parse(generated.text);
+    expect(validationIssues).toContainEqual({
+      code: "UNSUPPORTED_NUMERIC_FACT",
+      sourceIds: ["profile-test"],
+    });
+    expect(
+      await callResumeTool(
+        "convert_resume_to_pdf",
+        { generationId },
+        connection,
+        model,
+        generation,
+      ),
+    ).toEqual({ ok: false, code: "UNVERIFIED_CLAIMS", generationId });
+    expect(createResumePdf).not.toHaveBeenCalled();
+    expect(generation.store.read(generation.scope, generationId).response).toBe(
+      response,
+    );
+    expect(model.generate).toHaveBeenCalledTimes(1);
+    expect(connection.load).toHaveBeenCalledTimes(1);
+  });
   it("최초 생성부터 재검증과 반복 PDF까지 같은 원본으로 모델을 총 한 번만 호출한다", async () => {
     const generation = context();
     const model = { generate: jest.fn(async () => raw) };

@@ -77,6 +77,16 @@ const recordingClient = (fixtures: string[]) => {
 };
 
 describe("runResumeHarness", () => {
+  it("생성 전에 오탈자와 사실 충돌을 자체 점검하고 항목 중복을 금지하도록 요청한다", () => {
+    expect(resumeWriterPersona).toContain("맞춤법·띄어쓰기·오탈자");
+    expect(resumeWriterPersona).toContain("날짜·직급·역할·성과 수치");
+    expect(resumeWriterPersona).toContain(
+      "원문과 재작성 문장을 함께 나열하지 않는다",
+    );
+    expect(resumeWriterPersona).toContain(
+      "충돌하는 원문은 임의로 선택하거나 합치지 않는다",
+    );
+  });
   const source = (
     id: string,
     section: string,
@@ -668,7 +678,7 @@ describe("runResumeHarness", () => {
           ["summary", "서비스를 개편했습니다"],
           ["responsibility", "화면 구조를 개선했습니다"],
           ["use", "React를 사용했습니다"],
-          ["period", "6개월간 진행했습니다"],
+          ["period", "2024-01 ~ 2024-06에 진행했습니다"],
           ["link", "서비스를 공개했습니다"],
           ["domain", "이력서 영역을 담당했습니다"],
           ["technicalStructure", "기술 경계를 설계했습니다"],
@@ -703,7 +713,7 @@ describe("runResumeHarness", () => {
         "사용 기술",
         "React를 사용했습니다",
         "기간",
-        "6개월간 진행했습니다",
+        "2024-01 ~ 2024-06에 진행했습니다",
         "사이트 URL",
         "서비스를 공개했습니다",
         "프로젝트 진행 방식",
