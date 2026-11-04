@@ -1,6 +1,9 @@
 import type { PortfolioAdminApi } from "@mcp/auth/adminApi";
 import { createSettingConnectionTester } from "@mcp/auth/settingConnectionTest";
-import type { ModelConnect } from "@mcp/resume/connection/testModelConnection";
+
+type ModelConnect = Parameters<
+  typeof createSettingConnectionTester
+>[0]["connections"][string];
 
 const row = (overrides: Record<string, unknown> = {}) => ({
   id: 1,

@@ -72,39 +72,43 @@ describe("SettingsPage", () => {
     );
   });
 
-  it("비활성 설정을 활성화하고 목록을 다시 조회한다", async () => {
-    const setting = {
-      ...developmentSetting,
-      id: 21,
-      environment: "production",
-      modelName: "anthropic/claude-sonnet-5.5",
-      hasApiKey: true,
-      isActive: false,
-    };
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse([setting]))
-      .mockResolvedValueOnce(jsonResponse({ id: 21 }))
-      .mockResolvedValueOnce(jsonResponse([{ ...setting, isActive: true }]));
-    vi.stubGlobal("fetch", fetchMock);
-    const user = userEvent.setup();
-    render(<SettingsPage />);
+  it.each(["openrouter", "openai", "gemini"])(
+    "%s 비활성 설정을 활성화하고 목록을 다시 조회한다",
+    async (provider) => {
+      const setting = {
+        ...developmentSetting,
+        id: 21,
+        provider,
+        environment: "production",
+        modelName: "anthropic/claude-sonnet-5.5",
+        hasApiKey: true,
+        isActive: false,
+      };
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse([setting]))
+        .mockResolvedValueOnce(jsonResponse({ id: 21 }))
+        .mockResolvedValueOnce(jsonResponse([{ ...setting, isActive: true }]));
+      vi.stubGlobal("fetch", fetchMock);
+      const user = userEvent.setup();
+      render(<SettingsPage />);
 
-    await user.click(await screen.findByRole("button", { name: "활성화" }));
+      await user.click(await screen.findByRole("button", { name: "활성화" }));
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      2,
-      "/admin/ai-models/api/settings/21/activate",
-      expect.objectContaining({ method: "POST" }),
-    );
-    expect(
-      await screen.findByText("현재 환경에서 사용 중인 설정입니다."),
-    ).toBeTruthy();
-    expect(screen.getByRole("status").textContent).toBe(
-      "모델 설정을 활성화했습니다.",
-    );
-  });
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
+      expect(fetchMock).toHaveBeenNthCalledWith(
+        2,
+        "/admin/ai-models/api/settings/21/activate",
+        expect.objectContaining({ method: "POST" }),
+      );
+      expect(
+        await screen.findByText("현재 환경에서 사용 중인 설정입니다."),
+      ).toBeTruthy();
+      expect(screen.getByRole("status").textContent).toBe(
+        "모델 설정을 활성화했습니다.",
+      );
+    },
+  );
 
   it("설정 목록을 불러오지 못하면 오류 메시지를 보여준다", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse({}, 500)));
@@ -118,50 +122,71 @@ describe("SettingsPage", () => {
     expect(status.className).toContain("text-red-800");
   });
 
-  it("모델 설정 저장 폼을 portfolio-api 생성 요청으로 제출한다", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(jsonResponse([]))
-      .mockResolvedValueOnce(jsonResponse({ id: 12 }, 201))
-      .mockResolvedValueOnce(jsonResponse([]));
-    vi.stubGlobal("fetch", fetchMock);
-    const user = userEvent.setup();
-    render(<SettingsPage />);
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+  it.each([
+    ["openrouter", "https://openrouter.ai/api/v1/chat/completions"],
+    ["openai", "https://api.openai.com/v1/chat/completions"],
+    [
+      "gemini",
+      "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+    ],
+  ])(
+    "%s 설정 저장 폼을 portfolio-api 생성 요청으로 제출한다",
+    async (provider, url) => {
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse([]))
+        .mockResolvedValueOnce(jsonResponse({ id: 12 }, 201))
+        .mockResolvedValueOnce(jsonResponse([]));
+      vi.stubGlobal("fetch", fetchMock);
+      const user = userEvent.setup();
+      render(<SettingsPage />);
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
 
-    await user.selectOptions(screen.getByLabelText("환경"), "production");
-    await user.type(
-      screen.getByLabelText("모델 이름"),
-      "anthropic/claude-sonnet-5.5",
-    );
-    await user.type(
-      screen.getByLabelText("모델 API 키"),
-      "fake-production-api-key",
-    );
-    await user.click(screen.getByRole("button", { name: "설정 저장" }));
-
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      2,
-      "/admin/ai-models/api/settings",
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({
-          environment: "production",
-          provider: "openrouter",
-          modelName: "anthropic/claude-sonnet-5.5",
-          url: "https://openrouter.ai/api/v1/chat/completions",
-          apiKey: "fake-production-api-key",
+      await user.click(screen.getByRole("button", { name: "환경" }));
+      await user.click(screen.getByRole("option", { name: "운영" }));
+      await user.click(screen.getByRole("button", { name: "공급자" }));
+      await user.click(
+        screen.getByRole("option", {
+          name: {
+            openai: "OpenAI",
+            gemini: "Gemini",
+            openrouter: "OpenRouter",
+          }[provider],
         }),
-      }),
-    );
-    expect((await screen.findByRole("status")).textContent).toBe(
-      "모델 설정을 추가했습니다.",
-    );
-    expect((screen.getByLabelText("모델 이름") as HTMLInputElement).value).toBe(
-      "",
-    );
-  });
+      );
+      await user.type(
+        screen.getByLabelText("모델 이름"),
+        "anthropic/claude-sonnet-5.5",
+      );
+      await user.type(
+        screen.getByLabelText("모델 API 키"),
+        "fake-production-api-key",
+      );
+      await user.click(screen.getByRole("button", { name: "설정 저장" }));
+
+      await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
+      expect(fetchMock).toHaveBeenNthCalledWith(
+        2,
+        "/admin/ai-models/api/settings",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({
+            environment: "production",
+            provider,
+            modelName: "anthropic/claude-sonnet-5.5",
+            url,
+            apiKey: "fake-production-api-key",
+          }),
+        }),
+      );
+      expect((await screen.findByRole("status")).textContent).toBe(
+        "모델 설정을 추가했습니다.",
+      );
+      expect(
+        (screen.getByLabelText("모델 이름") as HTMLInputElement).value,
+      ).toBe("");
+    },
+  );
 
   it("비활성 설정을 수정 폼에 채우고 변경을 PUT으로 저장한다", async () => {
     const setting = {
@@ -186,7 +211,7 @@ describe("SettingsPage", () => {
     expect((screen.getByLabelText("모델 이름") as HTMLInputElement).value).toBe(
       "anthropic/claude-sonnet-5.5",
     );
-    expect((screen.getByLabelText("환경") as HTMLSelectElement).disabled).toBe(
+    expect((screen.getByLabelText("환경") as HTMLButtonElement).disabled).toBe(
       true,
     );
     await user.clear(screen.getByLabelText("모델 이름"));
@@ -288,7 +313,7 @@ describe("SettingsPage", () => {
     expect(
       screen.getByRole("heading", { name: "모델 설정 추가" }),
     ).toBeTruthy();
-    expect((screen.getByLabelText("환경") as HTMLSelectElement).disabled).toBe(
+    expect((screen.getByLabelText("환경") as HTMLButtonElement).disabled).toBe(
       false,
     );
   });

@@ -1,4 +1,4 @@
-import { fetchActiveResumeModelSetting } from "@mcp/resume/connection/resumeModelSetting";
+import { fetchActiveResumeModelSetting } from "@mcp/resume/connection/model/resumeModelSetting";
 
 const active = {
   provider: "openrouter",

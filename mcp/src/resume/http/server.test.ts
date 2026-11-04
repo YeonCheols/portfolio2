@@ -8,6 +8,75 @@ import {
 } from "@mcp/resume/http/server";
 
 describe("modelTestConnections", () => {
+  it("Gemini와 OpenAI를 등록하면 연결 테스트와 같은 설정의 두 생성 호출을 지원한다", async () => {
+    for (const [provider, url] of [
+      ["openai", "https://api.openai.com/v1/chat/completions"],
+      [
+        "gemini",
+        "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+      ],
+    ]) {
+      const body = { choices: [{ message: { content: "ok" } }] };
+      const settingUrl = "https://api.example/active";
+      const fetchImpl = jest.fn(
+        async (calledUrl: string, _init: RequestInit) => ({
+          ok: true,
+          json: async () =>
+            calledUrl.startsWith(settingUrl)
+              ? { provider, modelName: "test-model", url, apiKey: "fake-key" }
+              : body,
+        }),
+      );
+      const connections: Record<
+        string,
+        typeof modelTestConnections.openrouter
+      > = modelTestConnections;
+      expect(connections[provider]).toEqual(expect.any(Function));
+      await expect(
+        connections[provider](
+          { persona: "test", prompt: "ok" },
+          { url, model: "test-model", token: "fake-key", fetchImpl },
+        ),
+      ).resolves.toEqual({ text: "ok", raw: body });
+      fetchImpl.mockClear();
+      const model = resumeModelFromSetting({
+        settingUrl,
+        settingToken: "fake-read",
+        environment: "production",
+        fetchImpl,
+      });
+      expect(fetchImpl).not.toHaveBeenCalled();
+      await expect(
+        model.generate({ persona: "test", prompt: "draft" }),
+      ).resolves.toBe("ok");
+      await expect(
+        model.generate({ persona: "test", prompt: "verify" }),
+      ).resolves.toBe("ok");
+      expect(
+        fetchImpl.mock.calls.filter(([calledUrl]) =>
+          calledUrl.startsWith(settingUrl),
+        ),
+      ).toHaveLength(1);
+      expect(
+        fetchImpl.mock.calls.filter(([calledUrl]) => calledUrl === url),
+      ).toHaveLength(2);
+      for (const [, init] of fetchImpl.mock.calls.filter(
+        ([calledUrl]) => calledUrl === url,
+      )) {
+        expect(JSON.parse(String(init.body))).toEqual({
+          model: "test-model",
+          messages: [
+            { role: "system", content: "test" },
+            { role: "user", content: expect.any(String) },
+          ],
+        });
+        expect(init.headers).toMatchObject({
+          authorization: "Bearer fake-key",
+        });
+      }
+    }
+  });
+
   it("OpenRouter 연결 테스트는 응답 문장과 공급자 응답 원문을 함께 돌려준다", async () => {
     const body = { id: "gen-1", choices: [{ message: { content: "ok" } }] };
     const fetchImpl = jest.fn(async () => ({
@@ -209,6 +278,22 @@ describe("startResumeMcpServer", () => {
       fetchImpl.mock.calls.filter(([called]) => called === url);
     const modelOf = (fetchImpl: ReturnType<typeof fakeNetwork>) =>
       JSON.parse(String(callsTo(fetchImpl, modelUrl).at(-1)?.[1].body)).model;
+
+    it("객체 내장 속성 이름의 공급자이면 모델을 호출하지 않고 거부한다", async () => {
+      const fetchImpl = fakeNetwork({
+        [settingKey]: { ...setting, provider: "toString" },
+      });
+      const model = resumeModelFromSetting({
+        settingUrl,
+        settingToken: "read-token",
+        environment: "production",
+        fetchImpl,
+      });
+      await expect(model.generate(input)).rejects.toMatchObject({
+        code: "MISSING_MODEL_CONNECTION",
+      });
+      expect(callsTo(fetchImpl, modelUrl)).toHaveLength(0);
+    });
 
     it("활성 설정 API가 반환한 모델 이름과 실제 API 키로 호출한다", async () => {
       const fetchImpl = fakeNetwork();

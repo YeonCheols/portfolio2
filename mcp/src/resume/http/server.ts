@@ -2,15 +2,19 @@ import { createPortfolioAdminApi } from "@mcp/auth/adminApi";
 import { createPortfolioAdminOAuth } from "@mcp/auth/adminOAuth";
 import { createSettingConnectionTester } from "@mcp/auth/settingConnectionTest";
 import {
+  fetchGeminiModelResult,
+  fetchGeminiModelText,
+} from "@mcp/resume/connection/model/providers/geminiModelConnection";
+import {
+  fetchOpenAiModelResult,
+  fetchOpenAiModelText,
+} from "@mcp/resume/connection/model/providers/openAiModelConnection";
+import {
   fetchOpenRouterModelResult,
   fetchOpenRouterModelText,
-} from "@mcp/resume/connection/openRouterModelConnection";
-import {
-  fetchResumeModel,
-  ResumeConnectionError,
-  type ResumeConnectionFetch,
-} from "@mcp/resume/connection/resumeConnection";
-import { fetchActiveResumeModelSetting } from "@mcp/resume/connection/resumeModelSetting";
+} from "@mcp/resume/connection/model/providers/openRouterModelConnection";
+import { fetchActiveResumeModelSetting } from "@mcp/resume/connection/model/resumeModelSetting";
+import { fetchResumeModel } from "@mcp/resume/connection/resume/resumeConnection";
 import { withSessionCache } from "@mcp/resume/http/cachedSessionIntrospector";
 import {
   createResumeMcpServer,
@@ -26,14 +30,22 @@ import {
   type RuntimeEnv,
 } from "@mcp/resume/http/runtimeConfig";
 import type { ResumeModelClient } from "@mcp/resume/output/runResumeHarness";
+import {
+  ResumeConnectionError,
+  type ResumeConnectionFetch,
+} from "@mcp/resume/connection/shared/connection";
 
 const resumeModelConnections = {
   openrouter: fetchOpenRouterModelText,
+  openai: fetchOpenAiModelText,
+  gemini: fetchGeminiModelText,
 } as const;
 
 // 연결 테스트는 공급자 응답 원문까지 보여줘야 해서 문장과 원문을 함께 돌려주는 연결을 쓴다
 export const modelTestConnections = {
   openrouter: fetchOpenRouterModelResult,
+  openai: fetchOpenAiModelResult,
+  gemini: fetchGeminiModelResult,
 } as const;
 
 export type ResumeModelSettingSource = {
@@ -54,6 +66,9 @@ export const resumeModelFromSetting = (
       environment: source.environment,
       fetchImpl: source.fetchImpl,
     });
+    if (!Object.hasOwn(resumeModelConnections, setting.provider)) {
+      throw new ResumeConnectionError("MISSING_MODEL_CONNECTION");
+    }
     const connect =
       resumeModelConnections[
         setting.provider as keyof typeof resumeModelConnections

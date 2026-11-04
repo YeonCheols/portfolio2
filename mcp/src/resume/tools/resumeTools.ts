@@ -1,8 +1,5 @@
 import { composeResume } from "@mcp/resume/compose/composeResume";
-import {
-  ResumeConnectionError,
-  type ResumeConnectionInput,
-} from "@mcp/resume/connection/resumeConnection";
+import type { ResumeConnectionInput } from "@mcp/resume/connection/resume/resumeConnection";
 import type { ResumeModel, ResumeXmlNode } from "@mcp/resume/model/resumeModel";
 import {
   isResumeTemplate,
@@ -14,13 +11,13 @@ import {
   type DraftClaim,
   type ResumeSelectionNode,
 } from "@mcp/resume/output/checkResumeDraft";
+import { createResumePdf } from "@mcp/resume/output/createResumePdf";
 import { previewResume } from "@mcp/resume/output/previewResume";
 import {
   renderResumeForm,
   renderResumeFormSections,
 } from "@mcp/resume/output/renderResumeForm";
 import { renderResumeTemplate } from "@mcp/resume/output/renderResumeTemplate";
-import { createResumePdf } from "@mcp/resume/output/createResumePdf";
 import {
   generateResume,
   generatedResumePromptTitle,
@@ -30,6 +27,7 @@ import {
   type ResumeSemanticReview,
 } from "@mcp/resume/output/runResumeHarness";
 import { selectTemplateSections } from "@mcp/resume/output/selectTemplateSections";
+import { ResumeConnectionError } from "@mcp/resume/connection/shared/connection";
 
 export type ResumeToolContent =
   | { type: "text"; text: string }

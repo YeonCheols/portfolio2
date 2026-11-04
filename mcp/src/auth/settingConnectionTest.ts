@@ -1,10 +1,10 @@
 import type { PortfolioAdminApi } from "@mcp/auth/adminApi";
-import type { ResumeConnectionFetch } from "@mcp/resume/connection/resumeConnection";
 import {
   testModelConnection,
   type ModelConnect,
   type ModelConnectionTestResult,
-} from "@mcp/resume/connection/testModelConnection";
+} from "@mcp/resume/connection/model/testModelConnection";
+import type { ResumeConnectionFetch } from "@mcp/resume/connection/shared/connection";
 
 export type SettingConnectionTester = (input: {
   id: number;

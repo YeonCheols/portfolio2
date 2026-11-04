@@ -1,5 +1,4 @@
-import { ResumeConnectionError } from "@mcp/resume/connection/resumeConnection";
-import type { ResumeModelCall } from "@mcp/resume/connection/resumeModelConnection";
+import type { ResumeModelCall } from "@mcp/resume/connection/model/resumeModelConnection";
 import {
   checkResumeDraft,
   resumeFormItemOptions,
@@ -7,6 +6,7 @@ import {
   type DraftClaim,
   type ResumeSelectionNode,
 } from "@mcp/resume/output/checkResumeDraft";
+import { ResumeConnectionError } from "@mcp/resume/connection/shared/connection";
 
 const resumeSourcePolicy = [
   "연결된 원문에 없는 사실을 만들거나 추론하지 않는다.",

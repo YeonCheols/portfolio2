@@ -1,5 +1,5 @@
-import { ResumeConnectionError } from "@mcp/resume/connection/resumeConnection";
-import { fetchResumeModelText } from "@mcp/resume/connection/resumeModelConnection";
+import { fetchResumeModelText } from "@mcp/resume/connection/model/resumeModelConnection";
+import { ResumeConnectionError } from "@mcp/resume/connection/shared/connection";
 
 describe("fetchResumeModelText", () => {
   it("주소나 토큰이 없으면 외부 AI를 호출하지 않는다", async () => {

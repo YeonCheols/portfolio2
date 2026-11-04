@@ -40,9 +40,16 @@ mcp/
     ├── output/                   선택한 모델의 출력. 미리보기, 원소 이름 템플릿, 이력서 양식
     ├── tools/                    MCP 도구 이름과 JSON-RPC 처리
     ├── http/                     이력서 MCP HTTP 서버와 프로세스 진입점
-    ├── connection/               이력서 모델 API와 외부 AI 문장 API 호출. http 진입점만 사용
+    ├── connection/               외부 연결: shared(공통 계약), resume(이력서 조회), model(AI 모델)
     └── testing/                  테스트 fixture. 실행 코드가 가져오지 않음
 ```
+
+외부 연결은 다음 역할과 도메인으로 나눕니다. 테스트는 이동한 구현 파일 옆에 유지합니다.
+
+- `connection/shared/`: 공통 오류, fetch·옵션 타입과 JSON POST 계약을 소유합니다.
+- `connection/resume/`: 이력서 데이터 조회의 입력과 API 호출을 소유합니다.
+- `connection/model/`: AI 모델 호출 계약, Chat Completions 공통 처리, 활성 모델 설정 조회와 연결 진단을 소유합니다.
+- `connection/model/providers/`: OpenRouter·OpenAI·Gemini 공급자 어댑터를 소유합니다.
 
 의존은 `model`에서 `compose`와 `output`으로, 그다음 `tools`, `http` 순서로만 갑니다. 테스트는 대상 파일 옆에 둡니다. MCP 내부 모듈은 `@mcp/...` alias로 가져옵니다. 상대경로는 쓰지 않습니다. alias 정의는 `tsconfig.json`의 `@mcp/*`에 있습니다. 빌드 결과는 Node가 읽을 수 있도록 `@mcp` 경로를 상대경로로 바꿉니다.
 
@@ -68,7 +75,7 @@ mcp/
 | `render_resume_template` | 원소 이름과 원문을 한 줄로 출력합니다.                                             |
 | `render_resume_form`     | 한글 항목명과 원문으로 이력서 양식을 출력합니다.                                   |
 
-없는 도구 이름은 `UNKNOWN_TOOL`입니다. 연결이 거부한 입력은 연결 오류 코드만 반환합니다. OpenRouter 공급자가 비정상 상태로 응답하면 `openRouterModelConnection.ts`가 상태 코드로 오류 코드를 나눕니다. 401·403은 `MODEL_AUTH_FAILED`, 429와 5xx는 `MODEL_PROVIDER_ERROR`, 그 밖의 거부는 `MODEL_REJECTED`입니다. `generate_resume`도 같은 어댑터를 쓰므로 이 코드가 도구 응답의 연결 오류 코드로 그대로 전달됩니다. 공급자의 오류 본문은 읽지도 전달하지도 않습니다.
+없는 도구 이름은 `UNKNOWN_TOOL`입니다. 연결이 거부한 입력은 연결 오류 코드만 반환합니다. OpenRouter·OpenAI·Gemini 공급자가 비정상 상태로 응답하면 `chatCompletionModelConnection.ts`가 상태 코드로 오류 코드를 나눕니다. 401·403은 `MODEL_AUTH_FAILED`, 429와 5xx는 `MODEL_PROVIDER_ERROR`, 그 밖의 거부는 `MODEL_REJECTED`입니다. `generate_resume`도 같은 어댑터를 쓰므로 이 코드가 도구 응답의 연결 오류 코드로 그대로 전달됩니다. 공급자의 오류 본문은 읽지도 전달하지도 않습니다.
 
 `render_resume_template`, `render_resume_form`, `read_resume_selection`, `check_resume_draft`, `generate_resume`는 `src/resume/output/selectTemplateSections.ts`의 같은 섹션 선택을 사용합니다.
 
@@ -83,7 +90,9 @@ mcp/
 
 정적 런타임 설정의 소유자는 `src/resume/http/runtimeConfig.ts`입니다. `portfolio-config`에서 받은 서버·인증 API·이력서 API와 모델 설정 조회 연결을 시작 시 검증합니다. 실행 방법과 배포 부트스트랩은 `docs/environment.md`를 따릅니다.
 
-동적 AI 모델은 `http/server.ts`의 `resumeModelFromSetting`이 소유합니다. 요청마다 새 클라이언트를 만들고 첫 `generate`에서 활성 설정을 한 번 조회하여 같은 요청의 초안 작성과 의미 검증에 같은 모델을 씁니다. `connection/resumeModelSetting.ts`가 `RESUME_MODEL_SETTING_TOKEN`으로 환경의 활성 설정(`provider`, `modelName`, `url`, `apiKey`)을 portfolio-api에서 조회합니다. 모델 설정과 실제 키의 저장·관리는 portfolio-api가 소유하며 MCP는 읽은 키를 해당 요청의 모델 클라이언트에만 전달합니다. 모델 키를 위한 Secret Manager·ADC 연결은 사용하지 않습니다. 관리 화면 목록에는 키 원문 대신 등록 여부만 보여주고 입력은 API에 전달합니다.
+지원 공급자는 `openrouter`, `openai`, `gemini`입니다. OpenAI는 Chat Completions, Gemini는 Google의 OpenAI 호환 Chat Completions 엔드포인트에 직접 연결합니다. 공통 전송·응답 검증·오류 변환은 `connection/model/chatCompletionModelConnection.ts`가 소유하고 OpenRouter의 `provider.require_parameters`는 OpenRouter 어댑터만 전달합니다. 관리 화면의 공급자 옵션과 기본 주소는 `app/src/settings/providers/model-providers.ts`의 `MODEL_PROVIDERS`가 모델 ID 예시·공식 모델 목록 링크와 함께 소유합니다. 공급자 추가는 실제 모델 설정을 자동 등록·활성화하지 않습니다. #180에서는 실제 모델 등록·활성화·실호출은 OpenAI만 수행하고 Gemini는 가짜 네트워크로 검증합니다.
+
+동적 AI 모델은 `http/server.ts`의 `resumeModelFromSetting`이 소유합니다. 요청마다 새 클라이언트를 만들고 첫 `generate`에서 활성 설정을 한 번 조회하여 같은 요청의 초안 작성과 의미 검증에 같은 모델을 씁니다. `connection/model/resumeModelSetting.ts`가 `RESUME_MODEL_SETTING_TOKEN`으로 환경의 활성 설정(`provider`, `modelName`, `url`, `apiKey`)을 portfolio-api에서 조회합니다. 모델 설정과 실제 키의 저장·관리는 portfolio-api가 소유하며 MCP는 읽은 키를 해당 요청의 모델 클라이언트에만 전달합니다. 모델 키를 위한 Secret Manager·ADC 연결은 사용하지 않습니다. 관리 화면 목록에는 키 원문 대신 등록 여부만 보여주고 입력은 API에 전달합니다.
 
 `RESUME_MODEL_URL`, `RESUME_MODEL_TOKEN`, `RESUME_MODEL_PROVIDER`, `RESUME_MODEL_NAME`을 프로세스 환경에서 읽는 이전 경로는 제거했습니다. 설정·키 조회 실패나 알 수 없는 공급자이면 오류 코드만 반환하고 모델을 호출하지 않으며 정적 환경 모델로 대체하지 않습니다. `RESUME_MODEL_SETTING_URL`·`RESUME_MODEL_SETTING_TOKEN`·`RESUME_MODEL_ENVIRONMENT`는 정적 조회 연결 정보로 필수입니다.
 
@@ -102,7 +111,7 @@ mcp/
 
 - 앱 소스 파일은 케밥 케이스(`login-page.tsx`)이고 컴포넌트 이름은 PascalCase입니다. 테스트는 대상 파일 옆에 둡니다.
 - 앱 테스트는 `pnpm test`(Vitest)로 실행합니다. 루트 Jest는 `mcp/app/`을 실행하지 않습니다.
-- 설정별 연결 테스트는 `POST /admin/ai-models/api/settings/:id/test`(본문 `{ environment }`)가 맡습니다. 세션, 같은 출처, 메서드를 기존 API 경로와 같은 흐름으로 검사한 뒤 `src/auth/settingConnectionTest.ts`가 portfolio-api 목록(`/service/resume-model-setting`)에서 요청한 id와 환경이 모두 맞는 설정만 골라 그 설정의 `apiKey`로 `src/resume/connection/testModelConnection.ts`를 실행합니다. 활성 설정이나 다른 설정으로 대체하지 않고, 설정을 만들거나 바꾸거나 활성화하지 않습니다. 모델에는 고정된 최소 입력만 보내며 이력서 원문은 보내지 않습니다. 호출은 두 번입니다. 먼저 일반 호출을 보내고, 성공하면 이력서 생성의 의미 검증이 쓰는 `json_schema` 형식(`{ status: string }`)으로 한 번 더 보내 구조화 응답을 쓸 수 있는지 확인합니다. 일반 호출이 실패하면 두 번째는 보내지 않습니다. 응답은 `{ ok: true, latencyMs, response, structured }` 또는 `{ ok: false, code }`입니다. `response`와 `structured.response`는 공급자 응답 원문이고, `structured`는 `{ ok: true, latencyMs }` 또는 `{ ok: false, code }`(`STRUCTURED_INVALID`는 응답이 약속한 JSON이 아닌 경우)입니다. 구조화 확인이 실패해도 연결은 성공으로 두며 구조화 결과에만 코드를 담습니다. 연결 실패 코드는 키 미등록(`API_KEY_MISSING`), 인증 실패(`MODEL_AUTH_FAILED`), 공급자 오류와 호출 한도(`MODEL_PROVIDER_ERROR`), 요청 거부(`MODEL_REJECTED`), 시간 초과(`MODEL_TIMEOUT`)로 구분합니다. 응답 원문은 브라우저로 나가므로 API 키가 섞여 있으면 `[REDACTED]`로 가리고 8,000자를 넘으면 앞 2,000자만 `{ truncated, preview }`로 남깁니다. 키, 주소, 공급자 오류 원문은 응답과 로그(`ADMIN_MODEL_TEST`)에 남기지 않습니다. 모델 호출은 호출마다 15초 제한이 있고 자동 반복하지 않으며 버튼을 눌렀을 때만 실행합니다. 주소가 `https`가 아니거나 키가 없거나 공급자를 모르면 요청을 보내지 않습니다.
+- 설정별 연결 테스트는 `POST /admin/ai-models/api/settings/:id/test`(본문 `{ environment }`)가 맡습니다. 세션, 같은 출처, 메서드를 기존 API 경로와 같은 흐름으로 검사한 뒤 `src/auth/settingConnectionTest.ts`가 portfolio-api 목록(`/service/resume-model-setting`)에서 요청한 id와 환경이 모두 맞는 설정만 골라 그 설정의 `apiKey`로 `src/resume/connection/model/testModelConnection.ts`를 실행합니다. 활성 설정이나 다른 설정으로 대체하지 않고, 설정을 만들거나 바꾸거나 활성화하지 않습니다. 모델에는 고정된 최소 입력만 보내며 이력서 원문은 보내지 않습니다. 호출은 두 번입니다. 먼저 일반 호출을 보내고, 성공하면 이력서 생성의 의미 검증이 쓰는 `json_schema` 형식(`{ status: string }`)으로 한 번 더 보내 구조화 응답을 쓸 수 있는지 확인합니다. 일반 호출이 실패하면 두 번째는 보내지 않습니다. 응답은 `{ ok: true, latencyMs, response, structured }` 또는 `{ ok: false, code }`입니다. `response`와 `structured.response`는 공급자 응답 원문이고, `structured`는 `{ ok: true, latencyMs }` 또는 `{ ok: false, code }`(`STRUCTURED_INVALID`는 응답이 약속한 JSON이 아닌 경우)입니다. 구조화 확인이 실패해도 연결은 성공으로 두며 구조화 결과에만 코드를 담습니다. 연결 실패 코드는 키 미등록(`API_KEY_MISSING`), 인증 실패(`MODEL_AUTH_FAILED`), 공급자 오류와 호출 한도(`MODEL_PROVIDER_ERROR`), 요청 거부(`MODEL_REJECTED`), 시간 초과(`MODEL_TIMEOUT`)로 구분합니다. 응답 원문은 브라우저로 나가므로 API 키가 섞여 있으면 `[REDACTED]`로 가리고 8,000자를 넘으면 앞 2,000자만 `{ truncated, preview }`로 남깁니다. 키, 주소, 공급자 오류 원문은 응답과 로그(`ADMIN_MODEL_TEST`)에 남기지 않습니다. 모델 호출은 호출마다 15초 제한이 있고 자동 반복하지 않으며 버튼을 눌렀을 때만 실행합니다. 주소가 `https`가 아니거나 키가 없거나 공급자를 모르면 요청을 보내지 않습니다.
 - CSP가 `script-src 'self'`이므로 인라인 스크립트를 두지 않습니다. 리퍼러 정책은 `same-origin`을 유지합니다. `no-referrer`면 브라우저가 폼 POST에 `Origin: null`을 보내 로그인 시작이 항상 거절됩니다.
 
 ## 에이전트별 진입점
