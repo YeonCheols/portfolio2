@@ -7,7 +7,7 @@
 - Codex CLI는 AI 작성 클라이언트로서 선택된 원문에 근거한 문장 초안을 작성합니다.
 - `portfolio-resume` MCP는 원소 조회, 선택, 문장 근거 검증, 기존 이슈 #160의 섹션·프로젝트 조립을 담당합니다.
 - PDF 렌더러는 검증·조립된 이력서 데이터만 입력으로 받는 출력 경계로 둡니다. MCP 인증·OAuth 게이트웨이와 AI 모델 연결은 PDF 레이아웃을 소유하지 않습니다.
-- `generate_resume`가 반환한 결과 JSON을 `convert_resume_to_pdf`에 전달하고, PDF는 MCP tool result의 embedded resource(`mimeType: application/pdf`, base64 `blob`)로 반환합니다. Codex CLI 0.164.0의 로컬 stdio MCP 연동에서 두 도구를 연속 호출해 파일 저장, `%PDF-` 헤더, PDFKit 텍스트 추출, 한글 렌더링을 합성 데이터로 확인했습니다.
+- `generate_resume`가 반환한 `generationId`를 `convert_resume_to_pdf`에 전달하고, PDF는 MCP tool result의 embedded resource(`mimeType: application/pdf`, base64 `blob`)로 반환합니다. Codex CLI 0.164.0의 로컬 stdio MCP 연동에서 두 도구를 연속 호출해 파일 저장, `%PDF-` 헤더, PDFKit 텍스트 추출, 한글 렌더링을 합성 데이터로 확인했습니다.
 - 이 연동 검증은 MCP 클라이언트의 바이너리 전달을 확인한 것이며, 잡코리아 샘플과의 최종 시각 품질 비교나 배포된 MCP 서버에서의 검증은 포함하지 않습니다.
 
 ## PDF 구성과 XML 대응

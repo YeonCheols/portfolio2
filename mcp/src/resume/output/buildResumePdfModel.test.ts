@@ -1,8 +1,8 @@
-import { buildResumePdfModel } from "@mcp/resume/output/createResumePdf";
 import type {
   CheckedDraftClaim,
   ResumeSelectionNode,
 } from "@mcp/resume/output/checkResumeDraft";
+import { buildResumePdfModel } from "@mcp/resume/output/createResumePdf";
 
 const node = (
   section: string,

@@ -5,6 +5,7 @@ import type { createPortfolioAdminOAuth } from "@mcp/auth/adminOAuth";
 import { handleAdminRequest } from "@mcp/auth/adminRoutes";
 import type { SettingConnectionTester } from "@mcp/auth/settingConnectionTest";
 import type { IntrospectedSession } from "@mcp/resume/http/portfolioApiIntrospector";
+import { createResumeGenerationStore } from "@mcp/resume/output/resumeGenerationStore";
 
 import type { ResumeModelClient } from "@mcp/resume/output/runResumeHarness";
 import { handleMcpRequest } from "@mcp/resume/tools/handleMcpRequest";
@@ -43,7 +44,8 @@ const sendJson = (res: ServerResponse, status: number, body: unknown): void => {
 export type ResumeModelSource = ResumeModelClient | (() => ResumeModelClient);
 
 export const createResumeMcpServer = (options: {
-  introspect: (token: string) => Promise<boolean>;
+  introspect: (token: string) => Promise<boolean | IntrospectedSession>;
+  environment?: string;
   protectedResourceMetadata?: {
     resource: string;
     authorization_servers: string[];
@@ -62,8 +64,9 @@ export const createResumeMcpServer = (options: {
     testSetting?: SettingConnectionTester;
   };
   log?: (message: string) => void;
-}) =>
-  http.createServer(async (req, res) => {
+}) => {
+  const generations = createResumeGenerationStore();
+  return http.createServer(async (req, res) => {
     if (
       options.admin &&
       (await handleAdminRequest(req, res, {
@@ -114,16 +117,16 @@ export const createResumeMcpServer = (options: {
     }
     const authorization = req.headers.authorization;
     const token = authorization?.match(/^Bearer\s+(.+)$/i)?.[1]?.trim();
-    let authorized = false;
+    let session: boolean | IntrospectedSession = false;
     try {
-      authorized = Boolean(token) && (await options.introspect(token!));
+      session = token ? await options.introspect(token) : false;
     } catch {
       options.log?.("AUTH_INTROSPECTION_UNAVAILABLE");
       sendJson(res, 503, { ok: false, code: "AUTH_UNAVAILABLE" });
       return;
     }
 
-    if (!authorized) {
+    if (!(typeof session === "boolean" ? session : session.active === true)) {
       const resourceMetadataUrl = options.protectedResourceMetadata
         ? new URL(
             "/.well-known/oauth-protected-resource/mcp",
@@ -141,10 +144,28 @@ export const createResumeMcpServer = (options: {
     }
 
     try {
+      const parsed = JSON.parse(raw);
+      const needsModel =
+        parsed.method === "tools/call" &&
+        parsed.params?.name === "generate_resume" &&
+        parsed.params?.arguments?.generationId === undefined &&
+        parsed.params?.arguments?.claims === undefined;
       const response = await handleMcpRequest(
-        JSON.parse(raw),
+        parsed,
         options.connection,
-        typeof options.model === "function" ? options.model() : options.model,
+        needsModel
+          ? typeof options.model === "function"
+            ? options.model()
+            : options.model
+          : undefined,
+        typeof session === "object" &&
+          session.sub?.trim() &&
+          options.environment?.trim()
+          ? {
+              store: generations,
+              scope: { subject: session.sub, environment: options.environment },
+            }
+          : undefined,
       );
       if (response === null) {
         res.writeHead(202);
@@ -157,3 +178,4 @@ export const createResumeMcpServer = (options: {
       sendJson(res, 400, { ok: false, code: "INVALID_INPUT" });
     }
   });
+};

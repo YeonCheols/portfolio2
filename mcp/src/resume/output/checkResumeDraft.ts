@@ -11,10 +11,13 @@ export type ResumeSelectionNode = {
   children: readonly ResumeSelectionNode[];
 };
 
+export type SourceEvidence = { sourceId: string; quote: string };
+
 export type DraftClaim = {
   text: string;
   sourceIds: readonly string[];
   formItem?: string;
+  evidence?: readonly SourceEvidence[];
 };
 
 export type CheckedDraftClaim = {
@@ -22,9 +25,11 @@ export type CheckedDraftClaim = {
   sourceIds: readonly string[];
   sources: readonly ResumeSelectionNode[];
   formItem?: string;
+  evidence?: readonly SourceEvidence[];
 };
 
 export type DraftValidationIssueCode =
+  | "INVALID_SOURCE_EVIDENCE"
   | "EMPTY_TEXT"
   | "NO_SOURCE_IDS"
   | "CONFLICTING_SOURCE_CLAIM"
@@ -32,9 +37,7 @@ export type DraftValidationIssueCode =
   | "UNKNOWN_SOURCE_ID"
   | "SOURCE_HAS_NO_TEXT"
   | "MULTIPLE_PROJECT_SCOPE"
-  | "FORM_ITEM_NOT_FOUND"
-  | "SEMANTICALLY_UNSUPPORTED"
-  | "SEMANTICALLY_UNCERTAIN";
+  | "FORM_ITEM_NOT_FOUND";
 
 export type DraftValidationIssue = {
   code: DraftValidationIssueCode;
@@ -248,6 +251,9 @@ export const checkResumeDraft = (
       text: claim.text,
       sourceIds: [...claim.sourceIds],
       sources,
+      ...(claim.evidence
+        ? { evidence: claim.evidence.map((item) => ({ ...item })) }
+        : {}),
       ...(claim.formItem ? { formItem: claim.formItem } : {}),
     });
   });

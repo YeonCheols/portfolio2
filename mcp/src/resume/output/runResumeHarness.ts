@@ -6,6 +6,7 @@ import {
   type DraftClaim,
   type ResumeSelectionNode,
 } from "@mcp/resume/output/checkResumeDraft";
+import { checkResumeEvidence } from "@mcp/resume/output/checkResumeEvidence";
 import { ResumeConnectionError } from "@mcp/resume/connection/shared/connection";
 
 const resumeSourcePolicy = [
@@ -24,7 +25,7 @@ export const resumeWriterPersona = [
   "같은 sourceId와 formItem 조합은 claim을 한 개만 만든다. 같은 조합에 여러 주장이 있으면 한 claim으로 합치고, 서로 다른 원소가 근거면 더 구체적인 id를 사용한다.",
   ...resumeSourcePolicy,
   "원문을 그대로 이어 붙이지 않고 이력서 문장으로 재구성한다.",
-  "각 문장에는 근거 원소 id를 붙인다.",
+  "각 문장에는 근거 원소 id와 evidence의 sourceId·quote를 함께 반환한다. 모든 sourceId에 대해 해당 원소 또는 하위 원문의 구절을 정확히 인용하며 원문에 없는 사실은 작성하지 않는다.",
   "원문이 비어 있거나 근거 id가 없으면 그 내용은 누락으로 남긴다.",
   "같은 원소에 서로 다른 단정이 있으면 하나를 고르지 않고 충돌로 남긴다.",
   "공개 여부가 비어 있으면 공개로 단정하지 않는다.",
@@ -55,13 +56,26 @@ const resumeClaimsResponseFormat = (
             type: "object",
             properties: {
               text: { type: "string" },
+              evidence: {
+                type: "array",
+                minItems: 1,
+                items: {
+                  type: "object",
+                  properties: {
+                    sourceId: { type: "string", enum: [...sourceIds] },
+                    quote: { type: "string" },
+                  },
+                  required: ["sourceId", "quote"],
+                  additionalProperties: false,
+                },
+              },
               sourceIds: {
                 type: "array",
                 items: { type: "string", enum: [...sourceIds] },
               },
               formItem: { type: "string", enum: [...formItems] },
             },
-            required: ["text", "sourceIds", "formItem"],
+            required: ["text", "sourceIds", "formItem", "evidence"],
             additionalProperties: false,
           },
         },
@@ -101,72 +115,16 @@ const writerPromptNode = (
   };
 };
 
-const resumeClaimReviewsResponseFormat: NonNullable<
-  ResumeModelRequest["responseFormat"]
-> = {
-  type: "json_schema",
-  json_schema: {
-    name: "resume_claim_reviews",
-    strict: true,
-    schema: {
-      type: "object",
-      properties: {
-        reviews: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              claimIndex: { type: "integer" },
-              status: {
-                type: "string",
-                enum: ["supported", "unsupported", "uncertain"],
-              },
-              evidence: {
-                type: "array",
-                items: {
-                  type: "object",
-                  properties: {
-                    sourceId: { type: "string" },
-                    quote: { type: "string" },
-                  },
-                  required: ["sourceId", "quote"],
-                  additionalProperties: false,
-                },
-              },
-              reason: { type: "string" },
-            },
-            required: ["claimIndex", "status", "evidence", "reason"],
-            additionalProperties: false,
-          },
-        },
-      },
-      required: ["reviews"],
-      additionalProperties: false,
-    },
-  },
-};
-
 export type GeneratedResume = CheckedDraft & {
   resume: string;
   selection: readonly ResumeSelectionNode[];
-  semanticReviews: readonly ResumeSemanticReview[];
+  validationMode: "source_evidence";
 };
 
-export type ResumeSemanticReview = {
-  claim: DraftClaim;
-  status: "supported" | "unsupported" | "uncertain";
-  evidence: readonly { sourceId: string; quote: string }[];
-  reason: string;
-};
-
-export const resumeClaimVerifierPersona = [
-  "너는 이력서 문장 근거 검증자다.",
-  "각 claim의 모든 사실 주장이 연결된 원문에 의해 뒷받침되는지 검증한다.",
-  ...resumeSourcePolicy,
-  "일부 사실만 뒷받침되거나 판단이 모호하면 supported로 처리하지 않는다.",
-  "supported인 claim에는 연결된 원문에서 그대로 복사한 짧은 인용을 모두 제공한다.",
-  "응답은 요청된 JSON만 반환한다.",
-].join("\n");
+export type ResumeResponseRecorder = (
+  request: ResumeModelRequest,
+  response: string,
+) => void;
 
 const resumeSectionOrder: {
   title: string;
@@ -505,7 +463,18 @@ const isClaim = (value: unknown): value is DraftClaim => {
     typeof text === "string" &&
     Array.isArray(sourceIds) &&
     sourceIds.every((id) => typeof id === "string") &&
-    (!("formItem" in value) || typeof value.formItem === "string")
+    (!("formItem" in value) || typeof value.formItem === "string") &&
+    (!("evidence" in value) ||
+      (Array.isArray(value.evidence) &&
+        value.evidence.every(
+          (item: unknown) =>
+            typeof item === "object" &&
+            item !== null &&
+            "sourceId" in item &&
+            typeof item.sourceId === "string" &&
+            "quote" in item &&
+            typeof item.quote === "string",
+        )))
   );
 };
 
@@ -596,7 +565,7 @@ const resumeDraftPrompt = (
     nodes: readonly ResumeSelectionNode[];
   }[],
 ) =>
-  `모든 이력서 섹션을 한 번에 처리하고 섹션별 구분을 유지한다. 원문을 해석하고 그 해석을 이력서 문장으로 재작성해 마크다운 코드 펜스 없이 JSON 객체만 반환한다. 형식은 {"claims":[{"text":"","sourceIds":[""],"formItem":""}]} 이다. 각 claim에는 근거 원소 id를 붙인다. formItem은 문장이 하나의 양식 항목에 해당할 때 선택 원소 트리의 정확한 항목 이름을 사용한다. 자기소개서 문장은 확인된 제목 값을 formItem으로 사용한다. 양식 항목이 없으면 formItem은 빈 문자열로 반환한다. 여러 항목을 한 문장으로 합치거나 원문에서 항목을 확인할 수 없으면 formItem은 빈 문자열로 반환한다. 서로 다른 프로젝트를 한 claim으로 합치지 않고 프로젝트별 문장을 구분한다. 근거가 없거나 원문이 비어 있는 내용은 만들지 않는다.\n${JSON.stringify(
+  `모든 이력서 섹션을 한 번에 처리하고 섹션별 구분을 유지한다. 원문을 해석하고 그 해석을 이력서 문장으로 재작성해 마크다운 코드 펜스 없이 JSON 객체만 반환한다. 형식은 {"claims":[{"text":"","sourceIds":[""],"formItem":""}]} 이다. 각 claim에는 근거 원소 id와 evidence 배열을 붙이고 각 sourceId에 대응하는 sourceId·quote를 포함한다. quote는 해당 원소 또는 하위 원문에 있는 구절을 그대로 복사한다. formItem은 문장이 하나의 양식 항목에 해당할 때 선택 원소 트리의 정확한 항목 이름을 사용한다. 자기소개서 문장은 확인된 제목 값을 formItem으로 사용한다. 양식 항목이 없으면 formItem은 빈 문자열로 반환한다. 여러 항목을 한 문장으로 합치거나 원문에서 항목을 확인할 수 없으면 formItem은 빈 문자열로 반환한다. 서로 다른 프로젝트를 한 claim으로 합치지 않고 프로젝트별 문장을 구분한다. 근거가 없거나 원문이 비어 있는 내용은 만들지 않는다.\n${JSON.stringify(
     sections.map(({ section, text, nodes }) => ({
       section,
       formTitle:
@@ -627,216 +596,16 @@ export const continueResumeGeneration = (
   };
 };
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
-
-const sourceById = (
-  nodes: readonly ResumeSelectionNode[],
-  id: string,
-): ResumeSelectionNode | undefined => {
-  for (const node of nodes) {
-    if (node.id === id) return node;
-    const child = sourceById(node.children, id);
-    if (child) return child;
-  }
-  return undefined;
-};
-
-const sourceText = (node: ResumeSelectionNode): string =>
-  [node.text, ...node.children.map(sourceText)].filter(Boolean).join("\n");
-
-const normalizeEvidenceText = (text: string): string =>
-  text.normalize("NFC").replace(/\s+/g, " ").trim();
-
-const draftClaimOf = (claim: DraftClaim): DraftClaim => ({
-  text: claim.text,
-  sourceIds: [...claim.sourceIds],
-  ...(claim.formItem ? { formItem: claim.formItem } : {}),
-});
-
-const verifierSource = (node: ResumeSelectionNode): unknown => ({
-  ...(node.id ? { id: node.id } : {}),
-  section: node.section,
-  name: node.name,
-  text: node.text,
-  children: node.children.map(verifierSource),
-});
-
-const verifierPrompt = (
-  claims: readonly DraftClaim[],
+export const completeResumeGeneration = (
   selection: readonly ResumeSelectionNode[],
-): string =>
-  `각 claim을 해당 sourceIds의 원문과 대조하고 마크다운 코드 펜스 없이 JSON 객체만 반환한다. 형식은 {"reviews":[{"claimIndex":0,"status":"supported|unsupported|uncertain","evidence":[{"sourceId":"","quote":""}],"reason":""}]} 이다. 모든 사실 주장이 원문에 근거할 때만 supported로 표시한다. supported에는 인용문을 반드시 넣고 quote는 해당 원문의 일부를 공백을 제외하고 그대로 복사한다. 원문에 없는 수치, 기술, 역할, 기간, 성과를 추가하면 unsupported로 표시한다. 모호하거나 일부 주장만 확인되면 uncertain으로 표시한다.\n${JSON.stringify(
-    claims.map((claim, claimIndex) => ({
-      claimIndex,
-      claim,
-      sources: claim.sourceIds.flatMap((id) => {
-        const source = sourceById(selection, id);
-        return source ? [verifierSource(source)] : [];
-      }),
-    })),
-  )}`;
-
-type RawResumeReview = {
-  claimIndex: number;
-  status: ResumeSemanticReview["status"];
-  evidence: { sourceId: string; quote: string }[];
-  reason: string;
-};
-
-const parseReviewResponse = (
   response: string,
-  claims: readonly DraftClaim[],
-  selection: readonly ResumeSelectionNode[],
-): ResumeSemanticReview[] => {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(response);
-  } catch {
-    throw new ResumeConnectionError("MODEL_REJECTED");
-  }
-
-  if (!isRecord(parsed) || !Array.isArray(parsed.reviews)) {
-    throw new ResumeConnectionError("MODEL_REJECTED");
-  }
-
-  const reviews = parsed.reviews as unknown[];
-  if (reviews.length !== claims.length) {
-    throw new ResumeConnectionError("MODEL_REJECTED");
-  }
-
-  const seen = new Set<number>();
-  const rawReviews = reviews.map((review): RawResumeReview => {
-    if (!isRecord(review)) throw new ResumeConnectionError("MODEL_REJECTED");
-    const { claimIndex, status, evidence, reason } = review;
-    if (
-      typeof claimIndex !== "number" ||
-      !Number.isInteger(claimIndex) ||
-      claimIndex < 0 ||
-      claimIndex >= claims.length ||
-      seen.has(claimIndex) ||
-      (status !== "supported" &&
-        status !== "unsupported" &&
-        status !== "uncertain") ||
-      !Array.isArray(evidence) ||
-      (reason !== undefined && typeof reason !== "string")
-    ) {
-      throw new ResumeConnectionError("MODEL_REJECTED");
-    }
-    seen.add(claimIndex);
-
-    const parsedEvidence = evidence.map((item) => {
-      if (
-        !isRecord(item) ||
-        typeof item.sourceId !== "string" ||
-        typeof item.quote !== "string"
-      ) {
-        throw new ResumeConnectionError("MODEL_REJECTED");
-      }
-      return { sourceId: item.sourceId, quote: item.quote };
-    });
-
-    return {
-      claimIndex,
-      status,
-      evidence: parsedEvidence,
-      reason: typeof reason === "string" ? reason : "",
-    };
-  });
-
-  if (seen.size !== claims.length) {
-    throw new ResumeConnectionError("MODEL_REJECTED");
-  }
-
-  return rawReviews
-    .sort((first, second) => first.claimIndex - second.claimIndex)
-    .map((review) => {
-      const claim = claims[review.claimIndex];
-      if (!claim) throw new ResumeConnectionError("MODEL_REJECTED");
-
-      const matchedEvidence = review.evidence.filter((item) => {
-        if (!claim.sourceIds.includes(item.sourceId)) return false;
-        const source = sourceById(selection, item.sourceId);
-        if (!source) return false;
-        const quote = normalizeEvidenceText(item.quote);
-        return (
-          quote !== "" &&
-          normalizeEvidenceText(sourceText(source)).includes(quote)
-        );
-      });
-      const evidenceIsValid =
-        matchedEvidence.length > 0 &&
-        matchedEvidence.length === review.evidence.length &&
-        claim.sourceIds.every((sourceId) =>
-          matchedEvidence.some((item) => item.sourceId === sourceId),
-        );
-      const status =
-        review.status === "supported" && !evidenceIsValid
-          ? "uncertain"
-          : review.status;
-
-      return {
-        claim: draftClaimOf(claim),
-        status,
-        evidence: status === "supported" ? matchedEvidence : [],
-        reason:
-          status === "uncertain" && review.status === "supported"
-            ? "검증 인용을 원문에서 확인할 수 없습니다"
-            : review.reason,
-      };
-    });
-};
-
-export const verifyResumeClaims = async (
-  selection: readonly ResumeSelectionNode[],
-  claims: readonly DraftClaim[],
-  client: ResumeModelClient,
-): Promise<
-  CheckedDraft & { semanticReviews: readonly ResumeSemanticReview[] }
-> => {
-  const structural = checkResumeDraft(selection, claims);
-  if (structural.claims.length === 0) {
-    return { ...structural, semanticReviews: [] };
-  }
-
-  const response = await client.generate({
-    persona: resumeClaimVerifierPersona,
-    prompt: verifierPrompt(structural.claims, selection),
-    responseFormat: resumeClaimReviewsResponseFormat,
-  });
-  const semanticReviews = parseReviewResponse(
-    response,
-    structural.claims,
-    selection,
-  );
-  const supportedIndexes = new Set(
-    semanticReviews.flatMap((review, index) =>
-      review.status === "supported" ? [index] : [],
-    ),
-  );
-  const rejectedClaims = semanticReviews.flatMap((review) =>
-    review.status === "supported" ? [] : [draftClaimOf(review.claim)],
-  );
-  const rejectedIssues = semanticReviews.flatMap((review) =>
-    review.status === "supported"
-      ? []
-      : [
-          {
-            code:
-              review.status === "unsupported"
-                ? ("SEMANTICALLY_UNSUPPORTED" as const)
-                : ("SEMANTICALLY_UNCERTAIN" as const),
-            sourceIds: [...review.claim.sourceIds],
-          },
-        ],
-  );
-
+): GeneratedResume => {
+  const checked = checkResumeEvidence(selection, parseClaims(response));
   return {
-    ...structural,
-    claims: structural.claims.filter((_, index) => supportedIndexes.has(index)),
-    gaps: [...structural.gaps, ...rejectedClaims],
-    validationIssues: [...structural.validationIssues, ...rejectedIssues],
-    semanticReviews,
+    ...checked,
+    resume: assembleGeneratedResume(checked.claims, selection),
+    selection,
+    validationMode: "source_evidence",
   };
 };
 
@@ -844,6 +613,7 @@ export const runResumeHarness = async (
   selection: readonly ResumeSelectionNode[],
   client: ResumeModelClient,
   forms?: readonly ResumeFormSection[],
+  onResponse?: ResumeResponseRecorder,
 ): Promise<GeneratedResume> => {
   const groups = forms
     ? forms.flatMap((form) => {
@@ -857,13 +627,13 @@ export const runResumeHarness = async (
       ...checked,
       resume: assembleGeneratedResume(checked.claims, selection),
       selection,
-      semanticReviews: [],
+      validationMode: "source_evidence",
     };
   }
 
   const promptSelection = groups.flatMap((group) => group.nodes);
 
-  const generated = await client.generate({
+  const request: ResumeModelRequest = {
     persona: resumeWriterPersona,
     prompt: resumeDraftPrompt(
       groups.map((group) => ({
@@ -876,22 +646,10 @@ export const runResumeHarness = async (
       sourceElementIdsOf(promptSelection),
       resumeFormItemOptions(promptSelection),
     ),
-  });
-  const checked = checkResumeDraft(selection, parseClaims(generated));
-  const verified = await verifyResumeClaims(selection, checked.claims, client);
-
-  return {
-    ...checked,
-    claims: verified.claims,
-    gaps: [...checked.gaps, ...verified.gaps],
-    validationIssues: [
-      ...checked.validationIssues,
-      ...verified.validationIssues,
-    ],
-    semanticReviews: verified.semanticReviews,
-    resume: assembleGeneratedResume(verified.claims, selection),
-    selection,
   };
+  const response = await client.generate(request);
+  onResponse?.(request, response);
+  return completeResumeGeneration(selection, response);
 };
 
 export const generateResume = async (
@@ -901,24 +659,29 @@ export const generateResume = async (
     interpretation?: string;
     model?: ResumeModelClient;
     forms?: readonly ResumeFormSection[];
+    onResponse?: ResumeResponseRecorder;
   },
 ) => {
   if (input.claims !== undefined) {
-    const checked = input.model
-      ? await verifyResumeClaims(selection, input.claims, input.model)
-      : { ...checkResumeDraft(selection, input.claims), semanticReviews: [] };
+    const checked = checkResumeEvidence(selection, input.claims);
     return {
       ...checked,
       step: "done" as const,
       resume: assembleGeneratedResume(checked.claims, selection),
       selection,
+      validationMode: "source_evidence" as const,
     };
   }
   if (input.interpretation !== undefined) {
     return continueResumeGeneration(selection, input.interpretation);
   }
   if (input.model) {
-    return runResumeHarness(selection, input.model, input.forms);
+    return runResumeHarness(
+      selection,
+      input.model,
+      input.forms,
+      input.onResponse,
+    );
   }
   return {
     persona: resumeWriterPersona,

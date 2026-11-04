@@ -78,6 +78,7 @@ describe("createResumePdf", () => {
 
   it("한글 이력서 본문을 PDF 바이트로 만든다", async () => {
     const pdf = await createResumePdf(resumeInput());
+    expect(Buffer.isBuffer(pdf)).toBe(true);
     const header = pdf.subarray(0, 5).toString("ascii");
     const end = pdf.subarray(-6).toString("ascii");
 

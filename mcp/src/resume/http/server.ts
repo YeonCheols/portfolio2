@@ -20,10 +20,7 @@ import {
   createResumeMcpServer,
   type ResumeModelSource,
 } from "@mcp/resume/http/createResumeMcpServer";
-import {
-  createPortfolioApiIntrospector,
-  createPortfolioApiSessionIntrospector,
-} from "@mcp/resume/http/portfolioApiIntrospector";
+import { createPortfolioApiSessionIntrospector } from "@mcp/resume/http/portfolioApiIntrospector";
 import {
   readMcpRuntimeConfig,
   readModelSettingConnection,
@@ -105,7 +102,7 @@ export const startResumeMcpServer = () => {
   const config = readMcpRuntimeConfig(process.env);
   const { publicUrl, authorizationServer, port } = config.server;
   const introspectOptions = config.api;
-  const introspect = createPortfolioApiIntrospector(introspectOptions);
+  const introspect = createPortfolioApiSessionIntrospector(introspectOptions);
   // 관리 화면은 활성 결과만 30초 캐시한다. /mcp 도구 요청은 폐기를 즉시 반영하도록 캐시하지 않는다
   const introspectSession = withSessionCache(
     createPortfolioApiSessionIntrospector(introspectOptions),
@@ -119,6 +116,7 @@ export const startResumeMcpServer = () => {
 
   return createResumeMcpServer({
     introspect,
+    environment: config.modelSetting.environment,
     log: (message) => console.log(message),
     protectedResourceMetadata: {
       resource: publicUrl,
