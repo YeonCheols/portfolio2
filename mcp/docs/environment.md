@@ -84,6 +84,22 @@ API 조회 실패·키 누락이면 모델을 호출하지 않으며 이전 정�
 기존 참조명만 저장된 모델은 실제 키가 들어간 새 설정을 등록하고 활성화해야 합니다.
 portfolio-api의 migration과 새 API 배포를 먼저 준비한 뒤 MCP를 배포합니다. 실제 키를 응답하는 조회는 캐시하지 않습니다.
 
+## AI 공급자 연결
+
+관리 화면에서 공급자를 고르면 다음 기본 주소를 입력합니다. 모델 이름과 키는 portfolio-api 설정으로 관리하며, 공급자 추가만으로 실제 모델 설정을 등록하거나 활성화하지 않습니다.
+
+- `openrouter`: `https://openrouter.ai/api/v1/chat/completions`
+- `openai`: `https://api.openai.com/v1/chat/completions`
+- `gemini`: `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`
+
+모델 이름은 직접 입력합니다. 공급자별 옵션·기본 주소·모델 ID 예시·공식 모델 목록 링크는 관리 화면의 `app/src/settings/providers/model-providers.ts`에 있는 `MODEL_PROVIDERS` 상수가 소유합니다. 공급자를 바꾸면 예시와 링크만 바뀌며 직접 입력한 모델 이름은 유지합니다. 예시는 기본 모델 설정이 아니며 저장할 값으로 자동 입력하지 않습니다.
+
+OpenAI는 [Chat Completions](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create)를 사용하고, Gemini는 [Google의 OpenAI 호환 API](https://ai.google.dev/gemini-api/docs/openai)에 직접 연결합니다. 세 공급자 모두 Bearer 인증과 `model`, `messages`를 사용합니다. 구조화 호출은 `response_format`의 `json_schema`를 전달하며 OpenRouter만 `provider.require_parameters`를 추가합니다. `temperature`, 토큰 수, 추론 강도 등 모델별 제약이 있는 선택 파라미터는 보내지 않습니다. 선택한 모델이 Chat Completions와 구조화 출력을 지원하는지는 설정별 연결 테스트로 확인합니다. Responses 전용 모델은 이 연결의 대상이 아닙니다.
+
+공통 전송·응답 검증·상태 코드 변환은 `connection/model/chatCompletionModelConnection.ts`가 소유하며 공급자별 진입점은 각 어댑터가 소유합니다. 두 서버 연결 맵에 모두 등록하여 연결 테스트와 이력서 생성이 같은 어댑터를 사용합니다. 기존 연결 테스트의 시간 제한, 키 가림, 응답 길이 제한과 오류 본문 비공개 계약은 유지합니다.
+
+#180의 portfolio-api 공급자 타입 추가·배포는 사용자 확인 기준 완료된 선행 작업입니다. MCP 배포 전 공급자별 호스트 정책과 저장·활성화 계약을 확인합니다. 실제 모델 설정 등록·활성화·실호출 확인은 OpenAI만 수행하며 Gemini는 가짜 네트워크 테스트로 구조를 검증합니다. API 키는 관리 화면에서 입력하고 이슈나 로그에 남기지 않습니다.
+
 ## 컨테이너 시작과 운영 배포
 
 이미지에는 체크섬을 확인한 Linux musl CLI 0.2.0과 gh만 포함합니다. 앱 설정 파일과 GitHub 인증은 이미지에 넣지 않습니다.

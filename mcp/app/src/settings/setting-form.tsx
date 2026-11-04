@@ -6,19 +6,21 @@ import type {
   ModelSettingInput,
 } from "../types";
 
+import { SelectField } from "../ui/select-field";
+
+import { MODEL_PROVIDERS } from "./providers/model-providers";
+
 type SettingFormProps = {
   editing: ModelSetting | null;
   onCancel: () => void;
   onSubmit: (input: ModelSettingInput) => Promise<boolean>;
 };
 
-const defaultUrl = "https://openrouter.ai/api/v1/chat/completions";
-
 const initialValues: ModelSettingInput = {
   environment: "development",
   provider: "openrouter",
   modelName: "",
-  url: defaultUrl,
+  url: MODEL_PROVIDERS[0].url,
   apiKey: "",
 };
 
@@ -44,10 +46,15 @@ export const SettingForm = ({
   const [values, setValues] = useState<ModelSettingInput>(valuesOf(editing));
   const [saving, setSaving] = useState(false);
 
+  const selectedProvider = MODEL_PROVIDERS.find(
+    (provider) => provider.value === values.provider,
+  );
+
   const change =
     (field: keyof ModelSettingInput) =>
-    (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-      setValues((current) => ({ ...current, [field]: event.target.value }));
+    (event: ChangeEvent<HTMLInputElement>) => {
+      const value = event.target.value;
+      setValues((current) => ({ ...current, [field]: value }));
     };
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
@@ -73,47 +80,77 @@ export const SettingForm = ({
         활성 설정은 수정할 수 없습니다. 새 설정을 만든 뒤 활성화해 주세요.
       </p>
       <form onSubmit={submit} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="text-sm font-semibold">
-          <label htmlFor="setting-environment">환경</label>
-          <select
-            id="setting-environment"
-            className={fieldClass}
-            value={values.environment}
-            onChange={change("environment")}
-            disabled={editing !== null}
-            required
-          >
-            <option value={"development" satisfies ModelEnvironment}>
-              개발
-            </option>
-            <option value={"production" satisfies ModelEnvironment}>
-              운영
-            </option>
-          </select>
-        </div>
-        <div className="text-sm font-semibold">
-          <label htmlFor="setting-provider">공급자</label>
-          <select
-            id="setting-provider"
-            className={fieldClass}
-            value={values.provider}
-            onChange={change("provider")}
-            required
-          >
-            <option value="openrouter">OpenRouter</option>
-          </select>
-        </div>
+        <SelectField<ModelEnvironment>
+          id="setting-environment"
+          label="환경"
+          value={values.environment}
+          options={[
+            { value: "development", label: "개발" },
+            { value: "production", label: "운영" },
+          ]}
+          disabled={editing !== null}
+          onChange={(environment) =>
+            setValues((current) => ({ ...current, environment }))
+          }
+        />
+        <SelectField
+          id="setting-provider"
+          label="공급자"
+          value={values.provider}
+          options={MODEL_PROVIDERS}
+          onChange={(provider) => {
+            const selected = MODEL_PROVIDERS.find(
+              (item) => item.value === provider,
+            );
+            if (!selected) return;
+            setValues((current) => ({
+              ...current,
+              provider,
+              url: selected.url,
+            }));
+          }}
+        />
         <div className="text-sm font-semibold">
           <label htmlFor="setting-model-name">모델 이름</label>
           <input
             id="setting-model-name"
             className={fieldClass}
-            placeholder="anthropic/claude-sonnet-5.5"
+            placeholder={
+              selectedProvider
+                ? `예: ${selectedProvider.modelExample}`
+                : "모델 ID를 입력하세요"
+            }
+            aria-describedby={
+              selectedProvider ? "setting-model-help" : undefined
+            }
             maxLength={200}
             value={values.modelName}
             onChange={change("modelName")}
             required
           />
+          {selectedProvider && (
+            <div
+              id="setting-model-help"
+              className="mt-2 space-y-1.5 font-normal text-slate-500"
+            >
+              <p>
+                예:{" "}
+                <code className="text-xs text-slate-600">
+                  {selectedProvider.modelExample}
+                </code>
+              </p>
+              <a
+                href={selectedProvider.modelsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-blue-600 underline-offset-4 hover:underline focus-visible:rounded focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-500"
+              >
+                {selectedProvider.label} 모델 목록
+                <span className="sr-only"> (새 창)</span>
+                <span aria-hidden="true">↗</span>
+              </a>
+            </div>
+          )}
         </div>
         <div className="text-sm font-semibold">
           <label htmlFor="setting-url">API 주소</label>
