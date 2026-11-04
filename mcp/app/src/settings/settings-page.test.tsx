@@ -331,6 +331,22 @@ describe("SettingsPage", () => {
     expect(form?.getAttribute("method")).toBe("post");
   });
 
+  it("관리 메뉴에서 현재 화면을 표시하고 디버깅 아카이브로 이동하는 링크를 보여준다", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse([])));
+    render(<SettingsPage />);
+    await screen.findByRole("heading", { level: 1, name: "AI 모델 설정" });
+
+    const menu = screen.getByRole("navigation", { name: "관리 메뉴" });
+    const archive = within(menu).getByRole("link", { name: "디버깅 아카이브" });
+    expect(archive.getAttribute("href")).toBe("/admin/debug/resume");
+    expect(archive.getAttribute("aria-current")).toBeNull();
+    expect(
+      within(menu)
+        .getByRole("link", { name: "AI 모델 설정" })
+        .getAttribute("aria-current"),
+    ).toBe("page");
+  });
+
   it("새로고침을 누르면 설정 목록을 다시 조회한다", async () => {
     const fetchMock = vi
       .fn()

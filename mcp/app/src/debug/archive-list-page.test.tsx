@@ -1,0 +1,105 @@
+import { render, screen, within } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { ArchiveListPage } from "./archive-list-page";
+
+const jsonResponse = (body: unknown, status = 200) =>
+  ({ ok: status < 400, status, json: async () => body }) as Response;
+
+const failed = {
+  subjectHash: "subj-a",
+  generationId: "gen-1",
+  attemptId: "att-1",
+  startedAt: "2026-11-04T01:00:00.000Z",
+  stages: ["started", "model_response", "failed"],
+  status: "failed",
+  failedAfter: "model_response",
+};
+const completed = {
+  subjectHash: "subj-b",
+  generationId: "gen-2",
+  attemptId: "att-2",
+  stages: ["started", "completed"],
+  status: "completed",
+};
+
+describe("ArchiveListPage", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("URL의 조건으로 목록을 조회하고 실행마다 상태와 상세 링크를 보여주며 페이지 링크는 조건을 유지한다", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        jsonResponse({ ok: true, items: [failed, completed], hasMore: true }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <ArchiveListPage search="?environment=production&generationId=gen-1&failedStage=validation&page=2" />,
+    );
+
+    const detail = await screen.findByRole("link", { name: /att-1/ });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/admin/debug/resume/api/archives?environment=production&generationId=gen-1&failedStage=validation&page=2",
+      expect.anything(),
+    );
+    expect(detail.getAttribute("href")).toBe(
+      "/admin/debug/resume?environment=production&subjectHash=subj-a&generationId=gen-1&attemptId=att-1",
+    );
+    const row = detail.closest("li") as HTMLElement;
+    expect(within(row).getByText("실패")).toBeTruthy();
+    expect(within(row).getByText("model_response 직후 실패")).toBeTruthy();
+    expect(screen.getByText("완료")).toBeTruthy();
+
+    const form = screen.getByRole("form", { name: "실행 필터" });
+    expect(form.getAttribute("method")).toBe("get");
+    expect(form.getAttribute("action")).toBe("/admin/debug/resume");
+    expect(
+      (within(form).getByLabelText("환경") as HTMLSelectElement).value,
+    ).toBe("production");
+    expect(
+      (within(form).getByLabelText("생성 ID") as HTMLInputElement).value,
+    ).toBe("gen-1");
+    expect(
+      (within(form).getByLabelText("실패 단계") as HTMLSelectElement).value,
+    ).toBe("validation");
+
+    expect(
+      screen.getByRole("link", { name: "이전 페이지" }).getAttribute("href"),
+    ).toBe(
+      "/admin/debug/resume?environment=production&generationId=gen-1&failedStage=validation&page=1",
+    );
+    expect(
+      screen.getByRole("link", { name: "다음 페이지" }).getAttribute("href"),
+    ).toBe(
+      "/admin/debug/resume?environment=production&generationId=gen-1&failedStage=validation&page=3",
+    );
+  });
+
+  it("첫 페이지에는 이전 링크가 없고 결과가 없으면 빈 상태를, 조회가 실패하면 오류를 알린다", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          jsonResponse({ ok: true, items: [], hasMore: false }),
+        )
+        .mockResolvedValueOnce(jsonResponse({ code: "STORAGE_FAILED" }, 502)),
+    );
+
+    const { unmount } = render(<ArchiveListPage search="" />);
+    expect(
+      await screen.findByText("조건에 맞는 보관 기록이 없습니다."),
+    ).toBeTruthy();
+    expect(screen.queryByRole("link", { name: "이전 페이지" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "다음 페이지" })).toBeNull();
+    unmount();
+
+    render(<ArchiveListPage search="?environment=bogus&page=0" />);
+    expect((await screen.findByRole("alert")).textContent).toContain(
+      "요청을 처리하지 못했습니다. 다시 시도해 주세요.",
+    );
+  });
+});
