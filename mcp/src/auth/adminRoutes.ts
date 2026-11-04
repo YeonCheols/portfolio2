@@ -6,6 +6,11 @@ import type { PortfolioAdminApi } from "@mcp/auth/adminApi";
 import type { createPortfolioAdminOAuth } from "@mcp/auth/adminOAuth";
 import type { SettingConnectionTester } from "@mcp/auth/settingConnectionTest";
 import type { IntrospectedSession } from "@mcp/resume/http/portfolioApiIntrospector";
+import {
+  ArchiveNotFoundError,
+  ArchiveQueryError,
+  type ResumeDebugArchiveReader,
+} from "@mcp/resume/output/resumeDebugArchiveReader";
 
 const cookieName = "__Host-portfolio-admin-session";
 const oauthCookieName = "__Host-portfolio-admin-oauth-state";
@@ -152,6 +157,159 @@ const readApiPath = (pathname: string): string | null => {
     : null;
 };
 
+const connectPath = "/admin/ai-models/connect";
+const debugPagePath = "/admin/debug/resume";
+const debugApiPrefix = `${debugPagePath}/api/`;
+
+// 관리 화면 공통: 세션 쿠키를 확인한 뒤에만 앱을 서빙하고 무효면 로그인으로 보낸다
+const serveAuthenticatedApp = async (
+  req: IncomingMessage,
+  res: ServerResponse,
+  options: {
+    introspect: (token: string) => Promise<IntrospectedSession>;
+    appRoot: string;
+  },
+): Promise<void> => {
+  const token = readCookie(req);
+  if (!token) {
+    redirect(res, connectPath);
+    return;
+  }
+  let session: IntrospectedSession;
+  try {
+    session = await options.introspect(token);
+  } catch {
+    // 확인 호출이 실패한 것이지 세션이 무효인 것이 아니므로 로그아웃시키지 않는다
+    sendJson(res, 503, { ok: false, code: "AUTH_UNAVAILABLE" });
+    return;
+  }
+  if (!session.active) {
+    redirect(
+      res,
+      connectPath,
+      `${cookieName}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`,
+    );
+    return;
+  }
+  sendApp(res, options.appRoot);
+};
+
+const optionalParam = (url: URL, name: string): string | undefined =>
+  url.searchParams.get(name) || undefined;
+
+// 검증은 reader 한 곳에서 하므로 비어 있으면 빈 문자열로 넘겨 거절되게 한다
+const archiveKey = (url: URL) => ({
+  environment: url.searchParams.get("environment") ?? "",
+  subjectHash: url.searchParams.get("subjectHash") ?? "",
+  generationId: url.searchParams.get("generationId") ?? "",
+  attemptId: url.searchParams.get("attemptId") ?? "",
+});
+
+const optionalNumber = (url: URL, name: string): number | undefined => {
+  const value = optionalParam(url, name);
+  return value === undefined ? undefined : Number(value);
+};
+
+// 아카이브 API: 읽기 전용이며 저장소 오류 원문은 응답에 싣지 않는다
+const handleDebugArchiveApi = async (
+  req: IncomingMessage,
+  res: ServerResponse,
+  url: URL,
+  options: {
+    introspect: (token: string) => Promise<IntrospectedSession>;
+    publicUrl: string;
+    debugArchive?: ResumeDebugArchiveReader;
+    log?: (message: string) => void;
+  },
+): Promise<void> => {
+  const token = readCookie(req);
+  if (!token) {
+    sendJson(res, 401, { ok: false, code: "UNAUTHORIZED" });
+    return;
+  }
+  const method = req.method ?? "GET";
+  if (
+    !["GET", "HEAD"].includes(method) &&
+    req.headers.origin !== new URL(options.publicUrl).origin
+  ) {
+    sendJson(res, 403, { ok: false, code: "INVALID_ORIGIN" });
+    return;
+  }
+  if (method !== "GET") {
+    sendJson(res, 405, { ok: false, code: "METHOD_NOT_ALLOWED" });
+    return;
+  }
+  let session: IntrospectedSession;
+  try {
+    session = await options.introspect(token);
+  } catch {
+    sendJson(res, 503, { ok: false, code: "AUTH_UNAVAILABLE" });
+    return;
+  }
+  if (!session.active) {
+    sendJson(res, 401, { ok: false, code: "UNAUTHORIZED" });
+    return;
+  }
+  const reader = options.debugArchive;
+  if (!reader) {
+    sendJson(res, 503, { ok: false, code: "DEBUG_ARCHIVE_UNAVAILABLE" });
+    return;
+  }
+  // 이력서 원문을 여는 읽기도 누가 무엇을 했는지만 남기고 ID·서명 URL·오류 원문은 남기지 않는다
+  const action = url.pathname.slice(debugApiPrefix.length + "archives".length);
+  const logRead = (result: string) =>
+    options.log?.(
+      `ADMIN_DEBUG_ARCHIVE sub=${logSubject(session.sub)} action=${
+        { "": "list", "/detail": "detail", "/file-url": "file-url" }[action] ??
+        "unknown"
+      } result=${result}`,
+    );
+  try {
+    if (url.pathname === `${debugApiPrefix}archives`) {
+      const result = await reader.list({
+        environment: url.searchParams.get("environment") ?? "",
+        generationId: optionalParam(url, "generationId"),
+        attemptId: optionalParam(url, "attemptId"),
+        failedStage: optionalParam(url, "failedStage"),
+        page: optionalNumber(url, "page"),
+        pageSize: optionalNumber(url, "pageSize"),
+      });
+      logRead("ok");
+      sendJson(res, 200, { ok: true, ...result });
+      return;
+    }
+    if (url.pathname === `${debugApiPrefix}archives/detail`) {
+      const detail = await reader.get(archiveKey(url));
+      logRead("ok");
+      sendJson(res, 200, { ok: true, ...detail });
+      return;
+    }
+    if (url.pathname === `${debugApiPrefix}archives/file-url`) {
+      const signed = await reader.signedUrl(
+        archiveKey(url),
+        url.searchParams.get("file") ?? "",
+      );
+      logRead("ok");
+      sendJson(res, 200, { ok: true, url: signed });
+      return;
+    }
+    sendJson(res, 404, { ok: false, code: "NOT_FOUND" });
+  } catch (error) {
+    if (error instanceof ArchiveQueryError) {
+      logRead("failed code=INVALID_REQUEST");
+      sendJson(res, 400, { ok: false, code: "INVALID_REQUEST" });
+      return;
+    }
+    if (error instanceof ArchiveNotFoundError) {
+      logRead("failed code=ARCHIVE_NOT_FOUND");
+      sendJson(res, 404, { ok: false, code: "ARCHIVE_NOT_FOUND" });
+      return;
+    }
+    logRead("failed code=STORAGE_FAILED");
+    sendJson(res, 502, { ok: false, code: "STORAGE_FAILED" });
+  }
+};
+
 export const handleAdminRequest = async (
   req: IncomingMessage,
   res: ServerResponse,
@@ -164,6 +322,7 @@ export const handleAdminRequest = async (
     introspect: (token: string) => Promise<IntrospectedSession>;
     log?: (message: string) => void;
     testSetting?: SettingConnectionTester;
+    debugArchive?: ResumeDebugArchiveReader;
     appRoot?: string;
   },
 ): Promise<boolean> => {
@@ -281,28 +440,17 @@ export const handleAdminRequest = async (
   }
 
   if (req.method === "GET" && pathname === "/admin/ai-models") {
-    const token = readCookie(req);
-    if (!token) {
-      redirect(res, "/admin/ai-models/connect");
-      return true;
-    }
-    let session: IntrospectedSession;
-    try {
-      session = await options.introspect(token);
-    } catch {
-      // 확인 호출이 실패한 것이지 세션이 무효인 것이 아니므로 로그아웃시키지 않는다
-      sendJson(res, 503, { ok: false, code: "AUTH_UNAVAILABLE" });
-      return true;
-    }
-    if (!session.active) {
-      redirect(
-        res,
-        "/admin/ai-models/connect",
-        `${cookieName}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`,
-      );
-      return true;
-    }
-    sendApp(res, appRoot);
+    await serveAuthenticatedApp(req, res, { ...options, appRoot });
+    return true;
+  }
+
+  if (req.method === "GET" && pathname === debugPagePath) {
+    await serveAuthenticatedApp(req, res, { ...options, appRoot });
+    return true;
+  }
+
+  if (pathname.startsWith(debugApiPrefix)) {
+    await handleDebugArchiveApi(req, res, url, options);
     return true;
   }
 

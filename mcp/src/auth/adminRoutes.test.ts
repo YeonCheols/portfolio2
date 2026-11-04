@@ -6,6 +6,11 @@ import { join } from "path";
 import { createPortfolioAdminApi } from "@mcp/auth/adminApi";
 import { handleAdminRequest } from "@mcp/auth/adminRoutes";
 import type { SettingConnectionTester } from "@mcp/auth/settingConnectionTest";
+import {
+  ArchiveNotFoundError,
+  ArchiveQueryError,
+  type ResumeDebugArchiveReader,
+} from "@mcp/resume/output/resumeDebugArchiveReader";
 import type { IntrospectedSession } from "@mcp/resume/http/portfolioApiIntrospector";
 
 const request = (
@@ -96,6 +101,7 @@ describe("portfolio-api 관리자 라우트", () => {
       .mockResolvedValue({ active: true, sub: "7" }),
     log?: (message: string) => void,
     testSetting?: SettingConnectionTester,
+    debugArchive?: ResumeDebugArchiveReader,
   ) =>
     http.createServer((req, res) => {
       handleAdminRequest(req, res, {
@@ -107,6 +113,7 @@ describe("portfolio-api 관리자 라우트", () => {
         introspect,
         log,
         testSetting,
+        debugArchive,
         oauth,
         publicUrl: "https://mcp.example.test/mcp",
         oauthResource: "https://mcp.example.test/mcp",
@@ -964,6 +971,320 @@ describe("portfolio-api 관리자 라우트", () => {
         expect(response.status).toBe(413);
         expect(JSON.parse(response.body).code).toBe("BODY_TOO_LARGE");
         expect(testSetting).not.toHaveBeenCalled();
+      });
+    });
+  });
+  describe("이력서 디버깅 아카이브 경로", () => {
+    const session = { cookie: "__Host-portfolio-admin-session=admin-jwt" };
+    const sameOrigin = { origin: "https://mcp.example.test" };
+    const makeReader = () => ({
+      list: jest.fn().mockResolvedValue({
+        items: [{ attemptId: "att-1" }],
+        hasMore: false,
+      }),
+      get: jest.fn(),
+      signedUrl: jest.fn(),
+    });
+    const active = () =>
+      jest.fn().mockResolvedValue({ active: true, sub: "7" });
+    const withServer = async (
+      options: {
+        reader?: ReturnType<typeof makeReader>;
+        introspect?: (token: string) => Promise<IntrospectedSession>;
+        log?: (message: string) => void;
+      },
+      run: (port: number) => Promise<void>,
+    ) => {
+      const server = createServer(
+        jest.fn(),
+        defaultOAuth,
+        appRoot,
+        options.introspect ?? active(),
+        options.log,
+        undefined,
+        options.reader as unknown as ResumeDebugArchiveReader | undefined,
+      );
+      await new Promise<void>((resolve) =>
+        server.listen(0, "127.0.0.1", resolve),
+      );
+      try {
+        await run((server.address() as { port: number }).port);
+      } finally {
+        await new Promise<void>((resolve, reject) =>
+          server.close((error) => (error ? reject(error) : resolve())),
+        );
+      }
+    };
+
+    it("화면은 기존 관리자 세션을 확인해 앱을 서빙하고 세션이 없거나 무효이면 로그인으로 보낸다", async () => {
+      const introspect = active();
+      await withServer({ reader: makeReader(), introspect }, async (port) => {
+        const noCookie = await request(port, "/admin/debug/resume");
+        expect(noCookie.status).toBe(303);
+        expect(noCookie.headers.location).toBe("/admin/ai-models/connect");
+
+        const ok = await request(port, "/admin/debug/resume", {
+          headers: session,
+        });
+        expect(ok.status).toBe(200);
+        expect(ok.body).toBe(indexHtml);
+        expect(introspect).toHaveBeenCalledWith("admin-jwt");
+      });
+      await withServer(
+        {
+          reader: makeReader(),
+          introspect: jest.fn().mockResolvedValue({ active: false }),
+        },
+        async (port) => {
+          const inactive = await request(port, "/admin/debug/resume", {
+            headers: session,
+          });
+          expect(inactive.status).toBe(303);
+          expect(inactive.headers.location).toBe("/admin/ai-models/connect");
+          expect(String(inactive.headers["set-cookie"])).toContain("Max-Age=0");
+        },
+      );
+      await withServer(
+        {
+          reader: makeReader(),
+          introspect: jest.fn().mockRejectedValue(new Error("down")),
+        },
+        async (port) => {
+          const down = await request(port, "/admin/debug/resume", {
+            headers: session,
+          });
+          expect(down.status).toBe(503);
+          expect(down.headers["set-cookie"]).toBeUndefined();
+        },
+      );
+    });
+
+    it("목록 API는 세션 없음·무효·확인 실패·허용하지 않은 메서드를 저장소 호출 없이 거절한다", async () => {
+      const reader = makeReader();
+      const path = "/admin/debug/resume/api/archives?environment=development";
+      await withServer({ reader }, async (port) => {
+        expect((await request(port, path)).status).toBe(401);
+        const post = await request(port, path, {
+          method: "POST",
+          headers: { ...session, ...sameOrigin },
+        });
+        expect(post.status).toBe(405);
+        const crossOrigin = await request(port, path, {
+          method: "POST",
+          headers: { ...session, origin: "https://evil.example.test" },
+        });
+        expect(crossOrigin.status).toBe(403);
+      });
+      await withServer(
+        {
+          reader,
+          introspect: jest.fn().mockResolvedValue({ active: false }),
+        },
+        async (port) => {
+          const response = await request(port, path, { headers: session });
+          expect(response.status).toBe(401);
+        },
+      );
+      await withServer(
+        { reader, introspect: jest.fn().mockRejectedValue(new Error("down")) },
+        async (port) => {
+          const response = await request(port, path, { headers: session });
+          expect(response.status).toBe(503);
+        },
+      );
+      expect(reader.list).not.toHaveBeenCalled();
+    });
+
+    it("목록 API는 쿼리를 reader에 넘기고 잘못된 입력은 400, 저장소 오류는 내부 정보 없이 502로 응답한다", async () => {
+      const reader = makeReader();
+      await withServer({ reader }, async (port) => {
+        const response = await request(
+          port,
+          "/admin/debug/resume/api/archives?environment=development&generationId=gen-1&attemptId=&failedStage=validation&page=2&pageSize=10",
+          { headers: session },
+        );
+        expect(response.status).toBe(200);
+        expect(JSON.parse(response.body)).toEqual({
+          ok: true,
+          items: [{ attemptId: "att-1" }],
+          hasMore: false,
+        });
+        expect(reader.list).toHaveBeenCalledWith({
+          environment: "development",
+          generationId: "gen-1",
+          failedStage: "validation",
+          page: 2,
+          pageSize: 10,
+        });
+
+        reader.list.mockRejectedValueOnce(new ArchiveQueryError());
+        const invalid = await request(
+          port,
+          "/admin/debug/resume/api/archives?environment=staging",
+          { headers: session },
+        );
+        expect(invalid.status).toBe(400);
+        expect(JSON.parse(invalid.body)).toEqual({
+          ok: false,
+          code: "INVALID_REQUEST",
+        });
+
+        reader.list.mockRejectedValueOnce(new Error("leak sb_secret_fake"));
+        const failed = await request(
+          port,
+          "/admin/debug/resume/api/archives?environment=development",
+          { headers: session },
+        );
+        expect(failed.status).toBe(502);
+        expect(failed.body).not.toContain("sb_secret_fake");
+        expect(JSON.parse(failed.body)).toEqual({
+          ok: false,
+          code: "STORAGE_FAILED",
+        });
+      });
+    });
+
+    it("상세 API는 대상 키를 reader에 넘기고 없는 실행은 404, 잘못된 키는 400으로 응답한다", async () => {
+      const reader = makeReader();
+      const detail = {
+        summary: { attemptId: "att-1" },
+        files: [{ name: "001-started.json", stage: "started" }],
+        latest: { response: "{끊긴 JSON" },
+      };
+      reader.get.mockResolvedValueOnce(detail);
+      const query =
+        "environment=development&subjectHash=subj-a&generationId=gen-1&attemptId=att-1";
+      await withServer({ reader }, async (port) => {
+        const response = await request(
+          port,
+          `/admin/debug/resume/api/archives/detail?${query}`,
+          { headers: session },
+        );
+        expect(response.status).toBe(200);
+        expect(JSON.parse(response.body)).toEqual({ ok: true, ...detail });
+        expect(reader.get).toHaveBeenCalledWith({
+          environment: "development",
+          subjectHash: "subj-a",
+          generationId: "gen-1",
+          attemptId: "att-1",
+        });
+
+        reader.get.mockRejectedValueOnce(new ArchiveNotFoundError());
+        const missing = await request(
+          port,
+          `/admin/debug/resume/api/archives/detail?${query}`,
+          { headers: session },
+        );
+        expect(missing.status).toBe(404);
+        expect(JSON.parse(missing.body).code).toBe("ARCHIVE_NOT_FOUND");
+
+        reader.get.mockRejectedValueOnce(new ArchiveQueryError());
+        const invalid = await request(
+          port,
+          "/admin/debug/resume/api/archives/detail?environment=development",
+          { headers: session },
+        );
+        expect(invalid.status).toBe(400);
+      });
+    });
+
+    it("서명 URL API는 파일 이름을 reader에 넘겨 만료되는 URL만 응답하고 없는 파일은 404로 응답한다", async () => {
+      const reader = makeReader();
+      reader.signedUrl.mockResolvedValueOnce(
+        "https://storage.example.test/sign/x?token=fake",
+      );
+      const query =
+        "environment=development&subjectHash=subj-a&generationId=gen-1&attemptId=att-1&file=002-model_response.json";
+      await withServer({ reader }, async (port) => {
+        const response = await request(
+          port,
+          `/admin/debug/resume/api/archives/file-url?${query}`,
+          { headers: session },
+        );
+        expect(response.status).toBe(200);
+        expect(JSON.parse(response.body)).toEqual({
+          ok: true,
+          url: "https://storage.example.test/sign/x?token=fake",
+        });
+        expect(reader.signedUrl).toHaveBeenCalledWith(
+          {
+            environment: "development",
+            subjectHash: "subj-a",
+            generationId: "gen-1",
+            attemptId: "att-1",
+          },
+          "002-model_response.json",
+        );
+
+        reader.signedUrl.mockRejectedValueOnce(new ArchiveNotFoundError());
+        const missing = await request(
+          port,
+          `/admin/debug/resume/api/archives/file-url?${query}`,
+          { headers: session },
+        );
+        expect(missing.status).toBe(404);
+      });
+    });
+
+    it("읽기 요청도 sub와 동작·결과만 로그로 남기고 ID와 서명 URL은 남기지 않는다", async () => {
+      const reader = makeReader();
+      reader.get
+        .mockResolvedValueOnce({ summary: {}, files: [], latest: null })
+        .mockRejectedValueOnce(new ArchiveNotFoundError());
+      reader.signedUrl.mockResolvedValueOnce(
+        "https://storage.example.test/sign/x?token=fake",
+      );
+      reader.list
+        .mockResolvedValueOnce({ items: [], hasMore: false })
+        .mockRejectedValueOnce(new Error("leak sb_secret_fake"));
+      const log = jest.fn();
+      const key =
+        "environment=development&subjectHash=subj-a&generationId=gen-1&attemptId=att-1";
+      const api = "/admin/debug/resume/api/archives";
+      await withServer({ reader, log }, async (port) => {
+        // 세션이 없는 요청은 누구의 행위도 아니므로 남기지 않는다
+        await request(port, `${api}?environment=development`);
+        for (const path of [
+          `${api}?environment=development`,
+          `${api}/detail?${key}`,
+          `${api}/file-url?${key}&file=002-model_response.json`,
+          `${api}/detail?${key}`,
+          `${api}?environment=development`,
+        ]) {
+          await request(port, path, { headers: session });
+        }
+      });
+
+      expect(log.mock.calls.map(([message]) => message)).toEqual([
+        "ADMIN_DEBUG_ARCHIVE sub=7 action=list result=ok",
+        "ADMIN_DEBUG_ARCHIVE sub=7 action=detail result=ok",
+        "ADMIN_DEBUG_ARCHIVE sub=7 action=file-url result=ok",
+        "ADMIN_DEBUG_ARCHIVE sub=7 action=detail result=failed code=ARCHIVE_NOT_FOUND",
+        "ADMIN_DEBUG_ARCHIVE sub=7 action=list result=failed code=STORAGE_FAILED",
+      ]);
+      const logged = log.mock.calls.map(([message]) => message).join("\n");
+      for (const secret of [
+        "gen-1",
+        "att-1",
+        "subj-a",
+        "token=fake",
+        "sb_secret",
+      ])
+        expect(logged).not.toContain(secret);
+    });
+
+    it("저장소가 설정되지 않았으면 인증 후 503으로 알린다", async () => {
+      await withServer({}, async (port) => {
+        const response = await request(
+          port,
+          "/admin/debug/resume/api/archives?environment=development",
+          { headers: session },
+        );
+        expect(response.status).toBe(503);
+        expect(JSON.parse(response.body)).toEqual({
+          ok: false,
+          code: "DEBUG_ARCHIVE_UNAVAILABLE",
+        });
       });
     });
   });

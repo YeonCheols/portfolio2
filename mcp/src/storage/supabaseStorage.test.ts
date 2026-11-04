@@ -92,4 +92,91 @@ describe("Supabase Storage", () => {
       }),
     );
   });
+  it("prefix 바로 아래 항목을 폴더와 파일로 나눠 반환하고 페이지 범위를 요청에 담는다", async () => {
+    const fetchImpl = jest.fn(
+      async () =>
+        new Response(
+          JSON.stringify([
+            { name: "gen-1", id: null },
+            { name: "001-started.json", id: "obj-1" },
+          ]),
+        ),
+    );
+    const storage = createSupabaseStorage({
+      url: "https://storage.example.test",
+      secretKey: "sb_secret_fake",
+      bucket: "mcp",
+      fetchImpl,
+    });
+    await expect(
+      storage.listObjects("debug/resume/development", {
+        limit: 20,
+        offset: 40,
+      }),
+    ).resolves.toEqual([
+      { name: "gen-1", kind: "folder" },
+      { name: "001-started.json", kind: "file" },
+    ]);
+    expect(fetchImpl).toHaveBeenCalledWith(
+      "https://storage.example.test/storage/v1/object/list/mcp",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          prefix: "debug/resume/development",
+          limit: 20,
+          offset: 40,
+          sortBy: { column: "name", order: "asc" },
+        }),
+      }),
+    );
+  });
+  it("파일 항목에는 저장소가 준 생성 시각을 담고 폴더와 시각이 없는 항목은 생략한다", async () => {
+    const fetchImpl = jest.fn(
+      async () =>
+        new Response(
+          JSON.stringify([
+            { name: "gen-1", id: null },
+            {
+              name: "001-started.json",
+              id: "obj-1",
+              created_at: "2026-11-04T01:00:00.000Z",
+            },
+            { name: "002-failed.json", id: "obj-2" },
+          ]),
+        ),
+    );
+    const storage = createSupabaseStorage({
+      url: "https://storage.example.test",
+      secretKey: "sb_secret_fake",
+      bucket: "mcp",
+      fetchImpl,
+    });
+    await expect(
+      storage.listObjects("debug/resume/development", { limit: 20, offset: 0 }),
+    ).resolves.toEqual([
+      { name: "gen-1", kind: "folder" },
+      {
+        name: "001-started.json",
+        kind: "file",
+        createdAt: "2026-11-04T01:00:00.000Z",
+      },
+      { name: "002-failed.json", kind: "file" },
+    ]);
+  });
+  it("목록 prefix의 경로 탈출을 요청 전에 거부하고 저장소 오류는 값 없이 반환한다", async () => {
+    const fetchImpl = jest.fn(async () => new Response("{}", { status: 500 }));
+    const storage = createSupabaseStorage({
+      url: "https://storage.example.test",
+      secretKey: "sb_secret_fake",
+      bucket: "mcp",
+      fetchImpl,
+    });
+    await expect(
+      storage.listObjects("debug/../other", { limit: 20, offset: 0 }),
+    ).rejects.toThrow("STORAGE_PATH_INVALID");
+    expect(fetchImpl).not.toHaveBeenCalled();
+    await expect(
+      storage.listObjects("debug/resume", { limit: 20, offset: 0 }),
+    ).rejects.toThrow("STORAGE_LIST_FAILED");
+  });
 });

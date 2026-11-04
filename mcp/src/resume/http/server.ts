@@ -1,4 +1,5 @@
 import { createPortfolioAdminApi } from "@mcp/auth/adminApi";
+import { createResumeDebugArchiveReader } from "@mcp/resume/output/resumeDebugArchiveReader";
 import { createSupabaseStorage } from "@mcp/storage/supabaseStorage";
 import { createPortfolioAdminOAuth } from "@mcp/auth/adminOAuth";
 import { createSettingConnectionTester } from "@mcp/auth/settingConnectionTest";
@@ -115,10 +116,15 @@ export const startResumeMcpServer = () => {
     serviceToken: config.api.serviceToken,
   });
 
+  // 저장과 관리 화면 조회가 같은 연결을 쓴다. 설정이 없으면 둘 다 꺼진다
+  const storage = config.storage
+    ? createSupabaseStorage(config.storage)
+    : undefined;
+
   return createResumeMcpServer({
     introspect,
     environment: config.modelSetting.environment,
-    storage: config.storage ? createSupabaseStorage(config.storage) : undefined,
+    storage,
     log: (message) => console.log(message),
     protectedResourceMetadata: {
       resource: publicUrl,
@@ -131,6 +137,9 @@ export const startResumeMcpServer = () => {
     },
     admin: {
       api: adminApi,
+      debugArchive: storage
+        ? createResumeDebugArchiveReader(storage)
+        : undefined,
       testSetting: createSettingConnectionTester({
         api: adminApi,
         connections: modelTestConnections,

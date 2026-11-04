@@ -2,6 +2,12 @@ export type JsonStorage = {
   putJson: (path: string, value: unknown) => Promise<void>;
 };
 
+export type StorageEntry = {
+  name: string;
+  kind: "file" | "folder";
+  createdAt?: string;
+};
+
 export class StorageError extends Error {
   constructor(public readonly code: string) {
     super(code);
@@ -86,6 +92,53 @@ export const createSupabaseStorage = (options: {
         return await response.json();
       } catch {
         throw new StorageError("STORAGE_READ_FAILED");
+      }
+    },
+    listObjects: async (
+      prefix: string,
+      page: { limit: number; offset: number },
+    ): Promise<StorageEntry[]> => {
+      const response = await request(
+        `/object/list/${bucket}`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            prefix: objectPath(prefix),
+            limit: page.limit,
+            offset: page.offset,
+            sortBy: { column: "name", order: "asc" },
+          }),
+        },
+        "STORAGE_LIST_FAILED",
+      );
+      try {
+        const data: unknown = await response.json();
+        if (!Array.isArray(data)) throw new Error();
+        return data.map((item: unknown) => {
+          if (
+            typeof item !== "object" ||
+            item === null ||
+            !("name" in item) ||
+            typeof item.name !== "string"
+          )
+            throw new Error();
+          // Supabase는 폴더 항목에 id를 주지 않는다
+          const isFile = "id" in item && Boolean(item.id);
+          const createdAt =
+            isFile &&
+            "created_at" in item &&
+            typeof item.created_at === "string" &&
+            !Number.isNaN(Date.parse(item.created_at))
+              ? item.created_at
+              : undefined;
+          return {
+            name: item.name,
+            kind: isFile ? "file" : "folder",
+            ...(createdAt ? { createdAt } : {}),
+          } satisfies StorageEntry;
+        });
+      } catch {
+        throw new StorageError("STORAGE_LIST_FAILED");
       }
     },
     createSignedUrl: async (path: string): Promise<string> => {
