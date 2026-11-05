@@ -58,10 +58,10 @@ pnpm start:prod
 두 명령은 `portfolio-config run`을 사용합니다. 고정 커밋을 선택하려면 CLI를 직접 실행합니다.
 
 ```sh
-portfolio-config run --app portfolio-mcp --env production --ref COMMIT_SHA -- node dist/resume/http/server.js
+portfolio-config run --app portfolio-mcp --env production --ref COMMIT_SHA -- node apps/backend/dist/bootstrap/server.js
 ```
 
-`runtimeConfig.ts`가 서버·인증 API·이력서 API와 모델 설정 조회 연결을 시작 시 검증합니다.
+`runtime-config.ts`가 서버·인증 API·이력서 API와 모델 설정 조회 연결을 시작 시 검증합니다.
 모델명·공급자·모델 키를 정적 프로세스 설정에서 읽는 이전 경로는 제거했습니다.
 
 ## 동적 AI 모델 주입
@@ -116,7 +116,7 @@ portfolio-api의 migration과 새 API 배포를 먼저 준비한 뒤 MCP를 배�
 
 중앙 MCP 설정의 `SUPABASE_URL`, `SUPABASE_SECRET_KEY`, `MCP_STORAGE_BUCKET`을 시작 시 읽습니다. 세 값이 모두 없으면 기존 메모리 실행을 유지하고, 일부만 있으면 시작을 거부합니다. 연결은 HTTPS 프로젝트 origin과 비공개 버킷을 사용하며 서버용 키는 브라우저에 전달하거나 로그에 출력하지 않습니다. `mcp` 버킷은 미리 생성해야 하며 런타임이 버킷을 자동 생성하거나 공개로 변경하지 않습니다.
 
-`src/storage/supabaseStorage.ts`는 MCP 공통 JSON 업로드·재조회·5분 만료 서명 URL 발급을 소유합니다. 환경 변수에는 버킷 이름만 두고 이력서의 하위 경로는 `src/resume/output/resumeDebugArchive.ts`가 지정합니다.
+`apps/backend/src/infrastructure/storage/supabase-storage.ts`는 MCP 공통 JSON 업로드·재조회·5분 만료 서명 URL 발급을 소유합니다. 환경 변수에는 버킷 이름만 두고 이력서의 하위 경로는 `apps/backend/src/modules/resume/archive/resume-debug-archive.ts`가 지정합니다.
 
 ```text
 mcp/
@@ -148,11 +148,11 @@ DB 실행 목록·관리 화면 연결·Storage 기록으로부터의 재실행 
 - `openai`: `https://api.openai.com/v1/chat/completions`
 - `gemini`: `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`
 
-모델 이름은 직접 입력합니다. 공급자별 옵션·기본 주소·모델 ID 예시·공식 모델 목록 링크는 관리 화면의 `app/src/settings/providers/model-providers.ts`에 있는 `MODEL_PROVIDERS` 상수가 소유합니다. 공급자를 바꾸면 예시와 링크만 바뀌며 직접 입력한 모델 이름은 유지합니다. 예시는 기본 모델 설정이 아니며 저장할 값으로 자동 입력하지 않습니다.
+모델 이름은 직접 입력합니다. 공급자별 옵션·기본 주소·모델 ID 예시·공식 모델 목록 링크는 관리 화면의 `apps/console/src/settings/providers/model-providers.ts`에 있는 `MODEL_PROVIDERS` 상수가 소유합니다. 공급자를 바꾸면 예시와 링크만 바뀌며 직접 입력한 모델 이름은 유지합니다. 예시는 기본 모델 설정이 아니며 저장할 값으로 자동 입력하지 않습니다.
 
 OpenAI는 [Chat Completions](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create)를 사용하고, Gemini는 [Google의 OpenAI 호환 API](https://ai.google.dev/gemini-api/docs/openai)에 직접 연결합니다. 세 공급자 모두 Bearer 인증과 `model`, `messages`를 사용합니다. 구조화 호출은 `response_format`의 `json_schema`를 전달하며 OpenRouter만 `provider.require_parameters`를 추가합니다. `temperature`, 토큰 수, 추론 강도 등 모델별 제약이 있는 선택 파라미터는 보내지 않습니다. 선택한 모델이 Chat Completions와 구조화 출력을 지원하는지는 설정별 연결 테스트로 확인합니다. Responses 전용 모델은 이 연결의 대상이 아닙니다.
 
-공통 전송·응답 검증·상태 코드 변환은 `connection/model/chatCompletionModelConnection.ts`가 소유하며 공급자별 진입점은 각 어댑터가 소유합니다. 두 서버 연결 맵에 모두 등록하여 연결 테스트와 이력서 생성이 같은 어댑터를 사용합니다. 기존 연결 테스트의 시간 제한, 키 가림, 응답 길이 제한과 오류 본문 비공개 계약은 유지합니다.
+공통 전송·응답 검증·상태 코드 변환은 `apps/backend/src/infrastructure/ai/chat-completion-model-connection.ts`가 소유하며 공급자별 진입점은 각 어댑터가 소유합니다. 두 서버 연결 맵에 모두 등록하여 연결 테스트와 이력서 생성이 같은 어댑터를 사용합니다. 기존 연결 테스트의 시간 제한, 키 가림, 응답 길이 제한과 오류 본문 비공개 계약은 유지합니다.
 
 #180의 portfolio-api 공급자 타입 추가·배포는 사용자 확인 기준 완료된 선행 작업입니다. MCP 배포 전 공급자별 호스트 정책과 저장·활성화 계약을 확인합니다. 실제 모델 설정 등록·활성화·실호출 확인은 OpenAI만 수행하며 Gemini는 가짜 네트워크 테스트로 구조를 검증합니다. API 키는 관리 화면에서 입력하고 이슈나 로그에 남기지 않습니다.
 

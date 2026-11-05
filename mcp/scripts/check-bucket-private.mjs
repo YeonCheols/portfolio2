@@ -1,6 +1,6 @@
 // 배포 뒤 점검: 이력서 디버깅 원문이 있는 Storage 버킷이 비공개인지 확인한다.
 // 사용: pnpm build 후 `pnpm check:storage` (개발) 또는 `pnpm check:storage:prod` (운영)
-import { createSupabaseStorage } from "../dist/storage/supabaseStorage.js";
+import { createSupabaseStorage } from "../apps/backend/dist/infrastructure/storage/supabase-storage.js";
 
 const required = (name) => {
   const value = process.env[name]?.trim();

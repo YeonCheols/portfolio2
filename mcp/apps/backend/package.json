@@ -1,0 +1,19 @@
+{
+  "name": "@portfolio-mcp/backend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node ../../scripts/rewrite-alias-imports.mjs dist",
+    "type-check": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/bootstrap/server.js"
+  },
+  "dependencies": {
+    "@portfolio-mcp/admin-contracts": "workspace:*",
+    "pdfkit": "^0.20.2"
+  },
+  "devDependencies": {
+    "@types/node": "20.1.7",
+    "@types/pdfkit": "^0.17.7",
+    "typescript": "5.0.4"
+  }
+}

@@ -33,6 +33,9 @@ jobs:
         with:
           node-version: 20
           cache: pnpm
+          cache-dependency-path: |
+            pnpm-lock.yaml
+            mcp/pnpm-lock.yaml
 
       - name: 의존성 설치
         env:
@@ -46,6 +49,7 @@ jobs:
           pnpm --dir mcp install --frozen-lockfile
           pnpm --dir mcp build
           pnpm --dir mcp test
+          pnpm --dir mcp check:build
 
       - name: Lint
         run: pnpm lint
