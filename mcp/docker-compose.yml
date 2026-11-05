@@ -47,7 +47,7 @@ services:
     command:
       - sh
       - -c
-      - pnpm type-check && pnpm test:ci && pnpm check:build
+      - pnpm lint && pnpm lint:verify && pnpm type-check && pnpm test:ci && pnpm check:build
 
 secrets:
   github-token:

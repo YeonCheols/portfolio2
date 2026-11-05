@@ -16,6 +16,7 @@ COPY packages ./packages
 COPY scripts ./scripts
 COPY fonts ./fonts
 COPY jest.config.cjs *.test.ts *.test.mjs Dockerfile ./
+COPY .oxlintrc.json oxlint-native-evaluation.json ./
 RUN pnpm build
 RUN chown -R node:node /app
 

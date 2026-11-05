@@ -59,6 +59,8 @@ MCP 루트 `pnpm build`는 공통 계약 → 백엔드 → 콘솔 순서로 빌�
 
 ## 로컬 Compose
 
+정적 검사는 `pnpm lint`로 MCP의 `.oxlintrc.json`을 명시해 Oxlint를 실행합니다. 백엔드·콘솔·공통 계약의 src를 검사하고 Next.js와 웹 FSD 규칙은 사용하지 않습니다. 콘솔의 React legacy 규칙 2개는 고정한 JS 플러그인으로 보완합니다. 오류는 실패, 경고는 비차단으로 처리합니다. `pnpm lint:verify`는 fixture 12개와 종료 코드 정책을 확인하며 두 명령을 CI·Compose 검증에 포함합니다. 비교 측정은 선택적인 `pnpm lint:evaluate`이며 CI에서 성능 측정을 반복하지 않습니다.
+
 `docker-compose.yml`의 서버는 `portfolio-config development/master`로 고정합니다. 실제 설정값·모델 키를 Compose에 넣지 않습니다. `pnpm local:up`은 서버를 시작하고 `pnpm local:down`은 종료하며 `pnpm verify:container`는 인증 없이 동일 workspace에서 타입·테스트·HTTP·PDF 검증을 실행합니다. 명시적 요청 없이 로컬 서버를 자동 실행하지 않습니다. 상세 절차와 이미지 target은 [Compose 가이드](docs/local-compose.md)를 따릅니다.
 
 ## 도구

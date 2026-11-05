@@ -144,6 +144,8 @@ sequenceDiagram
 
 저장소 루트 기준으로 실행합니다. 환경 준비와 인증·배포 설정은 아래 상세 문서를 참고합니다.
 
+MCP 정적 검사는 `pnpm --dir mcp lint`로 Oxlint를 실행합니다. 오류는 실패로 처리하고 경고는 허용합니다. `pnpm --dir mcp lint:verify`는 콘솔 React 규칙을 포함한 fixture 12개와 종료 코드 정책을 확인합니다. 두 명령은 CI와 Compose 검증에 포함합니다. 비교 측정은 `pnpm --dir mcp lint:evaluate`로 실행하며 [MCP 평가 결과와 검사 범위](docs/oxlint-evaluation.md)를 참고합니다. 웹 ESLint는 별도로 유지합니다.
+
 ```sh
 # MCP 전용 의존성 설치
 pnpm --dir mcp install --frozen-lockfile
