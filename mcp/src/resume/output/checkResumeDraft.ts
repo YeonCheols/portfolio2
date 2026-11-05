@@ -3,6 +3,7 @@ export type ResumeSelectionNode = {
   section: string;
   name: string;
   text: string;
+  unit?: string;
   sourceRefs: readonly string[];
   employmentRef?: string;
   projectRef?: string;

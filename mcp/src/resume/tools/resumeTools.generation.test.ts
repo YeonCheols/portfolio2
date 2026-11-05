@@ -1,7 +1,7 @@
 /** @jest-environment node */
 import { createResumePdf } from "@mcp/resume/output/createResumePdf";
 import { createResumeGenerationStore } from "@mcp/resume/output/resumeGenerationStore";
-import { connectedResume } from "@mcp/resume/testing/resumeFixture";
+import { connectedResume, resumeNode } from "@mcp/resume/testing/resumeFixture";
 import { callResumeTool } from "@mcp/resume/tools/resumeTools";
 
 jest.mock("@mcp/resume/output/createResumePdf", () => ({
@@ -29,6 +29,77 @@ const context = () => ({
 });
 
 describe("이력서 생성 원본 수명주기", () => {
+  it("구조화된 인원 단위를 생성 스냅샷과 PDF 재검증에 보존하고 모델과 원문을 재조회하지 않는다", async () => {
+    const source = connectedResume();
+    const outcome = resumeNode("outcome", {
+      attributes: { id: "people", visibility: "public" },
+      children: [
+        resumeNode("before", {
+          attributes: { unit: "person", visibility: "public" },
+          text: "700000",
+        }),
+      ],
+    });
+    const connection = {
+      load: jest.fn(async () => ({
+        ...source,
+        sections: { ...source.sections, outcomes: [outcome] },
+      })),
+    };
+    const model = {
+      generate: jest.fn(async () =>
+        JSON.stringify({
+          claims: [
+            ...JSON.parse(raw).claims,
+            {
+              text: "회원 70만명",
+              sourceIds: ["people"],
+              formItem: "outcome",
+              evidence: [{ sourceId: "people", quote: "700000" }],
+            },
+          ],
+        }),
+      ),
+    };
+    const generation = context();
+    const first = await callResumeTool(
+      "generate_resume",
+      {
+        ...args,
+        elementIds: ["profile-test", "people"],
+        sectionOrder: ["profile", "outcomes"],
+      },
+      connection,
+      model,
+      generation,
+    );
+    if (!first.ok) throw new Error(first.code);
+    const generated = JSON.parse(first.text);
+    expect(generated.validationIssues).toEqual([]);
+    expect(
+      generation.store
+        .read(generation.scope, generated.generationId)
+        .snapshot?.selection.find((node) => node.id === "people")?.children[0]
+        .unit,
+    ).toBe("person");
+    const pdf = await callResumeTool(
+      "convert_resume_to_pdf",
+      { generationId: generated.generationId },
+      connection,
+      undefined,
+      generation,
+    );
+    expect(pdf.ok).toBe(true);
+    expect(createResumePdf).toHaveBeenCalledWith(
+      expect.objectContaining({
+        claims: expect.arrayContaining([
+          expect.objectContaining({ text: "회원 70만명" }),
+        ]),
+      }),
+    );
+    expect(model.generate).toHaveBeenCalledTimes(1);
+    expect(connection.load).toHaveBeenCalledTimes(1);
+  });
   beforeEach(() => jest.clearAllMocks());
   it("실제 사용 모델과 숫자 진단을 생성·PDF 아카이브에 남기고 재변환 중 모델을 조회하지 않는다", async () => {
     const storage = {

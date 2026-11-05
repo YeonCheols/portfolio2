@@ -12,6 +12,34 @@ const source: ResumeSelectionNode = {
 };
 
 describe("checkResumeEvidence", () => {
+  it("인원 단위가 확인된 수치를 직접 인용하면 만명 표현을 인정하고 단위 추정과 수치 변경은 거부한다", () => {
+    const count = { ...source, name: "before", text: "700000", unit: "person" };
+    const check = (record: ResumeSelectionNode, text: string) =>
+      checkResumeEvidence(
+        [record],
+        [
+          {
+            text,
+            sourceIds: ["profile"],
+            evidence: [{ sourceId: "profile", quote: record.text }],
+          },
+        ],
+      );
+    expect(check(count, "회원 70만명").validationIssues).toEqual([]);
+    expect(check(count, "회원 700000명").validationIssues).toEqual([]);
+    for (const [record, text] of [
+      [{ ...count, unit: undefined }, "회원 70만명"],
+      [{ ...count, unit: "minute" }, "회원 70만명"],
+      [count, "회원 71만명"],
+      [count, "회원 70억명"],
+      [count, "70개월"],
+    ] as const) {
+      expect(check(record, text).validationIssues).toContainEqual({
+        code: "UNSUPPORTED_NUMERIC_FACT",
+        sourceIds: ["profile"],
+      });
+    }
+  });
   it("원문 경력 연수와 개월 수에 해당 단위를 붙이면 통과하고 값을 바꾸거나 단위를 뒤바꾸면 거부한다", () => {
     for (const [name, value, valid, invalid] of [
       ["reportedYears", "7", "7년", "7개월"],

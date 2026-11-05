@@ -26,6 +26,34 @@ const callResumeTool: typeof executeResumeTool = (name, args, source, model) =>
   executeResumeTool(name, args, source, model, generation);
 
 describe("callResumeTool", () => {
+  it("원본의 인원 단위를 선택 결과에 보존하고 다른 원본 속성은 추가 노출하지 않는다", async () => {
+    const people = resumeNode("memberCount", {
+      text: "300000",
+      attributes: {
+        visibility: "public",
+        unit: "person",
+        internalNote: "do-not-copy",
+      },
+    });
+    const source = { load: async () => connectedResume([people]) };
+    const result = await callResumeTool(
+      "read_resume_selection",
+      {
+        source: "repository",
+        elementIds: ["profile-test"],
+        sectionOrder: ["profile"],
+        template: "기본형",
+      },
+      source,
+    );
+    if (!result.ok) throw new Error(result.code);
+    expect(JSON.parse(result.text)[0].children[0]).toMatchObject({
+      name: "memberCount",
+      text: "300000",
+      unit: "person",
+    });
+    expect(result.text).not.toContain("do-not-copy");
+  });
   beforeEach(() => {
     generation = { ...generation, store: createResumeGenerationStore() };
   });

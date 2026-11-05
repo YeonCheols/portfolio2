@@ -173,6 +173,7 @@ const selectionNode = (
     section,
     name: node.name,
     text: node.text,
+    ...(node.attributes.unit ? { unit: node.attributes.unit } : {}),
     sourceRefs: node.references.sourceRefs ?? [],
     visibility: node.attributes.visibility ?? "",
     children: node.children.map((child) => selectionNode(section, child)),

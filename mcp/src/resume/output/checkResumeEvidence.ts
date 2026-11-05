@@ -25,7 +25,12 @@ const numericFacts = (text: string): string[] =>
         (_, year: string, month: string, day?: string) =>
           `${year}-${month.padStart(2, "0")}${day ? `-${day.padStart(2, "0")}` : ""}`,
       )
-      .replace(/\s+/g, ""),
+      .replace(/\s+/g, "")
+      .replace(/^(\d+)(만|억)?명$/, (_, value: string, scale?: string) => {
+        const zeros =
+          scale === "만" ? "0000" : scale === "억" ? "00000000" : "";
+        return `${`${value}${zeros}`.replace(/^0+(?=\d)/, "")}명`;
+      }),
   );
 
 // 단위 없는 인용은 해당 구조화 필드의 전체 값일 때만 표시 단위를 인정합니다.
@@ -42,8 +47,12 @@ const structuredNumericFacts = (
     if (source.name === "reportedMonths" && /^\d+$/.test(value)) {
       facts.push(`${value}개월`);
     }
-    if (source.name === "memberCount" && /^\d+$/.test(value)) {
-      facts.push(`${value}명`);
+    if (
+      (source.unit === "person" ||
+        (source.name === "memberCount" && !source.unit)) &&
+      /^\d+$/.test(value)
+    ) {
+      facts.push(...numericFacts(`${value}명`));
     }
     if (
       ["birthYear", "start", "end"].includes(source.name) &&
