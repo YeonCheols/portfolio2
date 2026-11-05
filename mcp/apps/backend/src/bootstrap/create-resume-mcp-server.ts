@@ -3,15 +3,23 @@ import type { JsonStorage } from "@mcp/infrastructure/storage/supabase-storage";
 
 import type { PortfolioAdminApi } from "@mcp/infrastructure/portfolio-api/admin-api";
 import type { createPortfolioAdminOAuth } from "@mcp/interfaces/admin/auth/admin-oauth";
-import { handleAdminRequest } from "@mcp/interfaces/admin/http/admin-routes";
+import {
+  handleAdminRequest,
+  type AdminToolCallResult,
+} from "@mcp/interfaces/admin/http/admin-routes";
 import type { ResumeDebugArchiveAdmin } from "@mcp/modules/resume/archive/resume-debug-archive-admin";
 import type { SettingConnectionTester } from "@mcp/modules/ai-models/setting-connection-test";
 import type { IntrospectedSession } from "@mcp/infrastructure/portfolio-api/portfolio-api-introspector";
 import { createResumeGenerationStore } from "@mcp/modules/resume/generation/resume-generation-store";
 
 import type { ResumeModelClient } from "@mcp/modules/resume/generation/run-resume-harness";
-import { handleMcpRequest } from "@mcp/interfaces/tools/handle-mcp-request";
+import {
+  handleMcpRequest,
+  resumeToolDefinitions,
+  type McpJsonRpcRequest,
+} from "@mcp/interfaces/tools/handle-mcp-request";
 import type { ResumeConnection } from "@mcp/interfaces/tools/resume/resume-tools";
+import { resumeToolSamples } from "@mcp/interfaces/tools/resume/resume-tool-samples";
 
 const readBody = (req: IncomingMessage): Promise<string> =>
   new Promise((resolve, reject) => {
@@ -70,11 +78,65 @@ export const createResumeMcpServer = (options: {
   log?: (message: string) => void;
 }) => {
   const generations = createResumeGenerationStore();
+  // 샘플 입력은 관리 화면의 편의라서 /mcp의 tools/list에는 넣지 않고 관리자 목록에만 붙인다
+  const toolCatalog = resumeToolDefinitions.map((tool) => ({
+    ...tool,
+    sampleArguments: resumeToolSamples[tool.name] ?? {},
+  }));
+  // /mcp와 관리 화면의 도구 실행이 같은 호출 경로를 쓰도록 모델 선택과 생성 맥락을 한 곳에서 만든다
+  const dispatch = (
+    parsed: McpJsonRpcRequest,
+    session: boolean | IntrospectedSession,
+  ) => {
+    const needsModel =
+      parsed.method === "tools/call" &&
+      parsed.params?.name === "generate_resume" &&
+      parsed.params?.arguments?.generationId === undefined &&
+      parsed.params?.arguments?.claims === undefined;
+    return handleMcpRequest(
+      parsed,
+      options.connection,
+      needsModel
+        ? typeof options.model === "function"
+          ? options.model()
+          : options.model
+        : undefined,
+      typeof session === "object" &&
+        session.sub?.trim() &&
+        options.environment?.trim()
+        ? {
+            store: generations,
+            scope: { subject: session.sub, environment: options.environment },
+            storage: options.storage,
+          }
+        : undefined,
+    );
+  };
+
+  const runTool = async (input: {
+    name: string;
+    arguments: Record<string, unknown>;
+    subject?: string;
+  }) => {
+    const response = (await dispatch(
+      {
+        jsonrpc: "2.0",
+        id: null,
+        method: "tools/call",
+        params: { name: input.name, arguments: input.arguments },
+      },
+      { active: true, sub: input.subject },
+    )) as { result: AdminToolCallResult };
+    return response.result;
+  };
+
   return http.createServer(async (req, res) => {
     if (
       options.admin &&
       (await handleAdminRequest(req, res, {
         ...options.admin,
+        toolCatalog,
+        runTool,
         log: options.log,
       }))
     ) {
@@ -149,29 +211,7 @@ export const createResumeMcpServer = (options: {
 
     try {
       const parsed = JSON.parse(raw);
-      const needsModel =
-        parsed.method === "tools/call" &&
-        parsed.params?.name === "generate_resume" &&
-        parsed.params?.arguments?.generationId === undefined &&
-        parsed.params?.arguments?.claims === undefined;
-      const response = await handleMcpRequest(
-        parsed,
-        options.connection,
-        needsModel
-          ? typeof options.model === "function"
-            ? options.model()
-            : options.model
-          : undefined,
-        typeof session === "object" &&
-          session.sub?.trim() &&
-          options.environment?.trim()
-          ? {
-              store: generations,
-              scope: { subject: session.sub, environment: options.environment },
-              storage: options.storage,
-            }
-          : undefined,
-      );
+      const response = await dispatch(parsed, session);
       if (response === null) {
         res.writeHead(202);
         res.end();

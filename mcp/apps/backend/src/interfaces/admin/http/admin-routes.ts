@@ -465,6 +465,161 @@ const handleDebugArchiveApi = async (
   }
 };
 
+const toolsPagePath = "/admin/tools/resume";
+const toolsApiPrefix = `${toolsPagePath}/api/`;
+
+// 도구 정의의 소유자는 MCP 도구 목록이라 이 경계는 주입받은 목록을 읽기만 하고 이름·설명·스키마를 복제하지 않는다
+export type AdminToolDefinition = {
+  name: string;
+  description: string;
+  inputSchema: unknown;
+  // 관리 화면에서 바로 시험할 수 있는 기본 입력. /mcp 계약에는 없다
+  sampleArguments?: Record<string, unknown>;
+};
+
+export type AdminToolCallInput = {
+  name: string;
+  arguments: Record<string, unknown>;
+  subject?: string;
+};
+
+export type AdminToolCallResult = {
+  isError: boolean;
+  content: Array<
+    | { type: "text"; text: string }
+    | {
+        type: "resource";
+        resource: { uri: string; mimeType: string; blob: string };
+      }
+  >;
+};
+
+type ToolsApiOptions = {
+  introspect: (token: string) => Promise<IntrospectedSession>;
+  publicUrl: string;
+  toolCatalog?: readonly AdminToolDefinition[];
+  runTool?: (input: AdminToolCallInput) => Promise<AdminToolCallResult>;
+  log?: (message: string) => void;
+};
+
+const maxToolCallBodyBytes = 1024 * 1024;
+
+// PDF 같은 바이너리 본문은 브라우저로 보내지 않고 크기만 알린다
+const toToolContent = (content: AdminToolCallResult["content"]) =>
+  content.map((entry) =>
+    entry.type === "text"
+      ? entry
+      : {
+          type: "resource" as const,
+          uri: entry.resource.uri,
+          mimeType: entry.resource.mimeType,
+          byteLength: Buffer.from(entry.resource.blob, "base64").byteLength,
+        },
+  );
+
+const handleToolsApi = async (
+  req: IncomingMessage,
+  res: ServerResponse,
+  url: URL,
+  options: ToolsApiOptions,
+): Promise<void> => {
+  const token = readCookie(req);
+  if (!token) {
+    sendJson(res, 401, { ok: false, code: "UNAUTHORIZED" });
+    return;
+  }
+  const suffix = url.pathname.slice(toolsApiPrefix.length);
+  const allowed: Record<string, string> = { tools: "GET", call: "POST" };
+  if (!(suffix in allowed)) {
+    sendJson(res, 404, { ok: false, code: "NOT_FOUND" });
+    return;
+  }
+  const method = req.method ?? "GET";
+  if (method !== allowed[suffix]) {
+    sendJson(res, 405, { ok: false, code: "METHOD_NOT_ALLOWED" });
+    return;
+  }
+  if (
+    method === "POST" &&
+    req.headers.origin !== new URL(options.publicUrl).origin
+  ) {
+    sendJson(res, 403, { ok: false, code: "INVALID_ORIGIN" });
+    return;
+  }
+  let session: IntrospectedSession;
+  try {
+    session = await options.introspect(token);
+  } catch {
+    sendJson(res, 503, { ok: false, code: "AUTH_UNAVAILABLE" });
+    return;
+  }
+  if (!session.active) {
+    sendJson(res, 401, { ok: false, code: "UNAUTHORIZED" });
+    return;
+  }
+  const subject = logSubject(session.sub);
+
+  if (suffix === "tools") {
+    if (!options.toolCatalog) {
+      sendJson(res, 503, { ok: false, code: "TOOLS_UNAVAILABLE" });
+      return;
+    }
+    options.log?.(`ADMIN_TOOLS sub=${subject} action=list result=ok`);
+    sendJson(res, 200, { ok: true, tools: options.toolCatalog });
+    return;
+  }
+
+  if (!options.runTool) {
+    sendJson(res, 503, { ok: false, code: "TOOLS_UNAVAILABLE" });
+    return;
+  }
+  let name: string;
+  let args: Record<string, unknown>;
+  try {
+    const parsed: unknown = JSON.parse(
+      await readBody(req, maxToolCallBodyBytes),
+    );
+    if (
+      !isRecord(parsed) ||
+      typeof parsed.name !== "string" ||
+      !parsed.name ||
+      !isRecord(parsed.arguments)
+    )
+      throw new Error("INVALID_INPUT");
+    name = parsed.name;
+    args = parsed.arguments;
+  } catch (error) {
+    const tooLarge =
+      error instanceof Error && error.message === "BODY_TOO_LARGE";
+    sendJson(res, tooLarge ? 413 : 400, {
+      ok: false,
+      code: tooLarge ? "BODY_TOO_LARGE" : "INVALID_INPUT",
+    });
+    return;
+  }
+  // 실행자, 도구 이름, 결과 여부만 남기고 인자와 결과 본문은 남기지 않는다
+  const logCall = (result: string) =>
+    options.log?.(
+      `ADMIN_TOOLS sub=${subject} action=call tool=${name.slice(0, 64).replace(/[^A-Za-z0-9_-]/g, "?")} result=${result}`,
+    );
+  try {
+    const result = await options.runTool({
+      name,
+      arguments: args,
+      subject: session.sub,
+    });
+    logCall(result.isError ? "error" : "ok");
+    sendJson(res, 200, {
+      ok: true,
+      isError: result.isError,
+      content: toToolContent(result.content),
+    });
+  } catch {
+    logCall("failed");
+    sendJson(res, 500, { ok: false, code: "TOOL_CALL_FAILED" });
+  }
+};
+
 export const handleAdminRequest = async (
   req: IncomingMessage,
   res: ServerResponse,
@@ -478,6 +633,8 @@ export const handleAdminRequest = async (
     log?: (message: string) => void;
     testSetting?: SettingConnectionTester;
     debugArchive?: ResumeDebugArchiveAdmin;
+    toolCatalog?: readonly AdminToolDefinition[];
+    runTool?: (input: AdminToolCallInput) => Promise<AdminToolCallResult>;
     appRoot?: string;
   },
 ): Promise<boolean> => {
@@ -597,6 +754,12 @@ export const handleAdminRequest = async (
     return true;
   }
 
+  // 루트 진입은 메뉴 화면으로 보내기만 한다. 세션 확인과 로그인 이동은 메뉴 화면이 맡는다
+  if (req.method === "GET" && pathname === "/") {
+    redirect(res, adminMenuPath);
+    return true;
+  }
+
   // 화면 경로는 공통 메뉴 정의(adminMenu)에서 일괄 등록한다. 경로가 있는 항목만 서빙하므로
   // 준비 중인 항목과 정의에 없는 경로는 여기서 처리하지 않는다
   const isMenuPage =
@@ -610,6 +773,11 @@ export const handleAdminRequest = async (
       ? undefined
       : (safeReturnPath(`${pathname}${url.search}`) ?? pathname);
     await serveAuthenticatedApp(req, res, { ...options, appRoot, next });
+    return true;
+  }
+
+  if (pathname.startsWith(toolsApiPrefix)) {
+    await handleToolsApi(req, res, url, options);
     return true;
   }
 

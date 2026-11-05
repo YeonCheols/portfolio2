@@ -37,6 +37,7 @@ export const adminMenu: readonly AdminMenuDomain[] = [
         id: "resume-tools",
         label: "이력서 툴 관리",
         description: "이력서 MCP 도구를 관리하고 테스트합니다.",
+        path: "/admin/tools/resume",
       },
     ],
   },

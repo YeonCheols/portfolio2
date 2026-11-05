@@ -34,4 +34,14 @@ describe("관리자 공통 메뉴 정의", () => {
     );
     expect(adminMenuItems.some((item) => !item.path)).toBe(true);
   });
+
+  it("이력서 툴 관리 항목은 도구 화면 경로를 가지고 포트폴리오 툴 관리는 준비 중으로 남는다", () => {
+    const byId = Object.fromEntries(
+      adminMenuItems.map((item) => [item.id, item]),
+    );
+
+    expect(byId["resume-tools"]?.path).toBe("/admin/tools/resume");
+    expect(adminPagePaths).toContain("/admin/tools/resume");
+    expect(byId["portfolio-tools"]?.path).toBeUndefined();
+  });
 });

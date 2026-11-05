@@ -29,12 +29,19 @@ const ArchiveDetailPage = lazy(() =>
   })),
 );
 
+const ToolListPage = lazy(() =>
+  import("./pages/tools/tool-list-page").then((module) => ({
+    default: module.ToolListPage,
+  })),
+);
+
 type PageRenderer = (props: { search: string }) => ReactElement;
 
 // 메뉴 항목 ID → 화면. 경로와 이름은 공통 메뉴 정의가 소유하고 여기는 어떤 화면을 그릴지만 안다.
 // 새 화면은 메뉴 정의에 항목을 추가한 뒤 같은 ID로 여기에 등록한다
 export const pageRegistry: Record<string, PageRenderer> = {
   "ai-models": () => <SettingsPage />,
+  "resume-tools": () => <ToolListPage />,
   "debug-archive": ({ search }) => {
     const archiveKey = parseDetailKey(search);
     // 실행 키가 URL에 있으면 새로고침해도 같은 상세로 돌아온다

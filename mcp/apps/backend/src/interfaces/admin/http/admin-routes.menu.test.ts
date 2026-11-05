@@ -115,4 +115,16 @@ describe("메뉴 정의에서 일괄 등록하는 화면 라우트", () => {
     }
     expect(introspect).not.toHaveBeenCalled();
   });
+
+  it("루트 경로는 인증 없이 관리자 메뉴로 보내고 세션 확인은 메뉴 화면에 맡긴다", async () => {
+    const introspect = jest.fn().mockResolvedValue({ active: true });
+
+    const root = await get(introspect, "/");
+    expect(root.status).toBe(303);
+    expect(root.location).toBe("/admin");
+
+    const withQuery = await get(introspect, "/?next=https://evil.example");
+    expect(withQuery.location).toBe("/admin");
+    expect(introspect).not.toHaveBeenCalled();
+  });
 });

@@ -122,7 +122,8 @@ const composeInputSchema = {
 
 const resumePdfInputSchema = generationReferenceSchema;
 
-const tools = [
+// 관리 화면도 이 정의를 읽으므로 이름·설명·스키마의 소유자는 여기 한 곳이다
+export const resumeToolDefinitions = [
   {
     name: "validate_resume_xml",
     description: "XML을 공통 이력서 모델로 검증한다",
@@ -198,7 +199,11 @@ export const handleMcpRequest = async (
   }
 
   if (request.method === "tools/list") {
-    return { jsonrpc: "2.0" as const, id, result: { tools } };
+    return {
+      jsonrpc: "2.0" as const,
+      id,
+      result: { tools: resumeToolDefinitions },
+    };
   }
 
   if (request.method === "tools/call") {

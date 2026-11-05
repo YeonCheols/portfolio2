@@ -3,6 +3,8 @@
 import http from "http";
 
 import { createResumeMcpServer } from "@mcp/bootstrap/create-resume-mcp-server";
+import { handleMcpRequest } from "@mcp/interfaces/tools/handle-mcp-request";
+import { resumeToolSamples } from "@mcp/interfaces/tools/resume/resume-tool-samples";
 import { connectedResume } from "@mcp/modules/resume/testing/resume-fixture";
 
 const validResumeXml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -424,6 +426,139 @@ describe("createResumeMcpServer", () => {
       expect(response.status).toBe(503);
       expect(response.body).toContain("AUTH_UNAVAILABLE");
       expect(response.body).not.toContain("user-access-token");
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
+  });
+
+  it("관리자 도구 목록은 /mcp tools/list와 같은 정의를 쓴다", async () => {
+    const connection = { load: jest.fn() };
+    const server = createResumeMcpServer({
+      introspect: jest.fn().mockResolvedValue(true),
+      connection,
+      admin: {
+        introspect: jest.fn().mockResolvedValue({ active: true, sub: "7" }),
+        publicUrl: "https://mcp.example.test/mcp",
+      },
+    } as never);
+    await new Promise<void>((resolve) =>
+      server.listen(0, "127.0.0.1", () => resolve()),
+    );
+    const port = (server.address() as { port: number }).port;
+    try {
+      const listed = await handleMcpRequest(
+        { jsonrpc: "2.0", id: 1, method: "tools/list" },
+        connection,
+      );
+      const admin = await request(port, {
+        method: "GET",
+        path: "/admin/tools/resume/api/tools",
+        headers: { cookie: "__Host-portfolio-admin-session=jwt" },
+      });
+
+      expect(admin.status).toBe(200);
+      const adminTools = JSON.parse(admin.body).tools as Array<
+        Record<string, unknown>
+      >;
+      const mcpTools = (listed as { result: { tools: unknown[] } }).result
+        .tools;
+      // /mcp 계약에는 샘플이 없고 관리자 목록에만 도구마다 샘플 인자가 붙는다
+      expect(adminTools.map(({ sampleArguments: _, ...rest }) => rest)).toEqual(
+        mcpTools,
+      );
+      expect(JSON.stringify(mcpTools)).not.toContain("sampleArguments");
+      for (const tool of adminTools)
+        expect(tool.sampleArguments).toEqual(
+          resumeToolSamples[tool.name as string],
+        );
+    } finally {
+      await new Promise<void>((resolve, reject) =>
+        server.close((error) => (error ? reject(error) : resolve())),
+      );
+    }
+  });
+
+  it("관리자 도구 실행은 /mcp와 같은 호출 경로를 쓰고 새 생성만 모델을 한 번 호출한다", async () => {
+    const generate = jest.fn(async () =>
+      JSON.stringify({
+        claims: [
+          {
+            text: "테스트 사용자입니다",
+            sourceIds: ["profile-test"],
+            evidence: [{ sourceId: "profile-test", quote: "테스트 사용자" }],
+          },
+        ],
+      }),
+    );
+    const server = createResumeMcpServer({
+      introspect: jest.fn().mockResolvedValue({ active: true, sub: "7" }),
+      environment: "development",
+      connection: { load: async () => connectedResume() },
+      model: () => ({ generate }),
+      admin: {
+        introspect: jest.fn().mockResolvedValue({ active: true, sub: "7" }),
+        publicUrl: "https://mcp.example.test/mcp",
+      },
+    } as never);
+    await new Promise<void>((resolve) =>
+      server.listen(0, "127.0.0.1", () => resolve()),
+    );
+    const port = (server.address() as { port: number }).port;
+    const adminCall = (name: string, args: Record<string, unknown>) =>
+      request(port, {
+        method: "POST",
+        path: "/admin/tools/resume/api/call",
+        headers: {
+          cookie: "__Host-portfolio-admin-session=jwt",
+          origin: "https://mcp.example.test",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ name, arguments: args }),
+      });
+    try {
+      const validated = await adminCall("validate_resume_xml", {
+        source: "embedded",
+        xml: validResumeXml,
+      });
+      const viaMcp = await request(port, {
+        method: "POST",
+        path: "/mcp",
+        headers: {
+          authorization: "Bearer token",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          params: {
+            name: "validate_resume_xml",
+            arguments: { source: "embedded", xml: validResumeXml },
+          },
+        }),
+      });
+      expect(JSON.parse(validated.body).content).toEqual(
+        JSON.parse(viaMcp.body).result.content,
+      );
+      expect(generate).not.toHaveBeenCalled();
+
+      const unknown = await adminCall("nope", {});
+      expect(JSON.parse(unknown.body)).toMatchObject({
+        isError: true,
+        content: [{ type: "text", text: "UNKNOWN_TOOL" }],
+      });
+
+      const generated = await adminCall("generate_resume", {
+        source: "embedded",
+        xml: validResumeXml,
+        elementIds: ["profile-test"],
+        sectionOrder: ["profile"],
+        template: "기본형",
+      });
+      expect(generated.status).toBe(200);
+      expect(generate).toHaveBeenCalledTimes(1);
     } finally {
       await new Promise<void>((resolve, reject) =>
         server.close((error) => (error ? reject(error) : resolve())),
