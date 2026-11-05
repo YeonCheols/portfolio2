@@ -151,11 +151,15 @@ pnpm --dir mcp install --frozen-lockfile
 # 서버 타입 검사, alias 변환, 관리자 화면 빌드
 pnpm --dir mcp build
 
-# 관리자 화면 테스트 (Vitest)
+# 백엔드·공통 계약·구조 Jest + 콘솔 Vitest
 pnpm --dir mcp test
 
-# 서버·도구 테스트 (현재 상위 저장소의 Jest 사용)
-pnpm test -- --runInBand mcp
+# 개별 실행
+pnpm --dir mcp test:backend
+pnpm --dir mcp test:console
+
+# CI 실행
+pnpm --dir mcp test:ci
 
 # 준비된 .env를 읽어 MCP 서버 실행
 pnpm --dir mcp start
@@ -181,3 +185,13 @@ pnpm --dir mcp start
 `pnpm check:build`는 실제 빌드 산출물로 로컬 HTTP 테스트 서버를 잠시 실행해 기본 콘솔·에셋 경로, MCP 도구 등록, 한글 PDF 생성을 검증합니다. 외부 API나 모델을 호출하지 않습니다.
 
 파일·폴더와 코드 식별자는 [MCP 명명 규칙](docs/naming-conventions.md)을 따릅니다.
+
+### 테스트 실행기 독립성
+
+`mcp/`는 Jest·SWC·테스트 타입과 콘솔 Vitest를 자체 manifest·lockfile에서 관리합니다. 상위 웹 앱의 Next.js·Jest setup·경로 별칭을 가져오지 않습니다. `pnpm test:ci`는 백엔드 커버리지를 MCP 루트 `coverage/`에 기록하며 CI는 웹 앱 커버리지와 함께 업로드합니다. `mcp/`만 분리한 디렉터리에서도 `pnpm install --frozen-lockfile`, `pnpm build`, `pnpm test`, `pnpm type-check`, `pnpm check:build`를 실행할 수 있습니다. 콘솔이 공통 계약의 빌드 결과를 사용하므로 전체 테스트 전에 `pnpm build`를 실행합니다.
+
+상위 저장소의 GitHub Actions 파일 검사는 그 파일을 소유하는 `tests/infrastructure/deploy.workflow.test.ts`에 둡니다. MCP 테스트는 자신의 Dockerfile·시작 스크립트·코드·패키지만 검사하며 부모 저장소 파일을 읽지 않습니다.
+
+로컬 컨테이너 실행과 검증은 [Compose 가이드](docs/local-compose.md)의 `pnpm local:up`, `pnpm local:down`, `pnpm verify:container`를 사용합니다. 서버 설정은 portfolio-config development로 고정합니다.
+
+로컬·운영 이미지는 빌드 시 최신 정식 portfolio-config CLI를 조회합니다. 운영 `Deploy MCP`의 수동 실행으로 코드 변경 없이 최신 CLI를 재배포할 수 있으며, 실행 중인 이미지의 CLI는 자동으로 바뀌지 않습니다.

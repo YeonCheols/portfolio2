@@ -1,6 +1,7 @@
 name: Deploy MCP
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - master
@@ -18,11 +19,12 @@ permissions:
 
 jobs:
   deploy-mcp:
+    if: github.ref == 'refs/heads/master'
     name: Deploy MCP server
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/portfolio/mcp:${{ github.sha }}
+      IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/portfolio/mcp:${{ github.sha }}-${{ github.run_id }}
 
     steps:
       - name: 코드 체크아웃
@@ -47,9 +49,11 @@ jobs:
             --out-file="$RUNNER_TEMP/portfolio-config-read-token"
           GH_TOKEN="$(cat "$RUNNER_TEMP/portfolio-config-read-token")"
           export GH_TOKEN
-          gh api repos/YeonCheols/portfolio-config/contents/scripts/install.sh?ref=cli-v0.2.1 \
-            --header 'Accept: application/vnd.github.raw+json' > "$RUNNER_TEMP/install-portfolio-config.sh"
-          bash "$RUNNER_TEMP/install-portfolio-config.sh" cli-v0.2.1 "$RUNNER_TEMP/portfolio-config-bin"
+          cliTag=$(sh mcp/scripts/install-config-cli.sh --latest)
+          sh mcp/scripts/install-config-cli.sh "$RUNNER_TEMP/portfolio-config-bin" "$cliTag"
+          "$RUNNER_TEMP/portfolio-config-bin/portfolio-config" validate --app portfolio-mcp --env production
+          echo "PORTFOLIO_CONFIG_CLI_TAG=$cliTag" >> "$GITHUB_ENV"
+          echo "portfolio-config CLI: $cliTag" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Artifact Registry 로그인
         run: gcloud auth configure-docker "${{ vars.GCP_REGION }}-docker.pkg.dev" --quiet
@@ -62,6 +66,8 @@ jobs:
             configcli=${{ runner.temp }}/portfolio-config-bin
           push: true
           tags: ${{ env.IMAGE }}
+          labels: |
+            io.portfolio.config-cli.version=${{ env.PORTFOLIO_CONFIG_CLI_TAG }}
 
       - name: 시작 시 중앙 설정을 읽는 공개 MCP 서버 배포
         run: |

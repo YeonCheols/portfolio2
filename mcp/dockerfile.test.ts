@@ -2,6 +2,17 @@ import fs from "fs";
 import path from "path";
 
 describe("mcp container", () => {
+  it("검증용 workspace는 운영 설정 CLI 없이도 빌드할 수 있다", () => {
+    const dockerfile = fs.readFileSync(
+      path.join(__dirname, "Dockerfile"),
+      "utf8",
+    );
+    const workspace = dockerfile.split("FROM workspace AS local")[0];
+    expect(workspace).toContain("FROM node:20-alpine AS workspace");
+    expect(workspace).not.toContain("COPY --from=configcli");
+    expect(workspace).toContain("jest.config.cjs");
+  });
+
   it("웹 이미지와 다른 진입점으로 MCP 서버만 실행한다", () => {
     const dockerfile = fs.readFileSync(
       path.join(__dirname, "Dockerfile"),
@@ -19,6 +30,18 @@ describe("mcp container", () => {
     expect(dockerfile).not.toContain("portfolio-web");
   });
 
+  it("컨테이너 빌드 전에 관리자 React 앱 소스를 복사한다", () => {
+    const dockerfile = fs.readFileSync(
+      path.join(__dirname, "Dockerfile"),
+      "utf8",
+    );
+
+    expect(dockerfile).toContain("COPY apps ./apps");
+    expect(dockerfile.indexOf("COPY apps ./apps")).toBeLessThan(
+      dockerfile.indexOf("RUN pnpm build"),
+    );
+  });
+
   it("컨테이너 시작 시 중앙 설정을 읽는 CLI와 진입점을 포함한다", () => {
     const dockerfile = fs.readFileSync(
       path.join(__dirname, "Dockerfile"),
@@ -31,6 +54,8 @@ describe("mcp container", () => {
       'ENTRYPOINT ["sh", "scripts/start-with-config.sh"]',
     );
     expect(dockerfile).toContain("github-cli");
+    expect(dockerfile).not.toContain("cli-v0.2.1");
+    expect(dockerfile).toContain("install-config-cli.sh");
     expect(dockerfile).not.toContain("ENV GH_TOKEN");
   });
 

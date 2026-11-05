@@ -48,7 +48,7 @@ jobs:
         run: |
           pnpm --dir mcp install --frozen-lockfile
           pnpm --dir mcp build
-          pnpm --dir mcp test
+          pnpm --dir mcp test:ci
           pnpm --dir mcp check:build
 
       - name: Lint
@@ -76,5 +76,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage
-          path: coverage/
+          path: |
+            coverage/
+            mcp/coverage/
           retention-days: 7

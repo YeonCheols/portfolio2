@@ -40,7 +40,7 @@ describe("jest.config", () => {
     ]);
   });
 
-  it("통합 테스트 디렉터리는 Jest가 수집하지 않는다", async () => {
+  it("통합 테스트와 독립 MCP workspace는 웹 Jest가 수집하지 않는다", async () => {
     jest.resetModules();
     const nextJest = jest.fn(
       () => (customConfig: Record<string, unknown>) => async () => ({
@@ -62,7 +62,7 @@ describe("jest.config", () => {
     expect(config.testPathIgnorePatterns).toEqual(
       expect.arrayContaining([
         "<rootDir>/tests/integration/",
-        "<rootDir>/mcp/dist/",
+        "<rootDir>/mcp/",
       ]),
     );
   });

@@ -97,6 +97,15 @@ describe("deploy workflow", () => {
       "MCP_AUTH_SERVICE_TOKEN=MCP_AUTH_TOKEN:latest",
     );
     expect(workflow).not.toContain("vars.PORTFOLIO_API_URL");
+    expect(workflow).toContain("paths:");
+    expect(workflow).toContain("mcp/**");
+    expect(workflow).not.toContain("cli-v0.2.1");
+    expect(workflow).toContain("install-config-cli.sh");
+    expect(workflow).toContain("workflow_dispatch:");
+    expect(workflow).not.toContain("portfolio-config run");
+    expect(workflow).not.toContain("--env-vars-file");
+    expect(workflow).not.toContain("secrets.PORTFOLIO_CONFIG_READ_TOKEN");
+    expect(fs.readFileSync(workflowPath, "utf8")).not.toContain("deploy-mcp:");
   });
 
   it("MCP 이미지 빌드는 mcp 컨텍스트의 기본 Dockerfile을 사용한다", () => {

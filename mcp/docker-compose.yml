@@ -1,0 +1,54 @@
+name: portfolio-mcp
+
+services:
+  server:
+    profiles: [local]
+    build:
+      context: .
+      target: local
+      args:
+        PORTFOLIO_CONFIG_CLI_TAG: ${PORTFOLIO_CONFIG_CLI_TAG:-latest}
+      secrets:
+        - github-token
+    environment:
+      - GH_TOKEN
+    ports:
+      - "127.0.0.1:${MCP_LOCAL_PORT:-8080}:8080"
+    command:
+      - portfolio-config
+      - run
+      - --app
+      - portfolio-mcp
+      - --env
+      - development
+      - --ref
+      - master
+      - --
+      - env
+      - PORT=8080
+      - node
+      - apps/backend/dist/bootstrap/server.js
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:8080/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 10s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+
+  verify:
+    profiles: [verify]
+    build:
+      context: .
+      target: workspace
+    command:
+      - sh
+      - -c
+      - pnpm type-check && pnpm test:ci && pnpm check:build
+
+secrets:
+  github-token:
+    environment: GH_TOKEN

@@ -10,9 +10,6 @@ const customJestConfig = {
   testEnvironment: "jest-environment-jsdom",
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
-    "^@portfolio-mcp/admin-contracts$":
-      "<rootDir>/mcp/packages/admin-contracts/src/index.ts",
-    "^@mcp/(.*)$": "<rootDir>/mcp/apps/backend/src/$1",
     "^~/(.*)$": "<rootDir>/public/$1",
     "^@yeoncheols/portfolio-core-ui$":
       "<rootDir>/src/test/portfolio-core-ui.tsx",
@@ -20,11 +17,7 @@ const customJestConfig = {
   transformIgnorePatterns: [
     "/node_modules/(?!(react-markdown|rehype-slug|remark-gfm|vfile|vfile-message|unist-.*|unified|bail|is-plain-obj|trough|remark-.*|mdast-util-.*|micromark.*|decode-named-character-reference|character-entities|property-information|hast-util-.*|space-separated-tokens|comma-separated-tokens|html-url-attributes|estree-util-is-identifier-name|devlop|zwitch|longest-streak|stringify-entities|ccount|escape-string-regexp|markdown-table|trim-lines|style-to-object|style-to-js|extend)/)",
   ],
-  testPathIgnorePatterns: [
-    "<rootDir>/tests/integration/",
-    "<rootDir>/mcp/dist/",
-    "<rootDir>/mcp/apps/console/",
-  ],
+  testPathIgnorePatterns: ["<rootDir>/tests/integration/", "<rootDir>/mcp/"],
 };
 
 module.exports = async () => {
@@ -32,8 +25,7 @@ module.exports = async () => {
   jestConfig.testPathIgnorePatterns = [
     ...(jestConfig.testPathIgnorePatterns ?? []),
     "<rootDir>/tests/integration/",
-    "<rootDir>/mcp/dist/",
-    "<rootDir>/mcp/apps/console/",
+    "<rootDir>/mcp/",
   ];
   jestConfig.transformIgnorePatterns = [
     "/node_modules/(?!(react-markdown|rehype-slug|remark-gfm|vfile|vfile-message|unist-.*|unified|bail|is-plain-obj|trough|remark-.*|mdast-util-.*|micromark.*|decode-named-character-reference|character-entities|property-information|hast-util-.*|space-separated-tokens|comma-separated-tokens|html-url-attributes|estree-util-is-identifier-name|devlop|zwitch|longest-streak|stringify-entities|ccount|escape-string-regexp|markdown-table|trim-lines|style-to-object|style-to-js|extend)/)",
