@@ -12,6 +12,34 @@ const source: ResumeSelectionNode = {
 };
 
 describe("checkResumeEvidence", () => {
+  it("원문 경력 연수와 개월 수에 해당 단위를 붙이면 통과하고 값을 바꾸거나 단위를 뒤바꾸면 거부한다", () => {
+    for (const [name, value, valid, invalid] of [
+      ["reportedYears", "7", "7년", "7개월"],
+      ["reportedMonths", "3", "3개월", "3년"],
+    ]) {
+      const record = { ...source, name, text: value };
+      const check = (text: string) =>
+        checkResumeEvidence(
+          [record],
+          [
+            {
+              text,
+              sourceIds: ["profile"],
+              evidence: [{ sourceId: "profile", quote: value }],
+            },
+          ],
+        );
+      expect(check(valid).validationIssues).toEqual([]);
+      expect(check(invalid).validationIssues).toContainEqual({
+        code: "UNSUPPORTED_NUMERIC_FACT",
+        sourceIds: ["profile"],
+      });
+      expect(check("9년").validationIssues).toContainEqual({
+        code: "UNSUPPORTED_NUMERIC_FACT",
+        sourceIds: ["profile"],
+      });
+    }
+  });
   it("인원 단위 사이에 공백이 있어도 배수 변경을 거부하고 다른 필드의 숫자에는 인원 단위를 붙이지 않는다", () => {
     for (const [name, text] of [
       ["memberCount", "6 만 명"],

@@ -36,6 +36,12 @@ const structuredNumericFacts = (
   const value = normalize(quote);
   const facts: string[] = [];
   if (normalize(source.text) === value) {
+    if (source.name === "reportedYears" && /^\d+$/.test(value)) {
+      facts.push(`${value}년`);
+    }
+    if (source.name === "reportedMonths" && /^\d+$/.test(value)) {
+      facts.push(`${value}개월`);
+    }
     if (source.name === "memberCount" && /^\d+$/.test(value)) {
       facts.push(`${value}명`);
     }
