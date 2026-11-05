@@ -1,25 +1,32 @@
+name: portfolio-web
+
 services:
-  app:
+  server:
     build:
       context: .
-      dockerfile: Dockerfile.dev
+      target: local
       args:
-        GITHUB_NPM_TOKEN: ${GITHUB_NPM_TOKEN}
-    container_name: portfolio2-dev
-    ports:
-      - "3001:3001"
-    volumes:
-      # 소스 코드 핫 리로드
-      - .:/app
-      # node_modules는 컨테이너 내부 것을 사용 (호스트 덮어쓰기 방지)
-      - /app/node_modules
-      - /app/.next
-      # HTTPS 인증서 마운트 (읽기 전용)
-      - ./cert:/app/cert:ro
-    env_file:
-      - .env.local
+        PORTFOLIO_CONFIG_CLI_TAG: ${PORTFOLIO_CONFIG_CLI_TAG:?Use pnpm local:up}
+      secrets:
+        - npm-token
+        - github-token
     environment:
-      - NODE_ENV=development
-      - NEXT_TELEMETRY_DISABLED=1
-      - WATCHPACK_POLLING=true
-    restart: unless-stopped
+      - GH_TOKEN
+    ports:
+      - "127.0.0.1:${WEB_LOCAL_PORT:-3000}:3000"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://127.0.0.1:3000/').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
+      interval: 10s
+      timeout: 10s
+      start_period: 60s
+      retries: 6
+
+secrets:
+  github-token:
+    environment: GH_TOKEN
+  npm-token:
+    environment: GITHUB_NPM_TOKEN

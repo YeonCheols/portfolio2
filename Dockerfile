@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 # ─── Stage 1: deps ────────────────────────────────────────────────────────────
 FROM node:20-alpine AS deps
 RUN corepack enable && corepack prepare pnpm@9 --activate
@@ -5,11 +6,25 @@ RUN corepack enable && corepack prepare pnpm@9 --activate
 WORKDIR /app
 
 COPY package.json pnpm-lock.yaml* .npmrc ./
-ARG GITHUB_NPM_TOKEN
-ENV GITHUB_NPM_TOKEN=$GITHUB_NPM_TOKEN
-RUN pnpm install --frozen-lockfile
+RUN --mount=type=secret,id=npm-token,env=GITHUB_NPM_TOKEN,required=true \
+    pnpm install --frozen-lockfile
 
 # ─── Stage 2: builder ─────────────────────────────────────────────────────────
+FROM deps AS local
+RUN apk add --no-cache bash ca-certificates github-cli
+COPY --chown=node:node . .
+ARG PORTFOLIO_CONFIG_CLI_TAG
+LABEL io.portfolio.config-cli.version=$PORTFOLIO_CONFIG_CLI_TAG
+RUN --mount=type=secret,id=github-token,env=GH_TOKEN,required=true \
+    sh scripts/install-config-cli.sh /usr/local/bin "$PORTFOLIO_CONFIG_CLI_TAG"
+RUN chown node:node /app
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+USER node
+EXPOSE 3000
+ENTRYPOINT ["sh", "scripts/start-with-config.sh", "development"]
+CMD ["node", "node_modules/next/dist/bin/next", "dev", "--webpack", "--hostname", "0.0.0.0"]
+
 FROM node:20-alpine AS builder
 RUN corepack enable && corepack prepare pnpm@9 --activate
 
@@ -18,26 +33,19 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# 빌드 시 필요한 환경변수 (민감 정보는 ARG로 주입)
-ARG NEXT_PUBLIC_GITHUB_USER_NAME
-ARG NEXT_PUBLIC_SUPABASE_URL
-ARG NEXT_PUBLIC_SUPABASE_ANON_KEY
-ARG NEXT_PUBLIC_SENTRY_DSN
-ARG SITE_URL=http://localhost:3000
-
-ENV NEXT_PUBLIC_GITHUB_USER_NAME=$NEXT_PUBLIC_GITHUB_USER_NAME
-ENV NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL
-ENV NEXT_PUBLIC_SUPABASE_ANON_KEY=$NEXT_PUBLIC_SUPABASE_ANON_KEY
-ENV NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN
-ENV SITE_URL=$SITE_URL
+RUN apk add --no-cache github-cli ca-certificates
+COPY --from=configcli /portfolio-config /usr/local/bin/portfolio-config
 ENV NEXT_TELEMETRY_DISABLED=1
-
-RUN pnpm build
+RUN --mount=type=secret,id=github-token,env=GH_TOKEN,required=true \
+    sh scripts/start-with-config.sh production pnpm build:check
 
 # ─── Stage 3: runner ──────────────────────────────────────────────────────────
 FROM node:20-alpine AS runner
 
 WORKDIR /app
+RUN apk add --no-cache github-cli ca-certificates
+COPY --from=configcli /portfolio-config /usr/local/bin/portfolio-config
+COPY scripts/start-with-config.sh ./scripts/start-with-config.sh
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -57,4 +65,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-CMD node server.js
+ENTRYPOINT ["sh", "scripts/start-with-config.sh", "production"]
+CMD ["node", "server.js"]

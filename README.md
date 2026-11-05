@@ -113,17 +113,21 @@ src/
 
 ## 배포
 
-- Vercel 플랫폼을 통한 배포
-- CI/CD 파이프라인 구성
+- 운영 Cloud Run과 로컬 실행은 portfolio-config의 `portfolio-web` 설정을 사용합니다.
+- Vercel은 테스트 용도로 기존 환경 설정을 유지합니다.
+- 실행 방식과 배포 준비는 [웹 중앙 설정 가이드](docs/web-portfolio-config.md)를 참고합니다.
 
 ## 프로젝트 실행 방법
 
 ```bash
-# 개발 서버 실행
+# 최신 CLI로 development 설정을 주입한 개발 서버 실행
 pnpm dev
 
-# 프로덕션 빌드
+# 최신 CLI로 production 설정을 주입한 프로덕션 빌드
 pnpm build
+
+# production 설정으로 서버 실행
+pnpm start
 
 # 테스트 실행
 pnpm test

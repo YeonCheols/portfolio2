@@ -1,6 +1,7 @@
 name: Deploy
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - master
@@ -9,7 +10,6 @@ on:
       - "AGENTS.md"
       - ".cursor/rules/agents.mdc"
       - ".github/copilot-instructions.md"
-      - ".github/workflows/deploy.yml"
       - ".github/workflows/deploy-mcp.yml"
       - "tests/infrastructure/deploy.workflow.test.ts"
 
@@ -23,11 +23,12 @@ permissions:
 
 jobs:
   deploy:
+    if: github.ref == 'refs/heads/master'
     name: Deploy
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/portfolio/web:${{ github.sha }}
+      IMAGE: ${{ vars.GCP_REGION }}-docker.pkg.dev/${{ vars.GCP_PROJECT_ID }}/portfolio/web:${{ github.sha }}-${{ github.run_id }}
 
     steps:
       - name: 코드 체크아웃
@@ -42,6 +43,25 @@ jobs:
       - name: gcloud 설치
         uses: google-github-actions/setup-gcloud@v2
 
+      - name: 최신 portfolio-config CLI 준비
+        run: |
+          umask 077
+          gcloud secrets versions access latest \
+            --secret=PORTFOLIO_CONFIG_READ_TOKEN --project="${{ vars.GCP_PROJECT_ID }}" \
+            --out-file="$RUNNER_TEMP/portfolio-config-read-token"
+          GH_TOKEN="$(cat "$RUNNER_TEMP/portfolio-config-read-token")"
+          export GH_TOKEN
+          cliTag=$(sh scripts/install-config-cli.sh --latest)
+          sh scripts/install-config-cli.sh "$RUNNER_TEMP/portfolio-config-bin" "$cliTag"
+          "$RUNNER_TEMP/portfolio-config-bin/portfolio-config" validate --app portfolio-web --env production
+          # 토큰은 중앙 설정을 받은 자식 셸에서만 확장합니다.
+          # shellcheck disable=SC2016
+          "$RUNNER_TEMP/portfolio-config-bin/portfolio-config" run --app portfolio-web --env production -- \
+            sh -c 'test -n "$GITHUB_NPM_TOKEN" || exit 2; printf "%s" "$GITHUB_NPM_TOKEN" > "$1"' \
+            sh "$RUNNER_TEMP/portfolio-npm-token"
+          echo "PORTFOLIO_CONFIG_CLI_TAG=$cliTag" >> "$GITHUB_ENV"
+          echo "portfolio-config CLI: $cliTag" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Artifact Registry 로그인
         run: gcloud auth configure-docker "${{ vars.GCP_REGION }}-docker.pkg.dev" --quiet
 
@@ -51,9 +71,15 @@ jobs:
           context: .
           file: Dockerfile
           push: true
+          no-cache-filters: builder
           tags: ${{ env.IMAGE }}
-          build-args: |
-            GITHUB_NPM_TOKEN=${{ secrets.NPM_TOKEN }}
+          build-contexts: |
+            configcli=${{ runner.temp }}/portfolio-config-bin
+          labels: |
+            io.portfolio.config-cli.version=${{ env.PORTFOLIO_CONFIG_CLI_TAG }}
+          secret-files: |
+            github-token=${{ runner.temp }}/portfolio-config-read-token
+            npm-token=${{ runner.temp }}/portfolio-npm-token
 
       - name: Cloud Run 배포
         run: |
@@ -61,8 +87,12 @@ jobs:
             --image "${IMAGE}" \
             --region "${{ vars.GCP_REGION }}" \
             --project "${{ vars.GCP_PROJECT_ID }}" \
-            --set-secrets=API_URL=API_URL:latest,BLOG_API_URL=BLOG_API_URL:latest,DEVTO_KEY=DEVTO_KEY:latest,OPENAI_API_KEY=OPENAI_API_KEY:latest,GEMINI_API_KEY=GEMINI_API_KEY:latest,GOOGLE_CLOUD_BILLING_ACCOUNT=GOOGLE_CLOUD_BILLING_ACCOUNT:latest,SPOTIFY_CLIENT_ID=SPOTIFY_CLIENT_ID:latest,SPOTIFY_CLIENT_SECRET=SPOTIFY_CLIENT_SECRET:latest,SPOTIFY_REFRESH_TOKEN=SPOTIFY_REFRESH_TOKEN:latest,GITHUB_ACCESS_TOKEN=GITHUB_ACCESS_TOKEN:latest,SENTRY_DSN=SENTRY_DSN:latest,WAKATIME_API_KEY=WAKATIME_API_KEY:latest,RESUME_CONNECTION_TOKEN=RESUME_CONNECTION_TOKEN:latest \
-            --set-env-vars=GOOGLE_CLOUD_PROJECT_ID="${{ vars.GCP_PROJECT_ID }}",NEXT_PUBLIC_GITHUB_USER_NAME="${{ vars.NEXT_PUBLIC_GITHUB_USER_NAME }}" \
+            --set-secrets=GH_TOKEN=PORTFOLIO_CONFIG_READ_TOKEN:latest \
+            --clear-env-vars \
             --service-account=${{ vars.GCP_DEPLOY_SERVICE_ACCOUNT }} \
             --allow-unauthenticated \
             --quiet
+
+      - name: 임시 인증파일 정리
+        if: always()
+        run: rm -f -- "$RUNNER_TEMP/portfolio-config-read-token" "$RUNNER_TEMP/portfolio-npm-token"
