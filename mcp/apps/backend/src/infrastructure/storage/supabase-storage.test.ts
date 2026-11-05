@@ -311,4 +311,79 @@ describe("Supabase Storage", () => {
       expect((error as Error).message).toBe("STORAGE_WRITE_FAILED");
     }
   });
+
+  it("덮어쓰기 쓰기는 upsert 헤더를 싣고 일반 쓰기는 싣지 않으며 실패와 경로 탈출은 값 없이 거부한다", async () => {
+    const fetchImpl = jest.fn(async () => new Response("{}"));
+    const storage = createSupabaseStorage({
+      url: "https://storage.example.test",
+      secretKey: "sb_secret_fake",
+      bucket: "mcp",
+      fetchImpl,
+    });
+
+    await storage.putJsonOverwrite("tools/resume/development/policy.json", {
+      disabled: ["generate_resume"],
+    });
+    expect(fetchImpl).toHaveBeenLastCalledWith(
+      "https://storage.example.test/storage/v1/object/mcp/tools/resume/development/policy.json",
+      expect.objectContaining({
+        method: "POST",
+        headers: expect.objectContaining({
+          apikey: "sb_secret_fake",
+          "x-upsert": "true",
+          "content-type": "application/json",
+        }),
+        body: JSON.stringify({ disabled: ["generate_resume"] }),
+      }),
+    );
+
+    await storage.putJson("debug/resume/run/response.json", {});
+    const plain = fetchImpl.mock.calls.at(-1) as unknown as [
+      string,
+      { headers: Record<string, string> },
+    ];
+    expect(plain[1].headers["x-upsert"]).toBeUndefined();
+
+    await expect(
+      storage.putJsonOverwrite("tools/../secret.json", {}),
+    ).rejects.toMatchObject({ code: "STORAGE_PATH_INVALID" });
+
+    fetchImpl.mockResolvedValueOnce(
+      new Response("secret upstream body", { status: 500 }),
+    );
+    const failed = await storage
+      .putJsonOverwrite("tools/resume/development/policy.json", {})
+      .catch((error: unknown) => error);
+    expect(failed).toMatchObject({ code: "STORAGE_WRITE_FAILED" });
+    expect(String((failed as Error).message)).not.toContain("secret");
+  });
+
+  it("없는 객체 읽기는 다른 읽기 실패와 구분해 알린다", async () => {
+    const fetchImpl = jest.fn(async () => new Response("{}", { status: 404 }));
+    const storage = createSupabaseStorage({
+      url: "https://storage.example.test",
+      secretKey: "sb_secret_fake",
+      bucket: "mcp",
+      fetchImpl,
+    });
+
+    await expect(
+      storage.getJson("tools/resume/development/policy.json"),
+    ).rejects.toMatchObject({ code: "STORAGE_OBJECT_NOT_FOUND" });
+
+    // Supabase가 없는 객체를 본문이 not_found인 400으로 알리는 경우도 같다
+    fetchImpl.mockResolvedValueOnce(
+      new Response(JSON.stringify({ statusCode: "404", error: "not_found" }), {
+        status: 400,
+      }),
+    );
+    await expect(
+      storage.getJson("tools/resume/development/policy.json"),
+    ).rejects.toMatchObject({ code: "STORAGE_OBJECT_NOT_FOUND" });
+
+    fetchImpl.mockResolvedValueOnce(new Response("{}", { status: 500 }));
+    await expect(
+      storage.getJson("tools/resume/development/policy.json"),
+    ).rejects.toMatchObject({ code: "STORAGE_READ_FAILED" });
+  });
 });

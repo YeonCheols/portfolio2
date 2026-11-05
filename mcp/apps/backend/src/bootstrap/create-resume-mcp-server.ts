@@ -6,6 +6,8 @@ import type { createPortfolioAdminOAuth } from "@mcp/interfaces/admin/auth/admin
 import {
   handleAdminRequest,
   type AdminToolCallResult,
+  type AdminToolPolicy,
+  type AdminToolPresets,
 } from "@mcp/interfaces/admin/http/admin-routes";
 import type { ResumeDebugArchiveAdmin } from "@mcp/modules/resume/archive/resume-debug-archive-admin";
 import type { SettingConnectionTester } from "@mcp/modules/ai-models/setting-connection-test";
@@ -17,6 +19,7 @@ import {
   handleMcpRequest,
   resumeToolDefinitions,
   type McpJsonRpcRequest,
+  type ToolPolicy,
 } from "@mcp/interfaces/tools/handle-mcp-request";
 import type { ResumeConnection } from "@mcp/interfaces/tools/resume/resume-tools";
 import { resumeToolSamples } from "@mcp/interfaces/tools/resume/resume-tool-samples";
@@ -65,6 +68,10 @@ export const createResumeMcpServer = (options: {
   connection: ResumeConnection;
   model?: ResumeModelSource;
   storage?: JsonStorage;
+  // 도구 활성 정책. /mcp의 목록·호출과 관리 화면이 같은 정책을 읽는다
+  toolPolicy?: AdminToolPolicy;
+  // 관리 화면의 시험 입력(프리셋) 저장소. 관리 화면에서만 쓴다
+  toolPresets?: AdminToolPresets;
   admin?: {
     api: PortfolioAdminApi;
     oauth: ReturnType<typeof createPortfolioAdminOAuth>;
@@ -87,6 +94,7 @@ export const createResumeMcpServer = (options: {
   const dispatch = (
     parsed: McpJsonRpcRequest,
     session: boolean | IntrospectedSession,
+    policy?: ToolPolicy,
   ) => {
     const needsModel =
       parsed.method === "tools/call" &&
@@ -110,6 +118,7 @@ export const createResumeMcpServer = (options: {
             storage: options.storage,
           }
         : undefined,
+      policy,
     );
   };
 
@@ -137,6 +146,9 @@ export const createResumeMcpServer = (options: {
         ...options.admin,
         toolCatalog,
         runTool,
+        toolPolicy: options.toolPolicy,
+        toolPresets: options.toolPresets,
+        environment: options.environment,
         log: options.log,
       }))
     ) {
@@ -211,7 +223,7 @@ export const createResumeMcpServer = (options: {
 
     try {
       const parsed = JSON.parse(raw);
-      const response = await dispatch(parsed, session);
+      const response = await dispatch(parsed, session, options.toolPolicy);
       if (response === null) {
         res.writeHead(202);
         res.end();

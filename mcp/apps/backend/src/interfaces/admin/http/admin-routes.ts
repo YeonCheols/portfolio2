@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFileSync } from "fs";
 import type { IncomingMessage, ServerResponse } from "http";
 import { extname, join } from "path";
@@ -494,15 +495,56 @@ export type AdminToolCallResult = {
   >;
 };
 
+// 도구 활성 정책. 소유자는 modules/resume/tool-policy이고 이 경계는 주입받아 읽고 바꾸기만 한다
+export type AdminToolPolicy = {
+  disabledNames: () => Promise<ReadonlySet<string>>;
+  setEnabled: (
+    name: string,
+    enabled: boolean,
+    updatedBy: string,
+  ) => Promise<void>;
+};
+
+// 프리셋 서비스. 소유자는 modules/resume/tool-presets이고 이 경계는 주입받아 부르기만 한다
+export type AdminToolPresets = {
+  list: (toolName: string) => Promise<unknown[]>;
+  save: (
+    input: {
+      toolName: string;
+      label: string;
+      arguments: Record<string, unknown>;
+    },
+    createdBy: string,
+  ) => Promise<unknown>;
+  remove: (toolName: string, presetId: string) => Promise<void>;
+};
+
+const presetErrorStatus: Record<string, number> = {
+  UNKNOWN_TOOL: 404,
+  PRESET_NOT_FOUND: 404,
+  INVALID_PRESET: 400,
+  PRESET_XML_NOT_ALLOWED: 400,
+  PRESET_TOO_LARGE: 413,
+  PRESET_LIMIT: 409,
+  PRESET_STORAGE_FAILED: 502,
+  PRESET_DELETE_FAILED: 502,
+};
+
 type ToolsApiOptions = {
   introspect: (token: string) => Promise<IntrospectedSession>;
   publicUrl: string;
   toolCatalog?: readonly AdminToolDefinition[];
   runTool?: (input: AdminToolCallInput) => Promise<AdminToolCallResult>;
+  toolPolicy?: AdminToolPolicy;
+  toolPresets?: AdminToolPresets;
+  // 이 서버가 읽고 쓰는 정책의 환경. 화면이 어느 환경 정책인지 보여주는 데 쓴다
+  environment?: string;
   log?: (message: string) => void;
 };
 
 const maxToolCallBodyBytes = 1024 * 1024;
+// 프리셋 인자는 최대 64KB라 라벨과 JSON 겉모양을 더한 본문까지 받는다
+const maxPresetBodyBytes = 128 * 1024;
 
 // PDF 같은 바이너리 본문은 브라우저로 보내지 않고 크기만 알린다
 const toToolContent = (content: AdminToolCallResult["content"]) =>
@@ -529,13 +571,19 @@ const handleToolsApi = async (
     return;
   }
   const suffix = url.pathname.slice(toolsApiPrefix.length);
-  const allowed: Record<string, string> = { tools: "GET", call: "POST" };
-  if (!(suffix in allowed)) {
+  const allowed: Record<string, readonly string[]> = {
+    tools: ["GET"],
+    call: ["POST"],
+    policy: ["POST"],
+    presets: ["GET", "POST"],
+    "presets/delete": ["POST"],
+  };
+  if (!Object.hasOwn(allowed, suffix)) {
     sendJson(res, 404, { ok: false, code: "NOT_FOUND" });
     return;
   }
   const method = req.method ?? "GET";
-  if (method !== allowed[suffix]) {
+  if (!allowed[suffix].includes(method)) {
     sendJson(res, 405, { ok: false, code: "METHOD_NOT_ALLOWED" });
     return;
   }
@@ -564,8 +612,174 @@ const handleToolsApi = async (
       sendJson(res, 503, { ok: false, code: "TOOLS_UNAVAILABLE" });
       return;
     }
+    // 정책이 없거나 읽지 못하면 활성 여부를 알 수 없으므로 enabled를 싣지 않는다
+    let disabled: ReadonlySet<string> | null = null;
+    if (options.toolPolicy) {
+      try {
+        disabled = await options.toolPolicy.disabledNames();
+      } catch {
+        disabled = null;
+      }
+    }
     options.log?.(`ADMIN_TOOLS sub=${subject} action=list result=ok`);
-    sendJson(res, 200, { ok: true, tools: options.toolCatalog });
+    sendJson(res, 200, {
+      ok: true,
+      policyAvailable: disabled !== null,
+      ...(options.environment === "development" ||
+      options.environment === "production"
+        ? { environment: options.environment }
+        : {}),
+      tools: options.toolCatalog.map((tool) =>
+        disabled === null
+          ? tool
+          : { ...tool, enabled: !disabled.has(tool.name) },
+      ),
+    });
+    return;
+  }
+
+  if (suffix === "policy") {
+    if (!options.toolPolicy) {
+      sendJson(res, 503, { ok: false, code: "TOOL_POLICY_UNAVAILABLE" });
+      return;
+    }
+    let target: { name: string; enabled: boolean };
+    try {
+      const parsed: unknown = JSON.parse(await readBody(req, 4096));
+      if (
+        !isRecord(parsed) ||
+        typeof parsed.name !== "string" ||
+        !parsed.name ||
+        typeof parsed.enabled !== "boolean"
+      )
+        throw new Error("INVALID_INPUT");
+      target = { name: parsed.name, enabled: parsed.enabled };
+    } catch {
+      sendJson(res, 400, { ok: false, code: "INVALID_INPUT" });
+      return;
+    }
+    const logPolicy = (result: string) =>
+      options.log?.(
+        `ADMIN_TOOLS sub=${subject} action=policy tool=${target.name.slice(0, 64).replace(/[^A-Za-z0-9_-]/g, "?")} enabled=${target.enabled} result=${result}`,
+      );
+    try {
+      // 저장자는 원문 식별자가 아닌 해시로만 남긴다
+      await options.toolPolicy.setEnabled(
+        target.name,
+        target.enabled,
+        createHash("sha256")
+          .update(session.sub ?? "")
+          .digest("hex"),
+      );
+      logPolicy("ok");
+      sendJson(res, 200, { ok: true, ...target });
+    } catch (error) {
+      const unknownTool =
+        (error as { code?: unknown } | null)?.code === "UNKNOWN_TOOL";
+      logPolicy(unknownTool ? "unknown_tool" : "failed");
+      sendJson(res, unknownTool ? 404 : 503, {
+        ok: false,
+        code: unknownTool ? "UNKNOWN_TOOL" : "TOOL_POLICY_UNAVAILABLE",
+      });
+    }
+    return;
+  }
+
+  if (suffix === "presets" || suffix === "presets/delete") {
+    const presets = options.toolPresets;
+    if (!presets) {
+      sendJson(res, 503, { ok: false, code: "TOOL_PRESETS_UNAVAILABLE" });
+      return;
+    }
+    const action =
+      suffix === "presets/delete"
+        ? "preset_delete"
+        : method === "GET"
+          ? "preset_list"
+          : "preset_save";
+    let toolName = "";
+    const logPreset = (result: string) =>
+      options.log?.(
+        `ADMIN_TOOLS sub=${subject} action=${action} tool=${toolName.slice(0, 64).replace(/[^A-Za-z0-9_-]/g, "?")} result=${result}`,
+      );
+    const fail = (error: unknown) => {
+      const code = (error as { code?: unknown } | null)?.code;
+      const known = typeof code === "string" && code in presetErrorStatus;
+      logPreset(known ? String(code).toLowerCase() : "failed");
+      sendJson(res, known ? presetErrorStatus[code as string] : 502, {
+        ok: false,
+        code: known ? code : "PRESET_STORAGE_FAILED",
+      });
+    };
+
+    if (method === "GET") {
+      toolName = url.searchParams.get("tool") ?? "";
+      if (!toolName) {
+        sendJson(res, 400, { ok: false, code: "INVALID_INPUT" });
+        return;
+      }
+      try {
+        const list = await presets.list(toolName);
+        logPreset("ok");
+        sendJson(res, 200, { ok: true, presets: list });
+      } catch (error) {
+        fail(error);
+      }
+      return;
+    }
+
+    let body: Record<string, unknown>;
+    try {
+      const parsed: unknown = JSON.parse(
+        await readBody(req, maxPresetBodyBytes),
+      );
+      if (!isRecord(parsed)) throw new Error("INVALID_INPUT");
+      body = parsed;
+    } catch (error) {
+      const tooLarge =
+        error instanceof Error && error.message === "BODY_TOO_LARGE";
+      sendJson(res, tooLarge ? 413 : 400, {
+        ok: false,
+        code: tooLarge ? "BODY_TOO_LARGE" : "INVALID_INPUT",
+      });
+      return;
+    }
+    toolName = typeof body.toolName === "string" ? body.toolName : "";
+    if (!toolName) {
+      sendJson(res, 400, { ok: false, code: "INVALID_INPUT" });
+      return;
+    }
+    if (suffix === "presets/delete") {
+      if (typeof body.id !== "string" || !body.id) {
+        sendJson(res, 400, { ok: false, code: "INVALID_INPUT" });
+        return;
+      }
+      try {
+        await presets.remove(toolName, body.id);
+        logPreset("ok");
+        sendJson(res, 200, { ok: true });
+      } catch (error) {
+        fail(error);
+      }
+      return;
+    }
+    if (typeof body.label !== "string" || !isRecord(body.arguments)) {
+      sendJson(res, 400, { ok: false, code: "INVALID_INPUT" });
+      return;
+    }
+    try {
+      const preset = await presets.save(
+        { toolName, label: body.label, arguments: body.arguments },
+        // 작성자는 원문 식별자가 아닌 해시로만 남긴다
+        createHash("sha256")
+          .update(session.sub ?? "")
+          .digest("hex"),
+      );
+      logPreset("ok");
+      sendJson(res, 200, { ok: true, preset });
+    } catch (error) {
+      fail(error);
+    }
     return;
   }
 
@@ -635,6 +849,9 @@ export const handleAdminRequest = async (
     debugArchive?: ResumeDebugArchiveAdmin;
     toolCatalog?: readonly AdminToolDefinition[];
     runTool?: (input: AdminToolCallInput) => Promise<AdminToolCallResult>;
+    toolPolicy?: AdminToolPolicy;
+    toolPresets?: AdminToolPresets;
+    environment?: string;
     appRoot?: string;
   },
 ): Promise<boolean> => {

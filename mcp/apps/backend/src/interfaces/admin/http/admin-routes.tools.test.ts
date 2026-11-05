@@ -26,6 +26,7 @@ describe("관리자 도구 목록 API", () => {
       path?: string;
       headers?: Record<string, string>;
       toolCatalog?: unknown;
+      environment?: string;
     } = {},
   ): Promise<{ status: number; body: string }> =>
     new Promise((resolve, reject) => {
@@ -38,6 +39,7 @@ describe("관리자 도구 목록 API", () => {
           authorizationOrigin: "https://api.example.test",
           introspect,
           toolCatalog: "toolCatalog" in options ? options.toolCatalog : catalog,
+          environment: options.environment,
         } as never)
           .then((handled) => {
             if (!handled) {
@@ -78,7 +80,12 @@ describe("관리자 도구 목록 API", () => {
     const result = await request(introspect, { headers: { cookie: session } });
 
     expect(result.status).toBe(200);
-    expect(JSON.parse(result.body)).toEqual({ ok: true, tools: catalog });
+    // 정책이 연결되지 않은 서버는 활성 여부를 알 수 없다고 알린다
+    expect(JSON.parse(result.body)).toEqual({
+      ok: true,
+      policyAvailable: false,
+      tools: catalog,
+    });
     expect(introspect).toHaveBeenCalledWith("jwt");
   });
 
@@ -127,5 +134,19 @@ describe("관리자 도구 목록 API", () => {
     });
 
     expect(result.status).toBe(503);
+  });
+
+  it("목록 응답에 서버의 환경을 싣고 알 수 없으면 싣지 않는다", async () => {
+    const introspect = jest.fn().mockResolvedValue({ active: true, sub: "7" });
+    const headers = { cookie: session };
+
+    for (const environment of ["development", "production"]) {
+      const reply = await request(introspect, { headers, environment });
+      expect(JSON.parse(reply.body).environment).toBe(environment);
+    }
+    const unknown = await request(introspect, { headers });
+    expect("environment" in JSON.parse(unknown.body)).toBe(false);
+    const odd = await request(introspect, { headers, environment: "staging" });
+    expect("environment" in JSON.parse(odd.body)).toBe(false);
   });
 });
