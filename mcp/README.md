@@ -15,39 +15,25 @@
 
 ```text
 mcp/
-├── README.md                    프로젝트 구조와 동작 흐름
-├── AGENTS.md                    에이전트 작업 지침 원본
-├── app/                         React + Vite 관리자 화면
-│   └── src/
-│       ├── api/                 관리 API 호출
-│       ├── login/               로그인 화면
-│       ├── settings/            환경별 모델 설정·등록·활성화 UI
-│       │   └── providers/       공급자 옵션·기본 주소·모델 예시·링크
-│       ├── ui/                  공통 UI
-│       └── test/                화면 테스트 초기화
-├── src/
-│   ├── auth/                    관리자 OAuth·세션·관리 API 라우트
-│   ├── resume/
-│   │   ├── model/               이력서 모델과 템플릿 타입
-│   │   ├── compose/             원소 선택과 섹션 순서 조합
-│   │   ├── connection/          외부 서비스 연결
-│   │   │   ├── shared/          공통 오류·fetch·JSON POST 계약
-│   │   │   ├── resume/          portfolio-api 이력서 조회
-│   │   │   └── model/           AI 호출 계약·전송·설정 조회·진단
-│   │   │       └── providers/   OpenRouter·OpenAI·Gemini 어댑터
-│   │   ├── output/              양식·초안·검증·메모리 보관·PDF
-│   │   ├── tools/               MCP 도구 스키마와 실행 분기
-│   │   ├── http/                HTTP 서버·런타임 설정·인증 확인
-│   │   └── testing/             서버 테스트용 fixture
-│   └── runtimeBoundary.test.ts  웹앱과의 소스 경계 검사
-├── docs/                        환경·인증·배포·PDF 상세 문서
-├── scripts/                     설정 주입 실행·빌드 alias 변환
-├── fonts/                       PDF 한글 글꼴과 라이선스
-├── cert/                        로컬 HTTPS 인증서, Git 추적 제외
-├── Dockerfile                   MCP 컨테이너 빌드
-├── tsconfig.json                서버 TypeScript와 @mcp/* alias
-├── package.json                 MCP 전용 의존성과 명령
-└── pnpm-lock.yaml               MCP 전용 의존성 잠금
+├── apps/
+│   ├── console/                 운영 콘솔 (React + Vite)
+│   │   └── src/
+│   │       ├── pages/           login, menu, ai-models, resume-archive
+│   │       └── shared/          공통 HTTP 요청, UI
+│   └── backend/
+│       └── src/
+│           ├── interfaces/      tools, admin 소비처별 진입점
+│           ├── modules/         resume, ai-models 업무 처리
+│           ├── infrastructure/  ai, portfolio-api, storage, connection
+│           └── bootstrap/       환경 설정, HTTP 서버, 실행 조립
+├── packages/admin-contracts/    순수 메뉴·공통 계약의 공개 패키지
+├── scripts/                    빌드 alias 변환·중앙 설정·Storage 점검
+├── fonts/                      한글 PDF 폰트
+├── docs/
+├── pnpm-workspace.yaml
+├── pnpm-lock.yaml
+├── package.json
+└── Dockerfile
 ```
 
 테스트는 구현 파일 옆의 `*.test.ts` 또는 `*.test.tsx`에 둡니다. `dist/`는 서버와 관리자 화면의 빌드 산출물이며 직접 수정하지 않습니다.
@@ -56,10 +42,10 @@ mcp/
 
 ### 서버와 도구
 
-- [`src/resume/http/server.ts`](src/resume/http/server.ts)는 실행 설정과 외부 연결을 조립하는 진입점입니다.
-- [`createResumeMcpServer.ts`](src/resume/http/createResumeMcpServer.ts)는 HTTP 요청, Bearer 인증 확인과 서버 인스턴스의 생성 저장소를 담당합니다.
-- [`handleMcpRequest.ts`](src/resume/tools/handleMcpRequest.ts)는 JSON-RPC, `tools/list`와 도구 입력 스키마를 담당합니다.
-- [`resumeTools.ts`](src/resume/tools/resumeTools.ts)는 도구 실행, 원문 조회·선택, 생성 ID 재실행과 PDF 변환을 연결합니다.
+- [`apps/backend/src/bootstrap/server.ts`](apps/backend/src/bootstrap/server.ts)는 실행 설정과 외부 연결을 조립하는 진입점입니다.
+- [`create-resume-mcp-server.ts`](apps/backend/src/bootstrap/create-resume-mcp-server.ts)는 HTTP 요청, Bearer 인증 확인과 서버 인스턴스의 생성 저장소를 담당합니다.
+- [`handle-mcp-request.ts`](apps/backend/src/interfaces/tools/handle-mcp-request.ts)는 JSON-RPC, `tools/list`와 도구 입력 스키마를 담당합니다.
+- [`resume-tools.ts`](apps/backend/src/interfaces/tools/resume/resume-tools.ts)는 도구 실행, 원문 조회·선택, 생성 ID 재실행과 PDF 변환을 연결합니다.
 
 ### 외부 연결
 
@@ -70,17 +56,17 @@ mcp/
 - `model/`은 모델 호출 타입, 활성 설정 조회, Chat Completions 공통 전송과 연결 테스트를 소유합니다.
 - `model/providers/`는 공급자별 차이만 처리합니다. OpenAI는 Chat Completions를, Gemini는 Google의 OpenAI 호환 엔드포인트를 사용합니다. 공급자 연동 코드가 있다고 실제 모델 설정이 자동 등록·활성화되지는 않습니다.
 
-공급자 UI의 기본 주소·모델 ID 예시·공식 목록 링크는 [`app/src/settings/providers/model-providers.ts`](app/src/settings/providers/model-providers.ts)의 상수로 관리합니다. 실제 모델 ID는 직접 입력합니다.
+공급자 UI의 기본 주소·모델 ID 예시·공식 목록 링크는 [`apps/console/src/settings/providers/model-providers.ts`](apps/console/src/settings/providers/model-providers.ts)의 상수로 관리합니다. 실제 모델 ID는 직접 입력합니다.
 
 ### 생성과 출력
 
-- [`composeResume.ts`](src/resume/compose/composeResume.ts)는 `elementIds`와 `sectionOrder`로 원소와 순서를 선택합니다.
-- [`selectTemplateSections.ts`](src/resume/output/selectTemplateSections.ts)는 템플릿별 섹션 선택을 담당합니다.
-- [`runResumeHarness.ts`](src/resume/output/runResumeHarness.ts)는 전체 선택 섹션을 한 번의 생성 요청으로 묶고 응답을 파싱·조립합니다.
-- [`checkResumeDraft.ts`](src/resume/output/checkResumeDraft.ts)는 출처 ID, 누락, 충돌과 양식 항목을 검사합니다.
-- [`checkResumeEvidence.ts`](src/resume/output/checkResumeEvidence.ts)는 문장에 첨부된 인용 구절이 연결된 원문에 있는지 검사합니다.
-- [`resumeGenerationStore.ts`](src/resume/output/resumeGenerationStore.ts)는 원본 요청·응답과 소스·양식 스냅샷을 메모리에 보관합니다.
-- [`createResumePdf.ts`](src/resume/output/createResumePdf.ts)는 내부에서 조립한 본문과 검증된 출처로 PDF 바이너리를 만듭니다.
+- [`compose-resume.ts`](apps/backend/src/modules/resume/compose/compose-resume.ts)는 `elementIds`와 `sectionOrder`로 원소와 순서를 선택합니다.
+- [`select-template-sections.ts`](apps/backend/src/modules/resume/compose/select-template-sections.ts)는 템플릿별 섹션 선택을 담당합니다.
+- [`run-resume-harness.ts`](apps/backend/src/modules/resume/generation/run-resume-harness.ts)는 전체 선택 섹션을 한 번의 생성 요청으로 묶고 응답을 파싱·조립합니다.
+- [`check-resume-draft.ts`](apps/backend/src/modules/resume/validation/check-resume-draft.ts)는 출처 ID, 누락, 충돌과 양식 항목을 검사합니다.
+- [`check-resume-evidence.ts`](apps/backend/src/modules/resume/validation/check-resume-evidence.ts)는 문장에 첨부된 인용 구절이 연결된 원문에 있는지 검사합니다.
+- [`resume-generation-store.ts`](apps/backend/src/modules/resume/generation/resume-generation-store.ts)는 원본 요청·응답과 소스·양식 스냅샷을 메모리에 보관합니다.
+- [`create-resume-pdf.ts`](apps/backend/src/modules/resume/render/create-resume-pdf.ts)는 내부에서 조립한 본문과 검증된 출처로 PDF 바이너리를 만듭니다.
 
 ## 전체 프로세스 흐름
 
@@ -148,9 +134,9 @@ sequenceDiagram
 
 ### 관리자 모델 설정 흐름
 
-1. 사용자가 `/admin/ai-models`에서 로그인을 시작하면 MCP의 `auth/adminOAuth.ts`가 portfolio-api OAuth 흐름을 연결합니다.
+1. 사용자가 `/admin/ai-models`에서 로그인을 시작하면 MCP의 `auth/admin-oauth.ts`가 portfolio-api OAuth 흐름을 연결합니다.
 2. 인증 후 서버가 세션 쿠키를 관리하고, React 화면은 `/admin/ai-models/api/*`를 호출합니다.
-3. `auth/adminRoutes.ts`가 세션·같은 출처·메서드를 확인하고 `auth/adminApi.ts`를 통해 portfolio-api의 설정 API로 전달합니다.
+3. `auth/admin-routes.ts`가 세션·같은 출처·메서드를 확인하고 `auth/admin-api.ts`를 통해 portfolio-api의 설정 API로 전달합니다.
 4. 모델 설정과 키는 portfolio-api가 저장합니다. 설정 등록·수정과 활성화는 구분되며, 새 이력서 생성은 실행 환경의 활성 설정을 조회합니다.
 5. 연결 테스트는 선택한 설정의 ID와 환경을 확인한 뒤 해당 공급자를 호출합니다. 다른 설정으로 대체하거나 자동 활성화하지 않습니다.
 
@@ -175,7 +161,7 @@ pnpm test -- --runInBand mcp
 pnpm --dir mcp start
 ```
 
-서버 빌드는 `@mcp/*` import를 Node에서 실행 가능한 상대경로로 변환합니다. 서버 진입 산출물은 `dist/resume/http/server.js`이고, 관리자 화면 산출물은 `dist/auth/app/`입니다.
+서버 빌드는 `@mcp/*` import를 Node에서 실행 가능한 상대경로로 변환합니다. 서버 진입 산출물은 `apps/backend/dist/bootstrap/server.js`이고, 관리자 화면 산출물은 `apps/console/dist/`입니다.
 
 ## 상세 문서
 
@@ -183,3 +169,15 @@ pnpm --dir mcp start
 - [OAuth 게이트웨이·클라이언트 연결·배포](docs/oauth-gateway.md)
 - [이력서 PDF 항목 매핑](docs/jobkorea-resume-pdf-map.md)
 - [에이전트 작업 지침](AGENTS.md)
+
+## Workspace 구조
+
+- `apps/console`은 운영 콘솔이며 페이지는 `src/pages`, 공통 UI와 HTTP 요청은 `src/shared`에 둡니다.
+- `apps/backend`는 MCP 도구와 관리자 API를 제공하는 모듈형 모놀리스입니다. `interfaces`는 소비처별 진입점, `modules`는 업무 처리, `infrastructure`는 외부 연결, `bootstrap`은 실행 조립을 소유합니다.
+- `packages/admin-contracts`는 콘솔과 백엔드가 공유하는 메뉴의 단일 소유자입니다. 두 앱은 `workspace:*` 의존성과 공개 패키지 이름으로 연결합니다.
+- MCP 루트에서 `pnpm install --frozen-lockfile`, `pnpm build`, `pnpm type-check`, `pnpm test`를 실행합니다. 공통 계약을 먼저 빌드하므로 개별 앱 개발 전에 `pnpm --filter @portfolio-mcp/admin-contracts build`를 실행합니다.
+- 배포 단위는 하나이며 Docker가 세 패키지를 빌드하고 백엔드가 콘솔 정적 파일을 서빙합니다. 기존 OAuth 경로와 도구·Storage 계약을 유지합니다.
+
+`pnpm check:build`는 실제 빌드 산출물로 로컬 HTTP 테스트 서버를 잠시 실행해 기본 콘솔·에셋 경로, MCP 도구 등록, 한글 PDF 생성을 검증합니다. 외부 API나 모델을 호출하지 않습니다.
+
+파일·폴더와 코드 식별자는 [MCP 명명 규칙](docs/naming-conventions.md)을 따릅니다.

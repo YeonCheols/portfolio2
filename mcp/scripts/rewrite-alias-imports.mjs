@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 
-const distRoot = path.resolve("dist");
+const distRoot = path.resolve(process.argv[2] ?? "apps/backend/dist");
 const alias = "@mcp/";
 
 const readJavaScriptFiles = (directory) =>

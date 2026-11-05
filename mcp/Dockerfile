@@ -7,13 +7,14 @@ COPY --from=configcli /portfolio-config /usr/local/bin/portfolio-config
 
 WORKDIR /app
 
-COPY package.json pnpm-lock.yaml ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/backend/package.json ./apps/backend/package.json
+COPY apps/console/package.json ./apps/console/package.json
+COPY packages/admin-contracts/package.json ./packages/admin-contracts/package.json
 RUN pnpm install --frozen-lockfile
 
-COPY tsconfig.json ./tsconfig.json
-COPY tailwind.config.js ./tailwind.config.js
-COPY src ./src
-COPY app ./app
+COPY apps ./apps
+COPY packages ./packages
 COPY scripts ./scripts
 COPY fonts ./fonts
 RUN pnpm build
@@ -23,4 +24,4 @@ EXPOSE 8080
 
 USER node
 ENTRYPOINT ["sh", "scripts/start-with-config.sh"]
-CMD ["node", "dist/resume/http/server.js"]
+CMD ["node", "apps/backend/dist/bootstrap/server.js"]

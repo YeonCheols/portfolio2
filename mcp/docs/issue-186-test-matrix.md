@@ -4,16 +4,16 @@
 
 ## 구현 소유자
 
-| 영역                            | 파일                                                                                     |
-| ------------------------------- | ---------------------------------------------------------------------------------------- |
-| Storage 목록·삭제               | `src/storage/supabaseStorage.ts` (`listObjects`, `removeObjects`, `assertBucketPrivate`) |
-| 조회·정렬·필터·서명 URL         | `src/resume/output/resumeDebugArchiveReader.ts`                                          |
-| 수정본·삭제                     | `src/resume/output/resumeDebugArchiveWriter.ts`                                          |
-| 재현                            | `src/resume/output/reproduceResumeArchive.ts`, 공통 사전 조건 `assertResumePdfReady.ts`  |
-| 관리 API 묶음                   | `src/resume/output/resumeDebugArchiveAdmin.ts`                                           |
-| 라우트·인증·감사 로그·복귀 경로 | `src/auth/adminRoutes.ts`                                                                |
-| 메뉴 정의                       | `src/auth/adminMenu.ts`                                                                  |
-| 화면                            | `app/src/debug/*`, `app/src/menu/*`, `app/src/ui/*`, `app/src/app.tsx`                   |
+| 영역                            | 파일                                                                                                                  |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Storage 목록·삭제               | `apps/backend/src/infrastructure/storage/supabase-storage.ts` (`listObjects`, `removeObjects`, `assertBucketPrivate`) |
+| 조회·정렬·필터·서명 URL         | `apps/backend/src/modules/resume/archive/resume-debug-archive-reader.ts`                                              |
+| 수정본·삭제                     | `apps/backend/src/modules/resume/archive/resume-debug-archive-writer.ts`                                              |
+| 재현                            | `apps/backend/src/modules/resume/archive/reproduce-resume-archive.ts`, 공통 사전 조건 `assert-resume-pdf-ready.ts`    |
+| 관리 API 묶음                   | `apps/backend/src/modules/resume/archive/resume-debug-archive-admin.ts`                                               |
+| 라우트·인증·감사 로그·복귀 경로 | `apps/backend/src/interfaces/admin/http/admin-routes.ts`                                                              |
+| 메뉴 정의                       | `packages/admin-contracts/src/admin-menu.ts`                                                                          |
+| 화면                            | `apps/console/src/debug/*`, `apps/console/src/menu/*`, `apps/console/src/ui/*`, `apps/console/src/app.tsx`            |
 
 ## 예상(기대 동작)
 
@@ -23,7 +23,7 @@
 | 상세에서 요청·원문 응답·검증 결과를 확인하고 비공개 객체를 인증 조회 또는 서명 URL로 열기              | reader `get`·`signedUrl`, `archive-detail-page.tsx`                              | reader 상세·서명 3개 / 라우트 상세·서명 / `archive-detail-page.test.tsx` 5개   |
 | 저장된 요청·응답을 편집·검증하고 원본과 구분되는 수정본으로 저장                                       | writer `saveRevision`, `revision-section.tsx`                                    | writer 수정본 3개 / 라우트 수정본 2개 / `revision-section.test.tsx` 3개        |
 | 삭제 대상을 확인한 뒤 해당 아카이브 삭제                                                               | writer `removeAttempt`, `delete-section.tsx`                                     | writer 삭제 4개 / 라우트 삭제 / `delete-section.test.tsx` 2개                  |
-| 보관 스냅샷과 선택한 원문·수정본으로 검증·PDF 재요청, 서버 메모리가 없어도 재현, 결과와 실패 단계 확인 | `reproduceResumeArchive.ts`, `reproduction-section.tsx`                          | `reproduceResumeArchive.test.ts` 11개 / `reproduction-section.test.tsx` 3개    |
+| 보관 스냅샷과 선택한 원문·수정본으로 검증·PDF 재요청, 서버 메모리가 없어도 재현, 결과와 실패 단계 확인 | `reproduce-resume-archive.ts`, `reproduction-section.tsx`                        | `reproduce-resume-archive.test.ts` 11개 / `reproduction-section.test.tsx` 3개  |
 | 재현은 모델·원문 API를 자동 재호출하지 않고 외부 모델 신규 생성은 별도 요청                            | 재현 서비스가 모델 클라이언트를 인자로 받지 않음. 재현 API에 모델 생성 동작 없음 | 재현 테스트 2개가 전역 `fetch` 호출 0회를 단정                                 |
 
 ## 변경범위
@@ -32,7 +32,7 @@
 | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 기존 관리자 OAuth·세션·같은 출처 검증 재사용                                 | `serveAuthenticatedApp`과 `handleDebugArchiveApi`가 기존과 같은 순서(쿠키, 출처, 메서드, introspect)를 쓴다. 라우트 테스트 `목록 API는 세션 없음·무효·확인 실패…`                                               |
 | Storage 경로 기반 목록·상세와 수정본 저장·삭제 API를 먼저 실패 테스트로 정의 | 아래 Red 기록. DB 목록 인덱스는 필요성이 확인되지 않아 후보로만 둠                                                                                                                                              |
-| 기존 메모리 `generationId` 입력 계약 불변                                    | `resumeTools.ts` 변경은 PDF 사전 조건을 `assertResumePdfReady`로 옮긴 것뿐이고 기존 `resumeTools` 테스트가 그대로 통과                                                                                          |
+| 기존 메모리 `generationId` 입력 계약 불변                                    | `resume-tools.ts` 변경은 PDF 사전 조건을 `assertResumePdfReady`로 옮긴 것뿐이고 기존 `resumeTools` 테스트가 그대로 통과                                                                                         |
 | 수정 JSON·스키마·출처 참조 검증                                              | writer `잘못된 JSON·스키마·출처 참조·요청 형식·기준 파일은 저장하지 않고…` (`INVALID_RESPONSE`, `UNKNOWN_SOURCE_REF`, `INVALID_REQUEST_PAYLOAD`, `INVALID_BASE_FILE`, `RESPONSE_TOO_LARGE`, `SNAPSHOT_MISSING`) |
 | 원본·수정본·재현 결과의 관계 표시                                            | 상세 화면이 단계 파일·수정본 목록·재현 기록을 함께 보여줌 (`archive-detail-page.test.tsx` 통합 2개)                                                                                                             |
 | 대용량·페이지 이동·중복 실행·삭제 실패·Storage 장애                          | 응답 100만 자 제한과 영역 내 스크롤, 페이지 이동, 재현 잠금과 버튼 잠금, `DELETE_PARTIAL`, 502 `STORAGE_FAILED`                                                                                                 | 응답 100만 자 제한과 영역 내 스크롤, PDF 응답 5MB 상한, 페이지 이동, Storage 잠금(인스턴스 간)과 버튼 잠금, `DELETE_PARTIAL`, 502 `STORAGE_FAILED` |
@@ -79,7 +79,7 @@
 
 - reader `없는 실행과 경로가 될 수 있는 키는 본문을 읽기 전에 거부한다`
 - 라우트 `수정본 저장·재현·삭제도 sub와 동작·결과 코드만 로그로 남기고…`
-- `adminMenu.test.ts` 메뉴 정의 불변조건 2개
+- `admin-menu.test.ts` 메뉴 정의 불변조건 2개
 - 앱 `메뉴 카드를 누르면 화면을 이동하는 동안 이동 중 표시…`
 - Storage `저장소가 공개 경로나 다른 객체를 가리키는 서명 주소를 돌려주면 발급을 거부한다`
 

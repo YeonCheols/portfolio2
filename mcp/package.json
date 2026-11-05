@@ -2,35 +2,17 @@
   "name": "portfolio-mcp",
   "version": "0.1.0",
   "private": true,
+  "packageManager": "pnpm@9.15.9",
   "scripts": {
-    "build": "tsc -p tsconfig.json && node scripts/rewrite-alias-imports.mjs && tsc -p app/tsconfig.json && vite build --config app/vite.config.ts",
-    "start": "node --env-file=.env dist/resume/http/server.js",
-    "start:dev": "portfolio-config run --app portfolio-mcp --env development -- node dist/resume/http/server.js",
-    "start:prod": "portfolio-config run --app portfolio-mcp --env production -- node dist/resume/http/server.js",
+    "build": "pnpm --filter @portfolio-mcp/admin-contracts build && pnpm --filter @portfolio-mcp/backend build && pnpm --filter @portfolio-mcp/console build",
+    "start": "node --env-file=.env apps/backend/dist/bootstrap/server.js",
+    "start:dev": "portfolio-config run --app portfolio-mcp --env development -- node apps/backend/dist/bootstrap/server.js",
+    "start:prod": "portfolio-config run --app portfolio-mcp --env production -- node apps/backend/dist/bootstrap/server.js",
     "check:storage": "portfolio-config run --app portfolio-mcp --env development -- node scripts/check-bucket-private.mjs",
     "check:storage:prod": "portfolio-config run --app portfolio-mcp --env production -- node scripts/check-bucket-private.mjs",
     "env:pull": "portfolio-config export --app portfolio-mcp",
-    "test": "vitest run --config app/vite.config.ts"
-  },
-  "devDependencies": {
-    "@testing-library/dom": "^10.4.2",
-    "@testing-library/react": "^16.3.3",
-    "@testing-library/user-event": "^14.6.8",
-    "@types/node": "20.1.7",
-    "@types/pdfkit": "^0.17.7",
-    "@types/react": "^18.3.31",
-    "@types/react-dom": "^18.3.7",
-    "@vitejs/plugin-react": "^4.7.0",
-    "jsdom": "^25.0.1",
-    "tailwindcss": "3.4.17",
-    "typescript": "5.0.4",
-    "vite": "^5.4.21",
-    "vitest": "^2.1.9"
-  },
-  "dependencies": {
-    "@headlessui/react": "^2",
-    "pdfkit": "^0.20.2",
-    "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "test": "pnpm --filter @portfolio-mcp/console test",
+    "type-check": "pnpm --filter @portfolio-mcp/admin-contracts build && pnpm -r type-check",
+    "check:build": "node --test workspace-build.test.mjs"
   }
 }
