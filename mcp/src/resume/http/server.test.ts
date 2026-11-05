@@ -9,6 +9,41 @@ import {
 } from "@mcp/resume/http/server";
 
 describe("modelTestConnections", () => {
+  it("모델 요청이 실패해도 실제 선택한 공급자와 모델명만 호출 전에 기록한다", async () => {
+    const events: string[] = [];
+    const fetchImpl = jest.fn(async (url: string) => {
+      if (url === "https://api.example/active?environment=production")
+        return {
+          ok: true,
+          json: async () => ({
+            provider: "openai",
+            modelName: "test-model",
+            url: "https://api.openai.com/v1/chat/completions",
+            apiKey: "fake-secret",
+          }),
+        };
+      events.push("call");
+      return { ok: false, status: 429, json: async () => ({}) };
+    });
+    const model = resumeModelFromSetting({
+      settingUrl: "https://api.example/active",
+      settingToken: "fake-read",
+      environment: "production",
+      fetchImpl,
+    });
+    const onModel = jest.fn(async (_info: unknown) => {
+      events.push("record");
+    });
+    await expect(
+      model.generate({ persona: "test", prompt: "draft" }, onModel),
+    ).rejects.toThrow();
+    expect(onModel).toHaveBeenCalledWith({
+      provider: "openai",
+      modelName: "test-model",
+    });
+    expect(events).toEqual(["record", "call"]);
+    expect(JSON.stringify(onModel.mock.calls)).not.toContain("fake-secret");
+  });
   it("Gemini와 OpenAI를 등록하면 연결 테스트와 같은 설정의 두 생성 호출을 지원한다", async () => {
     for (const [provider, url] of [
       ["openai", "https://api.openai.com/v1/chat/completions"],

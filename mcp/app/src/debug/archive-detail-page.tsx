@@ -226,6 +226,8 @@ const DetailBody = ({
 }) => {
   const { summary, files } = detail;
   const latest = record(detail.latest);
+  const model = record(latest.model);
+  const validation = record(latest.validation);
   const errorCode =
     typeof latest.errorCode === "string" ? latest.errorCode : null;
   return (
@@ -268,6 +270,15 @@ const DetailBody = ({
             )}
           </dd>
         </div>
+        <div>
+          <dt className="text-xs font-bold text-slate-500">AI 사용 모델</dt>
+          <dd className="break-all">
+            {typeof model.provider === "string" &&
+            typeof model.modelName === "string"
+              ? `${model.provider} / ${model.modelName}`
+              : "기록 없음"}
+          </dd>
+        </div>
         {errorCode && (
           <div>
             <dt className="text-xs font-bold text-slate-500">오류 코드</dt>
@@ -275,6 +286,15 @@ const DetailBody = ({
           </div>
         )}
       </dl>
+
+      {validation.status === "blocked" && (
+        <p
+          role="status"
+          className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+        >
+          생성 응답은 보관됐지만 검증에서 차단되어 PDF로 변환할 수 없습니다.
+        </p>
+      )}
 
       <Block title="요청 페이로드" text={asJson(latest.request)} />
       <Block

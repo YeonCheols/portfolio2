@@ -80,6 +80,57 @@ const extras = {
 };
 
 describe("ArchiveDetailPage", () => {
+  it("생성 작업이 완료돼도 검증이 차단되면 PDF 변환 불가를 안내한다", async () => {
+    vi.stubGlobal(
+      "fetch",
+      router({
+        "/detail?": () =>
+          jsonResponse({
+            ...detail,
+            summary: { ...detail.summary, status: "completed" },
+            latest: {
+              ...detail.latest,
+              validation: { ...detail.latest.validation, status: "blocked" },
+            },
+          }),
+        ...extras,
+      }),
+    );
+    render(<ArchiveDetailPage archiveKey={archiveKey} />);
+    expect(
+      await screen.findByText(
+        "생성 응답은 보관됐지만 검증에서 차단되어 PDF로 변환할 수 없습니다.",
+      ),
+    ).toBeTruthy();
+  });
+  it("상단 실행 요약에 당시 AI 공급자와 모델명을 보여주고 이전 기록은 기록 없음으로 표시한다", async () => {
+    vi.stubGlobal(
+      "fetch",
+      router({
+        "/detail?": () =>
+          jsonResponse({
+            ...detail,
+            latest: {
+              ...detail.latest,
+              model: { provider: "openai", modelName: "test-model" },
+            },
+          }),
+        ...extras,
+      }),
+    );
+    const first = render(<ArchiveDetailPage archiveKey={archiveKey} />);
+    expect(await screen.findByText("openai / test-model")).toBeTruthy();
+    expect(
+      screen.getByText("AI 사용 모델").closest("dl")?.textContent,
+    ).toContain("openai / test-model");
+    first.unmount();
+    vi.stubGlobal(
+      "fetch",
+      router({ "/detail?": () => jsonResponse(detail), ...extras }),
+    );
+    render(<ArchiveDetailPage archiveKey={archiveKey} />);
+    expect(await screen.findByText("기록 없음")).toBeTruthy();
+  });
   afterEach(() => {
     vi.unstubAllGlobals();
     vi.restoreAllMocks();

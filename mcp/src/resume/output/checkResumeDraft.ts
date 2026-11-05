@@ -3,6 +3,7 @@ export type ResumeSelectionNode = {
   section: string;
   name: string;
   text: string;
+  unit?: string;
   sourceRefs: readonly string[];
   employmentRef?: string;
   projectRef?: string;
@@ -46,6 +47,11 @@ export type DraftValidationIssue = {
 };
 
 export type CheckedDraft = {
+  diagnostics?: readonly (DraftClaim & {
+    claimIndex: number;
+    code: DraftValidationIssueCode;
+    numeric?: { expected: string[]; actual: string[]; unsupported: string[] };
+  })[];
   claims: readonly CheckedDraftClaim[];
   gaps: readonly DraftClaim[];
   validationIssues: readonly DraftValidationIssue[];

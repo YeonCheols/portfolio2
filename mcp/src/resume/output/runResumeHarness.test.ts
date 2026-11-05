@@ -77,6 +77,54 @@ const recordingClient = (fixtures: string[]) => {
 };
 
 describe("runResumeHarness", () => {
+  it("새 생성의 인용 후보를 원문 구절로 제한하고 후보에 없는 변형 인용은 계속 거부한다", async () => {
+    const selected = {
+      ...employment,
+      visibility: "public",
+      text: "이벤트·프로모션 페이지 개발",
+      children: [],
+    };
+    const client = {
+      generate: jest.fn(async (request: ResumeModelRequest) => {
+        expect(request).toHaveProperty(
+          "responseFormat.json_schema.schema.properties.claims.items.properties.evidence.items.properties.quote.enum",
+          [selected.text],
+        );
+        return JSON.stringify({
+          claims: [
+            {
+              text: "이벤트·프로모션 페이지를 개발했습니다",
+              sourceIds: [selected.id],
+              evidence: [
+                { sourceId: selected.id, quote: "이벤트·프모션 페이지 개발" },
+              ],
+            },
+          ],
+        });
+      }),
+    };
+    const result = await runResumeHarness([selected], client);
+    expect(result.validationIssues).toContainEqual({
+      code: "INVALID_SOURCE_EVIDENCE",
+      sourceIds: [selected.id],
+    });
+    expect(client.generate).toHaveBeenCalledTimes(1);
+    expect(selected.text).toBe("이벤트·프로모션 페이지 개발");
+    const valid = await runResumeHarness([selected], {
+      generate: async () =>
+        JSON.stringify({
+          claims: [
+            {
+              text: "이벤트·프로모션 페이지를 개발했습니다",
+              sourceIds: [selected.id],
+              evidence: [{ sourceId: selected.id, quote: selected.text }],
+            },
+          ],
+        }),
+    });
+    expect(valid.claims).toHaveLength(1);
+    expect(valid.validationIssues).toEqual([]);
+  });
   it("원문 보관이 비동기이면 완료를 기다린 뒤 응답을 파싱한다", async () => {
     const client = { generate: jest.fn(async () => "invalid JSON {") };
     let finish: (() => void) | undefined;
