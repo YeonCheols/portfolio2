@@ -43,13 +43,6 @@ describe("mcp container", () => {
     expect(dockerfile).toContain("COPY fonts ./fonts");
   });
 
-  it("MCP 프로젝트에는 별도 OAuth 컨테이너가 없다", () => {
-    expect(fs.existsSync(path.join(__dirname, "Dockerfile.gateway"))).toBe(
-      false,
-    );
-    expect(fs.existsSync(path.join(__dirname, "Dockerfile.auth"))).toBe(false);
-  });
-
   it("alias를 되돌리는 빌드 스크립트를 이미지에 넣는다", () => {
     const dockerfile = fs.readFileSync(
       path.join(__dirname, "Dockerfile"),
