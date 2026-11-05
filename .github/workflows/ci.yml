@@ -47,6 +47,8 @@ jobs:
       - name: MCP 의존성 설치 및 빌드
         run: |
           pnpm --dir mcp install --frozen-lockfile
+          pnpm --dir mcp lint
+          pnpm --dir mcp lint:verify
           pnpm --dir mcp build
           pnpm --dir mcp test:ci
           pnpm --dir mcp check:build

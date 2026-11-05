@@ -1,0 +1,345 @@
+{
+  "commit": "891e51bf4136acaca036048ca60576a1c6b8b080",
+  "sourceDigest": "1fcd8e19ef1609ca2cd85ad5b66358517590567bfe7c24e9e54f452a8b3f81f3",
+  "measuredAt": "2026-11-05T09:11:19.282Z",
+  "environment": {
+    "platform": "darwin",
+    "architecture": "arm64",
+    "node": "v24.19.0",
+    "cpu": "Apple M4",
+    "logicalCpus": 10,
+    "eslint": "9.39.2",
+    "oxlint": "1.91.0"
+  },
+  "policy": {
+    "existingMcpLint": false,
+    "comparisonOnly": true,
+    "coreRules": [
+      "constructor-super",
+      "getter-return",
+      "no-async-promise-executor",
+      "no-compare-neg-zero",
+      "no-constant-binary-expression",
+      "no-debugger",
+      "no-dupe-else-if",
+      "no-dupe-keys",
+      "no-loss-of-precision",
+      "no-sparse-arrays",
+      "no-unreachable",
+      "no-unsafe-finally",
+      "no-unsafe-optional-chaining",
+      "use-isnan",
+      "valid-typeof"
+    ],
+    "consoleRules": [
+      "react/jsx-key",
+      "react/jsx-no-duplicate-props",
+      "react/no-children-prop",
+      "react/no-danger-with-children",
+      "react/no-deprecated",
+      "react/require-render-return",
+      "react-hooks/rules-of-hooks",
+      "react-hooks/exhaustive-deps",
+      "jsx-a11y/alt-text",
+      "jsx-a11y/aria-props",
+      "jsx-a11y/role-supports-aria-props"
+    ],
+    "nativeMissingRules": [
+      "react/no-deprecated",
+      "react/require-render-return"
+    ],
+    "nextjs": false,
+    "fsd": false,
+    "structuralChecks": [
+      "directory-boundary.test.ts",
+      "apps/backend/src/runtime-boundary.test.ts"
+    ]
+  },
+  "method": {
+    "warmSamples": 5,
+    "order": "Serial, rotating profile order",
+    "cache": "Fresh CLI process; no linter cache; OS file cache not cleared. Initial sample is not OS-cold.",
+    "includesTests": true,
+    "typeAware": false
+  },
+  "scopes": {
+    "backend": {
+      "eslint": {
+        "files": 79,
+        "exitCode": 0,
+        "initialMs": 925.95,
+        "warmMs": [746.92, 746.44, 768.11, 755.44, 792.12],
+        "medianMs": 755.44,
+        "errors": 0,
+        "warnings": 0,
+        "byRule": {},
+        "differenceFromESLint": {
+          "missing": [],
+          "added": []
+        }
+      },
+      "native": {
+        "files": 79,
+        "exitCode": 0,
+        "initialMs": 40.16,
+        "warmMs": [39.77, 40.57, 40, 42.93, 41.12],
+        "medianMs": 40.57,
+        "errors": 0,
+        "warnings": 0,
+        "byRule": {},
+        "differenceFromESLint": {
+          "missing": [],
+          "added": []
+        }
+      },
+      "hybrid": {
+        "files": 79,
+        "exitCode": 0,
+        "initialMs": 159.14,
+        "warmMs": [157.31, 155.91, 159.02, 157.82, 175.11],
+        "medianMs": 157.82,
+        "errors": 0,
+        "warnings": 0,
+        "byRule": {},
+        "differenceFromESLint": {
+          "missing": [],
+          "added": []
+        }
+      }
+    },
+    "console": {
+      "eslint": {
+        "files": 40,
+        "exitCode": 0,
+        "initialMs": 633.3,
+        "warmMs": [597.27, 591.81, 727.49, 658.56, 615.2],
+        "medianMs": 615.2,
+        "errors": 0,
+        "warnings": 1,
+        "byRule": {
+          "jsx-a11y/role-supports-aria-props": 1
+        },
+        "differenceFromESLint": {
+          "missing": [],
+          "added": []
+        }
+      },
+      "native": {
+        "files": 40,
+        "exitCode": 0,
+        "initialMs": 38.75,
+        "warmMs": [40.03, 43.54, 40.44, 40.11, 41.34],
+        "medianMs": 40.44,
+        "errors": 0,
+        "warnings": 1,
+        "byRule": {
+          "jsx-a11y/role-supports-aria-props": 1
+        },
+        "differenceFromESLint": {
+          "missing": [],
+          "added": []
+        }
+      },
+      "hybrid": {
+        "files": 40,
+        "exitCode": 0,
+        "initialMs": 248.12,
+        "warmMs": [263.77, 245.3, 252.09, 251.82, 257.47],
+        "medianMs": 252.09,
+        "errors": 0,
+        "warnings": 1,
+        "byRule": {
+          "jsx-a11y/role-supports-aria-props": 1
+        },
+        "differenceFromESLint": {
+          "missing": [],
+          "added": []
+        }
+      }
+    },
+    "contracts": {
+      "eslint": {
+        "files": 3,
+        "exitCode": 0,
+        "initialMs": 396.9,
+        "warmMs": [391.05, 391.37, 392.82, 395.28, 391.93],
+        "medianMs": 391.93,
+        "errors": 0,
+        "warnings": 0,
+        "byRule": {},
+        "differenceFromESLint": {
+          "missing": [],
+          "added": []
+        }
+      },
+      "native": {
+        "files": 3,
+        "exitCode": 0,
+        "initialMs": 38.41,
+        "warmMs": [37.36, 38.44, 37.82, 41.85, 38.04],
+        "medianMs": 38.04,
+        "errors": 0,
+        "warnings": 0,
+        "byRule": {},
+        "differenceFromESLint": {
+          "missing": [],
+          "added": []
+        }
+      },
+      "hybrid": {
+        "files": 3,
+        "exitCode": 0,
+        "initialMs": 153.4,
+        "warmMs": [153.22, 152.96, 154.1, 156.92, 154.13],
+        "medianMs": 154.1,
+        "errors": 0,
+        "warnings": 0,
+        "byRule": {},
+        "differenceFromESLint": {
+          "missing": [],
+          "added": []
+        }
+      }
+    },
+    "all": {
+      "eslint": {
+        "files": 122,
+        "exitCode": 0,
+        "initialMs": 902.13,
+        "warmMs": [918.39, 903.65, 902.36, 917.66, 902.39],
+        "medianMs": 903.65,
+        "errors": 0,
+        "warnings": 1,
+        "byRule": {
+          "jsx-a11y/role-supports-aria-props": 1
+        },
+        "differenceFromESLint": {
+          "missing": [],
+          "added": []
+        }
+      },
+      "native": {
+        "files": 122,
+        "exitCode": 0,
+        "initialMs": 43.23,
+        "warmMs": [41.86, 40.81, 42.5, 42.04, 41.6],
+        "medianMs": 41.86,
+        "errors": 0,
+        "warnings": 1,
+        "byRule": {
+          "jsx-a11y/role-supports-aria-props": 1
+        },
+        "differenceFromESLint": {
+          "missing": [],
+          "added": []
+        }
+      },
+      "hybrid": {
+        "files": 122,
+        "exitCode": 0,
+        "initialMs": 245.97,
+        "warmMs": [241.03, 241.68, 245.76, 243.59, 244.48],
+        "medianMs": 243.59,
+        "errors": 0,
+        "warnings": 1,
+        "byRule": {
+          "jsx-a11y/role-supports-aria-props": 1
+        },
+        "differenceFromESLint": {
+          "missing": [],
+          "added": []
+        }
+      }
+    }
+  },
+  "probes": [
+    {
+      "name": "debugger",
+      "rule": "no-debugger",
+      "eslint": ["no-debugger"],
+      "native": ["no-debugger"],
+      "hybrid": ["no-debugger"]
+    },
+    {
+      "name": "async-executor",
+      "rule": "no-async-promise-executor",
+      "eslint": ["no-async-promise-executor"],
+      "native": ["no-async-promise-executor"],
+      "hybrid": ["no-async-promise-executor"]
+    },
+    {
+      "name": "unreachable",
+      "rule": "no-unreachable",
+      "eslint": ["no-unreachable"],
+      "native": ["no-unreachable"],
+      "hybrid": ["no-unreachable"]
+    },
+    {
+      "name": "optional-chain",
+      "rule": "no-unsafe-optional-chaining",
+      "eslint": ["no-unsafe-optional-chaining"],
+      "native": ["no-unsafe-optional-chaining"],
+      "hybrid": ["no-unsafe-optional-chaining"]
+    },
+    {
+      "name": "type-only-contract",
+      "rule": null,
+      "eslint": [],
+      "native": [],
+      "hybrid": []
+    },
+    {
+      "name": "jsx-key",
+      "rule": "react/jsx-key",
+      "eslint": ["react/jsx-key"],
+      "native": ["react/jsx-key"],
+      "hybrid": ["react/jsx-key"]
+    },
+    {
+      "name": "conditional-hook",
+      "rule": "react-hooks/rules-of-hooks",
+      "eslint": ["react-hooks/rules-of-hooks"],
+      "native": ["react-hooks/rules-of-hooks"],
+      "hybrid": ["react-hooks/rules-of-hooks"]
+    },
+    {
+      "name": "effect-dependency",
+      "rule": "react-hooks/exhaustive-deps",
+      "eslint": ["react-hooks/exhaustive-deps"],
+      "native": ["react-hooks/exhaustive-deps"],
+      "hybrid": ["react-hooks/exhaustive-deps"]
+    },
+    {
+      "name": "aria",
+      "rule": "jsx-a11y/role-supports-aria-props",
+      "eslint": ["jsx-a11y/role-supports-aria-props"],
+      "native": ["jsx-a11y/role-supports-aria-props"],
+      "hybrid": ["jsx-a11y/role-supports-aria-props"]
+    },
+    {
+      "name": "deprecated-lifecycle",
+      "rule": "react/no-deprecated",
+      "eslint": ["react/no-deprecated"],
+      "native": [],
+      "hybrid": ["react/no-deprecated"]
+    },
+    {
+      "name": "render-return",
+      "rule": "react/require-render-return",
+      "eslint": ["react/require-render-return"],
+      "native": [],
+      "hybrid": ["react/require-render-return"]
+    },
+    {
+      "name": "valid-console",
+      "rule": null,
+      "eslint": [],
+      "native": [],
+      "hybrid": []
+    }
+  ],
+  "equivalentForEvaluatedCases": {
+    "native": false,
+    "hybrid": true
+  }
+}
