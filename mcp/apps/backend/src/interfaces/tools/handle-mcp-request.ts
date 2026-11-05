@@ -122,7 +122,8 @@ const composeInputSchema = {
 
 const resumePdfInputSchema = generationReferenceSchema;
 
-const tools = [
+// 관리 화면도 이 정의를 읽으므로 이름·설명·스키마의 소유자는 여기 한 곳이다
+export const resumeToolDefinitions = [
   {
     name: "validate_resume_xml",
     description: "XML을 공통 이력서 모델로 검증한다",
@@ -173,11 +174,17 @@ const tools = [
   },
 ];
 
+// 끈 도구 이름을 돌려주는 정책. /mcp만 넘기며 관리 화면의 시험 실행은 넘기지 않아 꺼 둔 도구도 시험할 수 있다
+export type ToolPolicy = {
+  disabledNames: () => Promise<ReadonlySet<string>>;
+};
+
 export const handleMcpRequest = async (
   request: McpJsonRpcRequest,
   connection: ResumeConnection,
   model?: ResumeModelClient,
   generation?: ResumeGenerationContext,
+  policy?: ToolPolicy,
 ) => {
   const id = request.id ?? null;
 
@@ -198,10 +205,45 @@ export const handleMcpRequest = async (
   }
 
   if (request.method === "tools/list") {
-    return { jsonrpc: "2.0" as const, id, result: { tools } };
+    let disabled: ReadonlySet<string> = new Set();
+    if (policy) {
+      try {
+        disabled = await policy.disabledNames();
+      } catch {
+        return {
+          jsonrpc: "2.0" as const,
+          id,
+          error: { code: -32603, message: "TOOL_POLICY_UNAVAILABLE" },
+        };
+      }
+    }
+    return {
+      jsonrpc: "2.0" as const,
+      id,
+      result: {
+        tools: resumeToolDefinitions.filter((tool) => !disabled.has(tool.name)),
+      },
+    };
   }
 
   if (request.method === "tools/call") {
+    if (policy) {
+      const blocked = await policy
+        .disabledNames()
+        .then((disabled) =>
+          disabled.has(request.params?.name ?? "") ? "TOOL_DISABLED" : null,
+        )
+        .catch(() => "TOOL_POLICY_UNAVAILABLE");
+      if (blocked)
+        return {
+          jsonrpc: "2.0" as const,
+          id,
+          result: {
+            content: [{ type: "text" as const, text: blocked }],
+            isError: true,
+          },
+        };
+    }
     const result = await callResumeTool(
       request.params?.name ?? "",
       request.params?.arguments ?? {},

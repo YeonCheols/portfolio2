@@ -355,4 +355,125 @@ describe("handleMcpRequest", () => {
     });
     expect(JSON.stringify(response)).not.toContain("hidden@example.com");
   });
+
+  describe("도구 활성 정책", () => {
+    const toolNames = (response: unknown) =>
+      (
+        response as { result: { tools: Array<{ name: string }> } }
+      ).result.tools.map((tool) => tool.name);
+
+    it("끈 도구는 tools/list에서 빠지고 나머지 정의는 그대로다", async () => {
+      const all = await handleMcpRequest(
+        { jsonrpc: "2.0", id: 1, method: "tools/list" },
+        connection,
+      );
+      const policy = {
+        disabledNames: async () => new Set(["generate_resume"]),
+      };
+
+      const filtered = await handleMcpRequest(
+        { jsonrpc: "2.0", id: 2, method: "tools/list" },
+        connection,
+        undefined,
+        undefined,
+        policy,
+      );
+
+      expect(toolNames(filtered)).toEqual(
+        toolNames(all).filter((name) => name !== "generate_resume"),
+      );
+      expect(toolNames(filtered)).toContain("validate_resume_xml");
+    });
+
+    it("끈 도구의 호출은 도구를 실행하지 않고 TOOL_DISABLED로 거절하며 켜진 도구는 그대로 실행한다", async () => {
+      const load = jest.fn(connection.load);
+      const policy = {
+        disabledNames: async () => new Set(["preview_resume"]),
+      };
+      const args = { source: "embedded", xml: 'schemaVersion="0.2.0"' };
+
+      const blocked = await handleMcpRequest(
+        {
+          jsonrpc: "2.0",
+          id: 3,
+          method: "tools/call",
+          params: {
+            name: "preview_resume",
+            arguments: { ...args, elementIds: [], sectionOrder: [] },
+          },
+        },
+        { load },
+        undefined,
+        undefined,
+        policy,
+      );
+      expect(blocked).toMatchObject({
+        result: {
+          isError: true,
+          content: [{ type: "text", text: "TOOL_DISABLED" }],
+        },
+      });
+      expect(load).not.toHaveBeenCalled();
+
+      const allowed = await handleMcpRequest(
+        {
+          jsonrpc: "2.0",
+          id: 4,
+          method: "tools/call",
+          params: { name: "validate_resume_xml", arguments: args },
+        },
+        { load },
+        undefined,
+        undefined,
+        policy,
+      );
+      expect(allowed).toMatchObject({ result: { isError: false } });
+      expect(load).toHaveBeenCalledTimes(1);
+    });
+
+    it("정책을 읽지 못하면 목록은 오류를 주고 호출은 도구를 실행하지 않는다", async () => {
+      const load = jest.fn(connection.load);
+      const policy = {
+        disabledNames: async () => {
+          throw Object.assign(new Error("x"), {
+            code: "TOOL_POLICY_UNAVAILABLE",
+          });
+        },
+      };
+
+      const list = await handleMcpRequest(
+        { jsonrpc: "2.0", id: 5, method: "tools/list" },
+        { load },
+        undefined,
+        undefined,
+        policy,
+      );
+      expect(list).toMatchObject({
+        error: { message: "TOOL_POLICY_UNAVAILABLE" },
+      });
+
+      const call = await handleMcpRequest(
+        {
+          jsonrpc: "2.0",
+          id: 6,
+          method: "tools/call",
+          params: {
+            name: "validate_resume_xml",
+            arguments: { source: "embedded", xml: 'schemaVersion="0.2.0"' },
+          },
+        },
+        { load },
+        undefined,
+        undefined,
+        policy,
+      );
+      expect(call).toMatchObject({
+        result: {
+          isError: true,
+          content: [{ type: "text", text: "TOOL_POLICY_UNAVAILABLE" }],
+        },
+      });
+      expect(load).not.toHaveBeenCalled();
+    });
+  });
 });

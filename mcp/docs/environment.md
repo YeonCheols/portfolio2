@@ -126,6 +126,23 @@ mcp/
     ...
 ```
 
+### 도구 활성 정책과 프리셋 경로 (#179)
+
+```text
+mcp/
+  tools/resume/{environment}/policy.json
+  tools/resume/{environment}/presets/{toolName}/{presetId}.json
+```
+
+- `{environment}`는 `development`와 `production`입니다. 개발과 운영이 같은 Supabase를 보더라도 한쪽의 전환이 다른 쪽 도구를 끄지 못하게 나눕니다.
+- `policy.json`은 환경당 객체 하나이며 끈 도구 이름만 `{ disabled, updatedAt, updatedBy }`로 기록합니다. 기본은 모두 활성이고 `updatedBy`는 관리자 `sub`의 SHA-256 해시입니다. 소유자는 `apps/backend/src/modules/resume/tool-policy/resume-tool-policy.ts`입니다.
+- 이 객체만 같은 경로를 계속 갱신하므로 `putJsonOverwrite`(`x-upsert`)로 덮어씁니다. 보관 기록과 프리셋은 `putJson`의 불변 쓰기를 유지합니다. 관리자 두 명이 동시에 전환하면 쓰기 직전에 최신 정책을 다시 읽어 합치지만 동시 쓰기 자체는 나중 쓰기가 이기는 한계가 있습니다.
+- 읽은 정책은 10초 동안 재사용합니다(`toolPolicyCacheMs`). 전환한 인스턴스는 바로 반영하고 다른 인스턴스는 최대 10초 뒤 반영됩니다. 정책 파일이 없으면(`STORAGE_OBJECT_NOT_FOUND`) 모두 활성입니다. 그 밖의 읽기 실패나 손상된 정책은 이전에 읽은 정상 정책이 있으면 그것을 쓰고, 없으면 `TOOL_POLICY_UNAVAILABLE`로 도구를 열지 않습니다.
+- `/mcp`의 `tools/list`는 끈 도구를 뺍니다. `tools/call`은 `TOOL_DISABLED`로 거절하고 도구를 실행하지 않습니다. 관리 화면의 시험 실행은 정책을 거치지 않아 꺼 둔 도구도 시험할 수 있습니다.
+- 프리셋은 관리자 공용이며 도구 이름과 입력 인자만 저장합니다. 객체는 `{ toolName, label, arguments, createdAt, createdBy }`이고 `createdBy`는 관리자 `sub`의 SHA-256 해시이며 목록 응답에는 싣지 않습니다. 입력 인자는 바꾸지 않고 그대로 저장·복원합니다.
+- 이력서 XML 원문은 저장하지 않습니다. 인자의 `xml`은 그 도구의 샘플(가상 자료) XML과 완전히 같을 때만 저장하고, 다르거나 샘플이 없는 도구이면 `PRESET_XML_NOT_ALLOWED`로 거절합니다. `toolName`은 도구 정의에 있는 이름만, `presetId`는 서버가 만든 UUID만 허용하고 이름은 60자, 인자는 64KB, 도구당 30개까지입니다.
+- 프리셋은 불변 객체(`putJson`)라 수정 대신 새로 저장하고 지웁니다. 목록은 손상된 객체 하나를 건너뛰고 나머지를 보여주며, 삭제는 Storage가 지웠다고 알린 경로만 성공으로 봅니다.
+
 `mcp`는 버킷 이름이며 실제 객체 키는 `debug/resume/`에서 시작합니다. 인증 서버의 `sub`는 SHA-256 해시로 경로를 나누고, 새 생성·재검증·PDF 변환마다 독립된 attempt ID를 사용합니다. 각 단계는 새 객체로 저장하며 기존 기록을 덮어쓰지 않습니다.
 
 기록은 버전·시각·동작·단계와 그때까지 확보한 소스/양식 스냅샷, 모델 요청, 파싱 전 응답 문자열, 검증 결과를 포함합니다. 실패 기록에는 오류 코드와 마지막으로 보관한 단계(`failedAfter`)를 담고 공급자 예외 메시지·HTTP 헤더·서버 키·OAuth 토큰은 담지 않습니다. 선택 원문 자체는 개인정보를 포함할 수 있으므로 공개 버킷이나 공개 URL로 제공하지 않습니다.

@@ -64,11 +64,25 @@ export const createSupabaseStorage = (options: {
       return false;
     }
   };
+  // Supabase는 없는 객체를 404 또는 본문이 not_found인 400으로 알린다. 본문은 판단에만 쓰고 밖으로 내보내지 않는다
+  const isNotFound = async (response: Response): Promise<boolean> => {
+    if (response.status === 404) return true;
+    try {
+      const body = (await response.json()) as {
+        error?: unknown;
+        statusCode?: unknown;
+      };
+      return body.error === "not_found" || String(body.statusCode) === "404";
+    } catch {
+      return false;
+    }
+  };
   const request = async (
     path: string,
     init: RequestInit,
     code: string,
     existsCode?: string,
+    notFoundCode?: string,
   ): Promise<Response> => {
     let response: Response;
     try {
@@ -80,6 +94,7 @@ export const createSupabaseStorage = (options: {
           apikey: options.secretKey,
           "content-type": "application/json",
           "cache-control": "no-store",
+          ...(init.headers as Record<string, string> | undefined),
         },
       });
     } catch {
@@ -88,6 +103,8 @@ export const createSupabaseStorage = (options: {
     if (!response.ok) {
       if (existsCode && (await isAlreadyExists(response)))
         throw new StorageError(existsCode);
+      if (notFoundCode && (await isNotFound(response)))
+        throw new StorageError(notFoundCode);
       throw new StorageError(code);
     }
     return response;
@@ -101,11 +118,25 @@ export const createSupabaseStorage = (options: {
         "STORAGE_OBJECT_EXISTS",
       );
     },
+    // 같은 경로를 계속 갱신하는 값(도구 활성 정책)에만 쓴다. 보관 기록은 putJson으로 덮어쓰지 않는다
+    putJsonOverwrite: async (path: string, value: unknown): Promise<void> => {
+      await request(
+        `/object/${bucket}/${objectPath(path)}`,
+        {
+          method: "POST",
+          body: JSON.stringify(value),
+          headers: { "x-upsert": "true" },
+        },
+        "STORAGE_WRITE_FAILED",
+      );
+    },
     getJson: async (path: string): Promise<unknown> => {
       const response = await request(
         `/object/authenticated/${bucket}/${objectPath(path)}`,
         { method: "GET" },
         "STORAGE_READ_FAILED",
+        undefined,
+        "STORAGE_OBJECT_NOT_FOUND",
       );
       try {
         return await response.json();

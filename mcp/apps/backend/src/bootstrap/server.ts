@@ -29,6 +29,10 @@ import {
 import { createResumeDebugArchiveAdmin } from "@mcp/modules/resume/archive/resume-debug-archive-admin";
 import type { ResumeModelClient } from "@mcp/modules/resume/generation/run-resume-harness";
 import { createSupabaseStorage } from "@mcp/infrastructure/storage/supabase-storage";
+import { resumeToolDefinitions } from "@mcp/interfaces/tools/handle-mcp-request";
+import { createResumeToolPolicy } from "@mcp/modules/resume/tool-policy/resume-tool-policy";
+import { resumeToolSamples } from "@mcp/interfaces/tools/resume/resume-tool-samples";
+import { createResumeToolPresets } from "@mcp/modules/resume/tool-presets/resume-tool-presets";
 import {
   ResumeConnectionError,
   type ResumeConnectionFetch,
@@ -129,6 +133,25 @@ export const startResumeMcpServer = () => {
     introspect,
     environment: config.modelSetting.environment,
     storage,
+    // 저장소가 없으면 정책도 없어 모든 도구가 활성인 기존 동작을 유지한다
+    toolPolicy: storage
+      ? createResumeToolPolicy({
+          storage,
+          environment: config.modelSetting.environment,
+          knownTools: resumeToolDefinitions.map((tool) => tool.name),
+        })
+      : undefined,
+    toolPresets: storage
+      ? createResumeToolPresets({
+          storage,
+          environment: config.modelSetting.environment,
+          knownTools: resumeToolDefinitions.map((tool) => tool.name),
+          sampleXml: (name) => {
+            const xml = resumeToolSamples[name]?.xml;
+            return typeof xml === "string" ? xml : undefined;
+          },
+        })
+      : undefined,
     log: (message) => console.log(message),
     protectedResourceMetadata: {
       resource: publicUrl,
