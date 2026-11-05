@@ -30,6 +30,90 @@ const context = () => ({
 
 describe("이력서 생성 원본 수명주기", () => {
   beforeEach(() => jest.clearAllMocks());
+  it("실제 사용 모델과 숫자 진단을 생성·PDF 아카이브에 남기고 재변환 중 모델을 조회하지 않는다", async () => {
+    const storage = {
+      putJson: jest.fn(async (_path: string, _record: unknown) => {}),
+    };
+    const generation = { ...context(), storage };
+    const model = {
+      generate: jest.fn(
+        async (
+          _request: unknown,
+          onModel?: (info: {
+            provider: string;
+            modelName: string;
+          }) => void | Promise<void>,
+        ) => {
+          await onModel?.({
+            provider: "openai",
+            modelName: "test-model",
+            ...{ apiKey: "fake-secret" },
+          });
+          return JSON.stringify({
+            claims: [
+              ...JSON.parse(raw).claims,
+              {
+                text: "사용자 50명",
+                sourceIds: ["profile-test"],
+                formItem: "name",
+                evidence: [
+                  { sourceId: "profile-test", quote: "테스트 사용자" },
+                ],
+              },
+            ],
+          });
+        },
+      ),
+    };
+    const connection = { load: jest.fn(async () => connectedResume()) };
+    const result = await callResumeTool(
+      "generate_resume",
+      args,
+      connection,
+      model,
+      generation,
+    );
+    if (!result.ok) throw new Error(result.code);
+    const { generationId } = JSON.parse(result.text);
+    expect(storage.putJson).toHaveBeenLastCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        model: { provider: "openai", modelName: "test-model" },
+        validation: expect.objectContaining({
+          status: "blocked",
+          diagnostics: [
+            expect.objectContaining({
+              code: "UNSUPPORTED_NUMERIC_FACT",
+              numeric: {
+                expected: [],
+                actual: ["50명"],
+                unsupported: ["50명"],
+              },
+            }),
+          ],
+        }),
+      }),
+    );
+    await callResumeTool(
+      "convert_resume_to_pdf",
+      { generationId },
+      connection,
+      model,
+      generation,
+    );
+    expect(storage.putJson).toHaveBeenLastCalledWith(
+      expect.any(String),
+      expect.objectContaining({
+        model: { provider: "openai", modelName: "test-model" },
+        errorCode: "UNVERIFIED_CLAIMS",
+      }),
+    );
+    expect(JSON.stringify(storage.putJson.mock.calls)).not.toContain(
+      "fake-secret",
+    );
+    expect(model.generate).toHaveBeenCalledTimes(1);
+    expect(connection.load).toHaveBeenCalledTimes(1);
+  });
   it("PDF 실패 기록은 원문을 유지하고 예외 메시지 대신 안전한 코드만 보관한다", async () => {
     const storage = {
       putJson: jest.fn(async (_path: string, _record: unknown) => {}),

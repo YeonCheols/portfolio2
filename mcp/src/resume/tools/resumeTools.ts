@@ -5,21 +5,21 @@ import {
   isResumeTemplate,
   type ResumeTemplate,
 } from "@mcp/resume/model/resumeTemplate";
+import { assertResumePdfReady } from "@mcp/resume/output/assertResumePdfReady";
 import {
   checkResumeDraft,
   type DraftClaim,
   type ResumeSelectionNode,
 } from "@mcp/resume/output/checkResumeDraft";
 import { createResumePdf } from "@mcp/resume/output/createResumePdf";
-import { assertResumePdfReady } from "@mcp/resume/output/assertResumePdfReady";
 import { previewResume } from "@mcp/resume/output/previewResume";
 import {
   renderResumeForm,
   renderResumeFormSections,
 } from "@mcp/resume/output/renderResumeForm";
 import { renderResumeTemplate } from "@mcp/resume/output/renderResumeTemplate";
-import type { ResumeGenerationContext } from "@mcp/resume/output/resumeGenerationStore";
 import { createResumeDebugAttempt } from "@mcp/resume/output/resumeDebugArchive";
+import type { ResumeGenerationContext } from "@mcp/resume/output/resumeGenerationStore";
 import {
   generateResume,
   completeResumeGeneration,
@@ -340,6 +340,7 @@ export const callResumeTool = async (
             snapshot: stored.snapshot,
             request: stored.request,
             response: stored.response,
+            model: stored.model,
           });
         }
         if (stored.response === undefined || !stored.snapshot)
@@ -391,7 +392,15 @@ export const callResumeTool = async (
               ? {
                   generate: async (request) => {
                     if (debug) await debug.write("model_request", { request });
-                    return model.generate(request);
+                    return model.generate(request, async (info) => {
+                      store.captureModel(scope, id, info);
+                      const safeModel = store.read(scope, id).model;
+                      if (debug)
+                        await debug.write("model_request", {
+                          request,
+                          model: safeModel,
+                        });
+                    });
                   },
                 }
               : undefined,
@@ -418,6 +427,11 @@ export const callResumeTool = async (
               conflicts: generated.conflicts,
               uncertain: generated.uncertain,
               validationIssues: generated.validationIssues,
+              diagnostics: generated.diagnostics,
+              status:
+                generated.gaps.length || generated.conflicts.length
+                  ? "blocked"
+                  : "passed",
             },
           });
       }

@@ -1,11 +1,12 @@
 import { randomUUID } from "node:crypto";
-import type { JsonStorage } from "@mcp/storage/supabaseStorage";
 
 import type { ResumeSelectionNode } from "@mcp/resume/output/checkResumeDraft";
 import type {
   ResumeFormSection,
   ResumeModelRequest,
+  ResumeModelInfo,
 } from "@mcp/resume/output/runResumeHarness";
+import type { JsonStorage } from "@mcp/storage/supabaseStorage";
 import { ResumeConnectionError } from "@mcp/resume/connection/shared/connection";
 
 export type ResumeGenerationScope = { subject: string; environment: string };
@@ -18,6 +19,7 @@ export type StoredResumeGeneration = {
   snapshot?: ResumeGenerationSnapshot;
   request?: ResumeModelRequest;
   response?: string;
+  model?: ResumeModelInfo;
 };
 
 export const createResumeGenerationStore = () => {
@@ -60,6 +62,16 @@ export const createResumeGenerationStore = () => {
         throw new ResumeConnectionError("GENERATION_RESPONSE_EXISTS");
       if (request) entry.request = structuredClone(request);
       entry.response = response;
+    },
+    captureModel: (
+      scope: ResumeGenerationScope,
+      id: string,
+      model: ResumeModelInfo,
+    ): void => {
+      const entry = current(scope, id);
+      if (entry.model)
+        throw new ResumeConnectionError("GENERATION_MODEL_EXISTS");
+      entry.model = { provider: model.provider, modelName: model.modelName };
     },
     read: (scope: ResumeGenerationScope, id: string): StoredResumeGeneration =>
       structuredClone(current(scope, id)),

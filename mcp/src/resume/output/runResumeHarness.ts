@@ -38,8 +38,16 @@ export const resumeWriterPersona = [
 
 export type ResumeModelRequest = ResumeModelCall;
 
+export type ResumeModelInfo = { provider: string; modelName: string };
+export type ResumeModelRecorder = (
+  info: ResumeModelInfo,
+) => void | Promise<void>;
+
 export type ResumeModelClient = {
-  generate: (input: ResumeModelRequest) => Promise<string>;
+  generate: (
+    input: ResumeModelRequest,
+    onModel?: ResumeModelRecorder,
+  ) => Promise<string>;
 };
 
 const resumeClaimsResponseFormat = (

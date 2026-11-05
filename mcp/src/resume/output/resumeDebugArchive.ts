@@ -1,21 +1,23 @@
 import { createHash, randomUUID } from "node:crypto";
-import type { JsonStorage } from "@mcp/storage/supabaseStorage";
+import type { CheckedDraft } from "@mcp/resume/output/checkResumeDraft";
 import type {
   ResumeGenerationScope,
   ResumeGenerationSnapshot,
 } from "@mcp/resume/output/resumeGenerationStore";
 import type { ResumeModelRequest } from "@mcp/resume/output/runResumeHarness";
-import type { CheckedDraft } from "@mcp/resume/output/checkResumeDraft";
+import type { ResumeModelInfo } from "@mcp/resume/output/runResumeHarness";
+import type { JsonStorage } from "@mcp/storage/supabaseStorage";
 import { ResumeConnectionError } from "@mcp/resume/connection/shared/connection";
 
 type DebugData = {
   snapshot?: ResumeGenerationSnapshot;
   request?: ResumeModelRequest;
   response?: string;
+  model?: ResumeModelInfo;
   validation?: Pick<
     CheckedDraft,
-    "gaps" | "conflicts" | "uncertain" | "validationIssues"
-  >;
+    "gaps" | "conflicts" | "uncertain" | "validationIssues" | "diagnostics"
+  > & { status?: "passed" | "blocked" };
   errorCode?: string;
 };
 export const resumeDebugStages = [

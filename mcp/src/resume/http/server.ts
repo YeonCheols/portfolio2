@@ -1,6 +1,4 @@
 import { createPortfolioAdminApi } from "@mcp/auth/adminApi";
-import { createResumeDebugArchiveAdmin } from "@mcp/resume/output/resumeDebugArchiveAdmin";
-import { createSupabaseStorage } from "@mcp/storage/supabaseStorage";
 import { createPortfolioAdminOAuth } from "@mcp/auth/adminOAuth";
 import { createSettingConnectionTester } from "@mcp/auth/settingConnectionTest";
 import {
@@ -28,7 +26,9 @@ import {
   readModelSettingConnection,
   type RuntimeEnv,
 } from "@mcp/resume/http/runtimeConfig";
+import { createResumeDebugArchiveAdmin } from "@mcp/resume/output/resumeDebugArchiveAdmin";
 import type { ResumeModelClient } from "@mcp/resume/output/runResumeHarness";
+import { createSupabaseStorage } from "@mcp/storage/supabaseStorage";
 import {
   ResumeConnectionError,
   type ResumeConnectionFetch,
@@ -78,9 +78,13 @@ export const resumeModelFromSetting = (
   let resolved: ReturnType<typeof resolve> | undefined;
 
   return {
-    generate: async (input) => {
+    generate: async (input, onModel) => {
       resolved ??= resolve();
       const { setting, connect } = await resolved;
+      await onModel?.({
+        provider: setting.provider,
+        modelName: setting.modelName,
+      });
 
       return connect(input, {
         url: setting.url,

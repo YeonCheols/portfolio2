@@ -46,6 +46,11 @@ export type DraftValidationIssue = {
 };
 
 export type CheckedDraft = {
+  diagnostics?: readonly (DraftClaim & {
+    claimIndex: number;
+    code: DraftValidationIssueCode;
+    numeric?: { expected: string[]; actual: string[]; unsupported: string[] };
+  })[];
   claims: readonly CheckedDraftClaim[];
   gaps: readonly DraftClaim[];
   validationIssues: readonly DraftValidationIssue[];
