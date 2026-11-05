@@ -1,5 +1,7 @@
 # #188 디렉터리 재구성 검증
 
+이 문서는 PR #191의 검증 이력입니다. 후속 테스트 실행기 독립화는 [별도 검증 기록](test-runner-independence.md)에 기록합니다.
+
 ## 요구사항과 소유권
 
 - 사용자 확인을 받은 `apps/console`, `apps/backend`, `packages/admin-contracts` 구조로 구성합니다. MCP 루트에 독립적인 pnpm workspace와 lockfile을 유지합니다.
