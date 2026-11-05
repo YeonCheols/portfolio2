@@ -20,7 +20,10 @@ describe("Dockerfile", () => {
 
   it("진입점은 standalone server.js이다", () => {
     expect(dockerfile).not.toContain("next start");
-    expect(dockerfile).toContain("node server.js");
+    expect(dockerfile).toContain('CMD ["node", "server.js"]');
+    expect(dockerfile).toContain(
+      'ENTRYPOINT ["sh", "scripts/start-with-config.sh", "production"]',
+    );
   });
 
   it("PORT와 0.0.0.0 호스트를 쓴다", () => {

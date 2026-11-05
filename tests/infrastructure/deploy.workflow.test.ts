@@ -13,7 +13,9 @@ describe("deploy workflow", () => {
 
     expect(workflow).toMatch(/branches:\s*\n\s*-\s*master/);
     expect(workflow).toContain("docker/build-push-action");
-    expect(workflow).toContain("GITHUB_NPM_TOKEN");
+    expect(workflow).toContain(
+      "npm-token=${{ runner.temp }}/portfolio-npm-token",
+    );
   });
 
   it("MCP 변경만 반영할 때 웹 배포 workflow를 실행하지 않는다", () => {
@@ -24,7 +26,9 @@ describe("deploy workflow", () => {
     expect(ignoredPaths).toContain('      - "AGENTS.md"');
     expect(ignoredPaths).toContain('      - ".cursor/rules/agents.mdc"');
     expect(ignoredPaths).toContain('      - ".github/copilot-instructions.md"');
-    expect(ignoredPaths).toContain('      - ".github/workflows/deploy.yml"');
+    expect(ignoredPaths).not.toContain(
+      '      - ".github/workflows/deploy.yml"',
+    );
     expect(ignoredPaths).toContain(
       '      - ".github/workflows/deploy-mcp.yml"',
     );
@@ -54,18 +58,19 @@ describe("deploy workflow", () => {
     expect(workflow).not.toContain("GOOGLE_APPLICATION_CREDENTIALS");
   });
 
-  it("Cloud Run 런타임 비밀은 Secret Manager 이름을 참조한다", () => {
+  it("웹 설정은 중앙 CLI로 읽고 런타임에는 저장소 읽기 인증만 전달한다", () => {
     const workflow = fs.readFileSync(workflowPath, "utf8");
 
     expect(workflow).toContain("--set-secrets");
+    expect(workflow).toContain("GH_TOKEN=PORTFOLIO_CONFIG_READ_TOKEN:latest");
+    expect(workflow).toContain("install-config-cli.sh --latest");
+    expect(workflow).toContain("--app portfolio-web --env production");
     expect(workflow).toContain(
-      "GITHUB_ACCESS_TOKEN=GITHUB_ACCESS_TOKEN:latest",
+      "configcli=${{ runner.temp }}/portfolio-config-bin",
     );
-    expect(workflow).toContain("WAKATIME_API_KEY=WAKATIME_API_KEY:latest");
-    expect(workflow).toContain("API_URL=API_URL:latest");
-    expect(workflow).toContain(
-      "RESUME_CONNECTION_TOKEN=RESUME_CONNECTION_TOKEN:latest",
-    );
+    expect(workflow).toContain("workflow_dispatch:");
+    expect(workflow).not.toContain("API_URL=API_URL:latest");
+    expect(workflow).not.toContain("cli-v0.2.1");
     expect(workflow).not.toContain("portfolio-mcp");
     expect(workflow).not.toContain("NEXT_PUBLIC_GITHUB_ACCESS_TOKEN");
     expect(workflow).not.toContain("NEXT_PUBLIC_WAKATIME_API_KEY");

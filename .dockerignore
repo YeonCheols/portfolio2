@@ -44,3 +44,12 @@ __tests__
 # CI/CD
 .github
 .vercel
+
+# 호스트의 CLI 캐시는 이미지에 포함하지 않습니다.
+.cache
+
+# 웹 이미지와 독립된 MCP 프로젝트 및 로컬 인증서입니다.
+mcp
+cert
+*.pem
+*.key
