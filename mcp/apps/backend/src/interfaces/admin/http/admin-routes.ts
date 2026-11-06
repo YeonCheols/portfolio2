@@ -176,6 +176,7 @@ const readApiPath = (pathname: string): string | null => {
 const connectPath = "/admin/ai-models/connect";
 const debugPagePath = "/admin/debug/resume";
 const debugApiPrefix = `${debugPagePath}/api/`;
+const resumeQualityApiPrefix = "/admin/resume-quality/api/";
 
 // 로그인 뒤 돌아갈 수 있는 화면은 공통 메뉴(adminMenu)에 있는 경로뿐이다. 쿠키로 오가는 값이라 사용할 때마다 다시 검증한다
 const returnPagePaths = adminPagePaths;
@@ -510,6 +511,69 @@ const handleDebugArchiveApi = async (
     sendJson(res, 200, { ok: true, ...result });
   } catch (error) {
     logResult(`failed code=${sendDebugError(res, error)}`);
+  }
+};
+
+const handleResumeQualityApi = async (
+  req: IncomingMessage,
+  res: ServerResponse,
+  url: URL,
+  options: {
+    introspect: (token: string) => Promise<IntrospectedSession>;
+    debugArchive?: ResumeDebugArchiveAdmin;
+    log?: (message: string) => void;
+  },
+): Promise<void> => {
+  if (url.pathname !== `${resumeQualityApiPrefix}dashboard`) {
+    sendJson(res, 404, { ok: false, code: "NOT_FOUND" });
+    return;
+  }
+  if (req.method !== "GET") {
+    sendJson(res, 405, { ok: false, code: "METHOD_NOT_ALLOWED" });
+    return;
+  }
+  const token = readCookie(req);
+  if (!token) {
+    sendJson(res, 401, { ok: false, code: "UNAUTHORIZED" });
+    return;
+  }
+  let session: IntrospectedSession;
+  try {
+    session = await options.introspect(token);
+  } catch {
+    sendJson(res, 503, { ok: false, code: "AUTH_UNAVAILABLE" });
+    return;
+  }
+  if (!session.active) {
+    sendJson(res, 401, { ok: false, code: "UNAUTHORIZED" });
+    return;
+  }
+  const dashboard = options.debugArchive?.listQualityDashboard;
+  if (!dashboard) {
+    sendJson(res, 503, { ok: false, code: "RESUME_QUALITY_UNAVAILABLE" });
+    return;
+  }
+  const log = (result: string) =>
+    options.log?.(
+      `ADMIN_RESUME_QUALITY sub=${logSubject(session.sub)} action=dashboard result=${result}`,
+    );
+  try {
+    const result = await dashboard({
+      environment: url.searchParams.get("environment") ?? "",
+      page: optionalNumber(url, "page"),
+      pageSize: optionalNumber(url, "pageSize"),
+    });
+    log("ok");
+    sendJson(res, 200, { ok: true, ...result });
+  } catch (error) {
+    const status = error instanceof ArchiveQueryError ? 400 : 502;
+    log(
+      `failed code=${status === 400 ? "INVALID_ARCHIVE_QUERY" : "STORAGE_FAILED"}`,
+    );
+    sendJson(res, status, {
+      ok: false,
+      code: status === 400 ? "INVALID_ARCHIVE_QUERY" : "STORAGE_FAILED",
+    });
   }
 };
 
@@ -1047,6 +1111,11 @@ export const handleAdminRequest = async (
 
   if (pathname.startsWith(debugApiPrefix)) {
     await handleDebugArchiveApi(req, res, url, options);
+    return true;
+  }
+
+  if (pathname.startsWith(resumeQualityApiPrefix)) {
+    await handleResumeQualityApi(req, res, url, options);
     return true;
   }
 

@@ -5,6 +5,7 @@ import {
   type ArchiveWriteStorage,
 } from "@mcp/modules/resume/archive/resume-debug-archive-writer";
 import type { createResumeQualityReviewStore } from "@mcp/modules/resume/quality/resume-quality-review-store";
+import { createResumeQualityDashboardReader } from "@mcp/modules/resume/archive/resume-quality-dashboard-reader";
 
 type QualityReviewAdmin = Pick<
   ReturnType<typeof createResumeQualityReviewStore>,
@@ -19,6 +20,7 @@ export const createResumeDebugArchiveAdmin = (
   ...createResumeDebugArchiveReader(storage),
   ...createResumeDebugArchiveWriter(storage),
   ...createResumeArchiveReproducer(storage),
+  listQualityDashboard: createResumeQualityDashboardReader(storage).list,
   ...(qualityReviews
     ? {
         listQualityReviews: qualityReviews.list,

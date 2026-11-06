@@ -79,4 +79,35 @@ describe("SelectField", () => {
     expect(screen.queryByRole("listbox")).toBeNull();
     expect(onChange).not.toHaveBeenCalled();
   });
+
+  it("옵션 이름이 잘리지 않도록 목록 너비를 내용에 맞춘다", async () => {
+    const user = userEvent.setup();
+    render(
+      <SelectField
+        id="environment"
+        label="환경"
+        value="development"
+        options={[
+          {
+            value: "development",
+            label: "개발 품질 평가 환경",
+          },
+          { value: "production", label: "운영 품질 평가 환경" },
+        ]}
+        onChange={() => undefined}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "환경" }));
+
+    const listbox = screen.getByRole("listbox");
+    const option = screen.getByRole("option", {
+      name: "개발 품질 평가 환경",
+    });
+
+    expect(listbox.className).toContain("w-max");
+    expect(option.querySelector("span")?.className).toContain(
+      "whitespace-nowrap",
+    );
+  });
 });

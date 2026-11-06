@@ -112,6 +112,28 @@ export type ResumeQualityEvaluation = {
   manualReviews?: readonly ResumeQualityReview[];
 };
 
+export type ResumeQualityDashboardMetric = {
+  metricId: string;
+  confirmedRate: number | null;
+  lowerBound: number | null;
+  upperBound: number | null;
+  denominator: number;
+  blockingCases: number;
+  needsReviewCases: number;
+  failedCases: number;
+  passedCases: number;
+};
+
+export type ResumeQualityDashboardItem = {
+  archive: ArchiveKey & {
+    startedAt?: string;
+    status: ArchiveStatus;
+  };
+  evaluationId: string;
+  evaluatedAt: string;
+  metrics: ResumeQualityDashboardMetric[];
+};
+
 export type RevisionRecord = {
   revisionId: string;
   createdAt?: string;

@@ -56,7 +56,7 @@ export const SelectField = <T extends string>({
       </ListboxButton>
       <ListboxOptions
         modal={false}
-        className="absolute z-20 mt-2 max-h-64 w-full overflow-auto rounded-xl border border-slate-200 bg-white p-1.5 text-sm shadow-xl shadow-slate-900/10 outline-none"
+        className="absolute z-20 mt-2 max-h-64 w-max min-w-full overflow-auto rounded-xl border border-slate-200 bg-white p-1.5 text-sm shadow-xl shadow-slate-900/10 outline-none"
       >
         {options.map((option) => (
           <ListboxOption
@@ -64,7 +64,7 @@ export const SelectField = <T extends string>({
             value={option.value}
             className="group flex cursor-pointer select-none items-center justify-between gap-3 rounded-lg px-3 py-2.5 font-medium text-slate-700 outline-none data-[focus]:bg-slate-100 data-[selected]:bg-blue-50 data-[selected]:text-blue-700"
           >
-            <span className="truncate">{option.label}</span>
+            <span className="whitespace-nowrap">{option.label}</span>
             <svg
               aria-hidden="true"
               viewBox="0 0 20 20"

@@ -1003,6 +1003,7 @@ describe("portfolio-api 관리자 라우트", () => {
       listReproductions: jest.fn(),
       listQualityReviews: jest.fn(),
       saveQualityReview: jest.fn(),
+      listQualityDashboard: jest.fn(),
     });
     const active = () =>
       jest.fn().mockResolvedValue({ active: true, sub: "7" });
@@ -1428,6 +1429,52 @@ describe("portfolio-api 관리자 라우트", () => {
           decision: "pass",
           reviewer: "7",
         });
+      });
+    });
+
+    it("품질 대시보드는 환경과 페이지를 검증해 평가 요약을 반환한다", async () => {
+      const reader = makeReader();
+      const result = {
+        items: [
+          {
+            evaluationId: "gen-1-pdf-quality",
+            metrics: [{ metricId: "pdf-layout", confirmedRate: 0.9 }],
+          },
+        ],
+        hasMore: true,
+      };
+      reader.listQualityDashboard.mockResolvedValueOnce(result);
+      const log = jest.fn();
+      await withServer({ reader, log }, async (port) => {
+        const response = await request(
+          port,
+          "/admin/resume-quality/api/dashboard?environment=production&page=2&pageSize=10",
+          { headers: session },
+        );
+
+        expect(response.status).toBe(200);
+        expect(JSON.parse(response.body)).toEqual({ ok: true, ...result });
+        expect(reader.listQualityDashboard).toHaveBeenCalledWith({
+          environment: "production",
+          page: 2,
+          pageSize: 10,
+        });
+        expect(log).toHaveBeenCalledWith(
+          "ADMIN_RESUME_QUALITY sub=7 action=dashboard result=ok",
+        );
+      });
+    });
+
+    it("품질 대시보드 API는 관리자 세션이 없으면 저장소를 조회하지 않는다", async () => {
+      const reader = makeReader();
+      await withServer({ reader }, async (port) => {
+        const response = await request(
+          port,
+          "/admin/resume-quality/api/dashboard?environment=development",
+        );
+
+        expect(response.status).toBe(401);
+        expect(reader.listQualityDashboard).not.toHaveBeenCalled();
       });
     });
 

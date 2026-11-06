@@ -36,7 +36,8 @@ describe("웹 portfolio-config 실행", () => {
       "utf8",
     );
     expect(compose).toContain("target: local");
-    expect(compose).toContain('"127.0.0.1:${WEB_LOCAL_PORT:-3000}:3000"');
+    expect(compose).toContain('"127.0.0.1:${WEB_LOCAL_PORT:-3001}:3000"');
+    expect(compose).toContain('"[::1]:${WEB_LOCAL_PORT:-3001}:3000"');
     expect(compose).not.toContain("RESUME_CONNECTION_TOKEN");
     expect(dockerfile).toContain(
       'ENTRYPOINT ["sh", "scripts/start-with-config.sh", "development"]',
