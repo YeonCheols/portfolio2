@@ -8,6 +8,7 @@ import type {
   ReproductionSource,
   RevisionRecord,
   RevisionSummary,
+  ResumeQualityReview,
 } from "../../../types";
 
 import { ApiError, request } from "../../../shared/api/request";
@@ -33,6 +34,11 @@ const actionMessages: Record<string, string> = {
   INVALID_REQUEST: "입력 값이 올바르지 않습니다.",
   BODY_TOO_LARGE: "요청이 너무 큽니다.",
   ARCHIVE_NOT_FOUND: "보관된 실행을 찾을 수 없습니다.",
+  QUALITY_CASE_NOT_REVIEWABLE:
+    "이미 판정했거나 현재 평가에서 찾을 수 없습니다.",
+  QUALITY_REVIEW_NOT_FOUND: "품질 평가 결과를 찾을 수 없습니다.",
+  QUALITY_REVIEW_UNAVAILABLE: "품질 판정 저장소를 사용할 수 없습니다.",
+  QUALITY_REVIEW_STORAGE_FAILED: "품질 판정을 저장하지 못했습니다.",
 };
 
 // 서버가 정한 코드만 안내 문구로 바꾸고 그 밖의 내용은 일반 문구로 둔다
@@ -163,6 +169,34 @@ export const listReproductions = async (
   const body = await get(`${archivesUrl}/reproductions?${keyParams(key)}`);
   if (!Array.isArray(body.items)) throw invalidShape("재현 기록");
   return body.items as ReproductionRecord[];
+};
+
+export const listQualityReviews = async (
+  key: ArchiveKey,
+  evaluationId: string,
+): Promise<ResumeQualityReview[]> => {
+  const params = keyParams(key);
+  params.set("evaluationId", evaluationId);
+  const body = await get(`${archivesUrl}/quality-reviews?${params}`);
+  if (!Array.isArray(body.items)) throw invalidShape("품질 판정 목록");
+  return body.items as ResumeQualityReview[];
+};
+
+export const saveQualityReview = async (
+  key: ArchiveKey,
+  input: {
+    evaluationId: string;
+    caseId: string;
+    decision: "pass" | "fail";
+  },
+): Promise<ResumeQualityReview> => {
+  const body = await post(`${archivesUrl}/quality-reviews`, {
+    ...key,
+    ...input,
+  });
+  if (!isRecord(body.review) || typeof body.review.caseId !== "string")
+    throw invalidShape("품질 판정 저장 결과");
+  return body.review as ResumeQualityReview;
 };
 
 export const reproduceArchive = async (

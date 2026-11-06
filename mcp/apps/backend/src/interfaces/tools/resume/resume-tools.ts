@@ -19,6 +19,7 @@ import {
   countResumePdfPages,
   evaluateResumePdfQuality,
 } from "@mcp/modules/resume/quality/evaluate-resume-pdf";
+import { applyResumeQualityReviews } from "@mcp/modules/resume/quality/apply-resume-quality-reviews";
 import { assertResumePdfQualityReady } from "@mcp/modules/resume/quality/assert-resume-pdf-quality-ready";
 import { previewResume } from "@mcp/modules/resume/render/preview-resume";
 import {
@@ -469,8 +470,29 @@ export const callResumeTool = async (
         outputRef: `${generationId}-pdf`,
         pdfPageCount: countResumePdfPages(pdf),
       });
-      if (debug) await debug.write("quality_evaluation", { qualityEvaluation });
-      assertResumePdfQualityReady(qualityEvaluation);
+      let reviewedEvaluation = qualityEvaluation;
+      if (generation.qualityReviews) {
+        let reviews;
+        try {
+          reviews = await generation.qualityReviews.load({
+            environment: scope.environment,
+            subject: scope.subject,
+            generationId,
+            evaluation: qualityEvaluation.run,
+          });
+        } catch {
+          throw new ResumeConnectionError("QUALITY_REVIEW_STORAGE_FAILED");
+        }
+        reviewedEvaluation = applyResumeQualityReviews(
+          qualityEvaluation,
+          reviews,
+        );
+      }
+      if (debug)
+        await debug.write("quality_evaluation", {
+          qualityEvaluation: reviewedEvaluation,
+        });
+      assertResumePdfQualityReady(reviewedEvaluation);
       if (debug) await debug.write("pdf");
       if (debug) await debug.write("completed");
       store.assertCurrent(scope, generationId);

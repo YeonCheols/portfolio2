@@ -5,12 +5,14 @@ import type {
   QualityEvaluationRun,
 } from "@mcp/modules/quality-evaluation/evaluation-contract";
 import { buildResumePdfModel } from "@mcp/modules/resume/render/create-resume-pdf";
+import type { ResumeQualityReview } from "@mcp/modules/resume/quality/apply-resume-quality-reviews";
 import { createResumeQualityEvaluation } from "@mcp/modules/resume/quality/create-resume-quality-evaluation";
 import { resumeQualityPolicy } from "@mcp/modules/resume/quality/resume-quality-policy";
 
 export type ResumeQualityEvaluation = {
   run: QualityEvaluationRun;
   aggregates: readonly MetricEvaluationAggregate[];
+  manualReviews?: readonly ResumeQualityReview[];
 };
 
 export type EvaluateResumePdfQualityInput = {

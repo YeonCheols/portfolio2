@@ -230,6 +230,68 @@ describe("이력서 생성 원본 수명주기", () => {
     expect(model.generate).toHaveBeenCalledTimes(1);
     expect(connection.load).toHaveBeenCalledTimes(1);
   });
+  it("검토자가 승인한 미해결 사례를 적용하면 같은 생성의 PDF 게이트를 해제한다", async () => {
+    const storage = {
+      putJson: jest.fn(async (_path: string, _record: unknown) => {}),
+    };
+    const qualityReviews = {
+      load: jest.fn(
+        async ({
+          evaluation,
+        }: {
+          evaluation: {
+            evaluationId: string;
+            caseSetVersion: string;
+            policyVersion: string;
+            inputRef: string;
+            outputRef: string;
+            cases: { caseId: string; decision: string; blocking: boolean }[];
+          };
+        }) =>
+          evaluation.cases
+            .filter(
+              ({ decision, blocking }) =>
+                decision === "needs_review" && blocking,
+            )
+            .map(({ caseId }) => ({
+              evaluationId: evaluation.evaluationId,
+              caseSetVersion: evaluation.caseSetVersion,
+              policyVersion: evaluation.policyVersion,
+              inputRef: evaluation.inputRef,
+              outputRef: evaluation.outputRef,
+              caseId,
+              decision: "pass" as const,
+              reviewedAt: "2026-11-06T01:00:00.000Z",
+              reviewerHash: "a".repeat(64),
+            })),
+      ),
+    };
+    const generation = { ...context(), storage, qualityReviews };
+    const model = { generate: jest.fn(async () => raw) };
+    const connection = { load: jest.fn(async () => connectedResume()) };
+    const first = await callResumeTool(
+      "generate_resume",
+      args,
+      connection,
+      model,
+      generation,
+    );
+    if (!first.ok) throw new Error(first.code);
+    const { generationId } = JSON.parse(first.text);
+
+    const converted = await callResumeTool(
+      "convert_resume_to_pdf",
+      { generationId },
+      connection,
+      model,
+      generation,
+    );
+
+    expect(converted.ok).toBe(true);
+    expect(qualityReviews.load).toHaveBeenCalledWith(
+      expect.objectContaining({ generationId }),
+    );
+  });
   it("새 요청 후 도착한 이전 모델 응답도 별도 기록으로 남기고 현재 생성은 복원하지 않는다", async () => {
     const storage = {
       putJson: jest.fn(async (_path: string, _record: unknown) => {}),

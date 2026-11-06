@@ -1001,6 +1001,8 @@ describe("portfolio-api 관리자 라우트", () => {
       removeAttempt: jest.fn(),
       reproduce: jest.fn(),
       listReproductions: jest.fn(),
+      listQualityReviews: jest.fn(),
+      saveQualityReview: jest.fn(),
     });
     const active = () =>
       jest.fn().mockResolvedValue({ active: true, sub: "7" });
@@ -1388,6 +1390,44 @@ describe("portfolio-api 관리자 라우트", () => {
           revision: { response: "저장된 응답" },
         });
         expect(reader.getRevision).toHaveBeenCalledWith(keyBody, "rev-1");
+      });
+    });
+
+    it("품질 판정은 인증된 관리자를 기록자로 넘기고 평가별 목록을 반환한다", async () => {
+      const reader = makeReader();
+      const review = {
+        evaluationId: "gen-1-pdf-quality",
+        caseId: "pdf-page/1",
+        decision: "pass",
+        reviewedAt: "2026-11-06T01:00:00.000Z",
+        reviewerHash: "a".repeat(64),
+      };
+      reader.listQualityReviews.mockResolvedValueOnce([review]);
+      reader.saveQualityReview.mockResolvedValueOnce(review);
+      const query = new URLSearchParams(keyBody).toString();
+      const api = "/admin/debug/resume/api/archives/quality-reviews";
+      await withServer({ reader }, async (port) => {
+        const listed = await request(
+          port,
+          `${api}?${query}&evaluationId=gen-1-pdf-quality`,
+          { headers: session },
+        );
+        expect(JSON.parse(listed.body)).toEqual({ ok: true, items: [review] });
+
+        const saved = await post(port, "quality-reviews", {
+          ...keyBody,
+          evaluationId: "gen-1-pdf-quality",
+          caseId: "pdf-page/1",
+          decision: "pass",
+        });
+        expect(saved.status).toBe(200);
+        expect(JSON.parse(saved.body)).toEqual({ ok: true, review });
+        expect(reader.saveQualityReview).toHaveBeenCalledWith(keyBody, {
+          evaluationId: "gen-1-pdf-quality",
+          caseId: "pdf-page/1",
+          decision: "pass",
+          reviewer: "7",
+        });
       });
     });
 

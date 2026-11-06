@@ -22,6 +22,7 @@ import {
   ArchiveDeleteError,
   ArchiveRevisionError,
 } from "@mcp/modules/resume/archive/resume-debug-archive-writer";
+import { ResumeQualityReviewError } from "@mcp/modules/resume/quality/resume-quality-review-store";
 
 const cookieName = "__Host-portfolio-admin-session";
 const oauthCookieName = "__Host-portfolio-admin-oauth-state";
@@ -259,6 +260,7 @@ type DebugRoute = {
     archive: ResumeDebugArchiveAdmin,
     url: URL,
     body: Record<string, unknown>,
+    reviewer?: string,
   ) => Promise<Record<string, unknown>>;
 };
 
@@ -338,6 +340,40 @@ const debugRoutes: Record<string, DebugRoute> = {
       items: await archive.listReproductions(archiveKey(url)),
     }),
   },
+  "GET archives/quality-reviews": {
+    action: "quality_review_list",
+    run: async (archive, url) => {
+      if (!archive.listQualityReviews)
+        throw new ResumeQualityReviewError("QUALITY_REVIEW_UNAVAILABLE");
+      return {
+        items: await archive.listQualityReviews(
+          archiveKey(url),
+          url.searchParams.get("evaluationId") ?? "",
+        ),
+      };
+    },
+  },
+  "POST archives/quality-reviews": {
+    action: "quality_review_save",
+    run: async (archive, _url, body, reviewer) => {
+      if (!archive.saveQualityReview)
+        throw new ResumeQualityReviewError("QUALITY_REVIEW_UNAVAILABLE");
+      if (
+        typeof body.evaluationId !== "string" ||
+        typeof body.caseId !== "string" ||
+        (body.decision !== "pass" && body.decision !== "fail")
+      )
+        throw new ArchiveQueryError();
+      return {
+        review: await archive.saveQualityReview(bodyKey(body), {
+          evaluationId: body.evaluationId,
+          caseId: body.caseId,
+          decision: body.decision,
+          reviewer: reviewer ?? "",
+        }),
+      };
+    },
+  },
   "POST archives/reproductions": {
     action: "reproduce",
     run: async (archive, _url, body) => {
@@ -379,6 +415,17 @@ const sendDebugError = (res: ServerResponse, error: unknown): string => {
           remaining: error.remaining,
         })
       : reply(400, error.code);
+  }
+  if (error instanceof ResumeQualityReviewError) {
+    const status =
+      error.code === "QUALITY_REVIEW_NOT_FOUND"
+        ? 404
+        : error.code === "QUALITY_REVIEW_UNAVAILABLE"
+          ? 503
+          : error.code === "QUALITY_CASE_NOT_REVIEWABLE"
+            ? 409
+            : 502;
+    return reply(status, error.code);
   }
   if (error instanceof Error && error.message === "BODY_TOO_LARGE")
     return reply(413, "BODY_TOO_LARGE");
@@ -458,7 +505,7 @@ const handleDebugArchiveApi = async (
       if (!isRecord(parsed)) throw new ArchiveQueryError();
       body = parsed;
     }
-    const result = await route.run(archive, url, body);
+    const result = await route.run(archive, url, body, session.sub ?? "");
     logResult("ok");
     sendJson(res, 200, { ok: true, ...result });
   } catch (error) {
