@@ -15,6 +15,8 @@ import {
   type ResumeSelectionNode,
 } from "@mcp/modules/resume/validation/check-resume-draft";
 import { createResumePdf } from "@mcp/modules/resume/render/create-resume-pdf";
+import { evaluateResumePdfQuality } from "@mcp/modules/resume/quality/evaluate-resume-pdf";
+import { assertResumePdfQualityReady } from "@mcp/modules/resume/quality/assert-resume-pdf-quality-ready";
 import { previewResume } from "@mcp/modules/resume/render/preview-resume";
 import {
   renderResumeForm,
@@ -451,6 +453,15 @@ export const callResumeTool = async (
       if (!("resume" in generated) || !("claims" in generated))
         throw new ResumeConnectionError("INCOMPLETE_RESUME");
       assertResumePdfReady(generated);
+      const qualityEvaluation = evaluateResumePdfQuality({
+        generated,
+        evaluationId: `${generationId}-pdf-quality`,
+        evaluatedAt: new Date().toISOString(),
+        inputRef: generationId,
+        outputRef: `${generationId}-pdf`,
+      });
+      if (debug) await debug.write("quality_evaluation", { qualityEvaluation });
+      assertResumePdfQualityReady(qualityEvaluation);
       if (debug) await debug.write("pdf");
       const pdf = await createResumePdf({
         resume: generated.resume,

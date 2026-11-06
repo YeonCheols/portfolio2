@@ -67,7 +67,7 @@ describe("이력서 디버깅 아카이브 재현", () => {
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
-  it("저장된 수정본으로 검증과 PDF 생성을 다시 실행하고 PDF 본문은 기록에 넣지 않는다", async () => {
+  it("저장된 수정본에 미검토 claim이 있으면 PDF 완료를 막고 평가 결과를 기록한다", async () => {
     const { storage, writer, reproducer } = setup('{"claims": [끊긴');
     const { revisionId } = await writer.saveRevision(key, {
       baseFile: "004-failed.json",
@@ -88,10 +88,22 @@ describe("이력서 디버깅 아카이브 재현", () => {
 
     const pdf = await reproducer.reproduce(key, { source, action: "pdf" });
     expect(pdf.record).toMatchObject({
-      status: "completed",
-      pdf: { byteLength: pdf.pdf.length },
+      status: "failed",
+      failedStage: "pdf",
+      errorCode: "RESUME_QUALITY_BLOCKED",
+      validation: {
+        qualityEvaluation: {
+          run: {
+            domain: "resume",
+            cases: [expect.objectContaining({ metricId: "claim-support" })],
+          },
+          aggregates: expect.arrayContaining([
+            expect.objectContaining({ metricId: "required-fact-preservation" }),
+          ]),
+        },
+      },
     });
-    expect(pdf.pdf.subarray(0, 4).toString()).toBe("%PDF");
+    expect(pdf.pdf).toBeUndefined();
     expect(
       JSON.stringify(recordOf(storage, pdf.record.reproductionId)),
     ).not.toContain("JVBER");
