@@ -8,7 +8,10 @@ import {
 import { callResumeTool } from "@mcp/interfaces/tools/resume/resume-tools";
 
 jest.mock("@mcp/modules/resume/render/create-resume-pdf", () => ({
-  createResumePdf: jest.fn(async () => Buffer.from("%PDF-test")),
+  ...jest.requireActual("@mcp/modules/resume/render/create-resume-pdf"),
+  createResumePdf: jest.fn(async () =>
+    Buffer.from("%PDF-test\n/Type /Page\n%%EOF"),
+  ),
 }));
 const args = {
   source: "embedded",
@@ -97,7 +100,7 @@ describe("이력서 생성 원본 수명주기", () => {
       code: "RESUME_QUALITY_BLOCKED",
       generationId: generated.generationId,
     });
-    expect(createResumePdf).not.toHaveBeenCalled();
+    expect(createResumePdf).toHaveBeenCalledTimes(1);
     expect(model.generate).toHaveBeenCalledTimes(1);
     expect(connection.load).toHaveBeenCalledTimes(1);
   });
@@ -223,7 +226,7 @@ describe("이력서 생성 원본 수명주기", () => {
         }),
       }),
     );
-    expect(createResumePdf).not.toHaveBeenCalled();
+    expect(createResumePdf).toHaveBeenCalledTimes(1);
     expect(model.generate).toHaveBeenCalledTimes(1);
     expect(connection.load).toHaveBeenCalledTimes(1);
   });
@@ -432,7 +435,7 @@ describe("이력서 생성 원본 수명주기", () => {
     }
     expect(model.generate).toHaveBeenCalledTimes(1);
     expect(connection.load).toHaveBeenCalledTimes(1);
-    expect(createResumePdf).not.toHaveBeenCalled();
+    expect(createResumePdf).toHaveBeenCalledTimes(2);
   });
   it("파싱 실패 원문은 재실행해도 남고 모델을 재호출하지 않는다", async () => {
     const generation = context();
@@ -503,7 +506,7 @@ describe("이력서 생성 원본 수명주기", () => {
         generation,
       ),
     ).toEqual({ ok: false, code: "RESUME_QUALITY_BLOCKED", generationId });
-    expect(createResumePdf).not.toHaveBeenCalled();
+    expect(createResumePdf).toHaveBeenCalledTimes(2);
     expect(model.generate).toHaveBeenCalledTimes(1);
     expect(connection.load).toHaveBeenCalledTimes(1);
   });
@@ -555,7 +558,7 @@ describe("이력서 생성 원본 수명주기", () => {
     expect(model.generate).toHaveBeenCalledTimes(2);
   });
 
-  it("품질 게이트가 통과되지 않으면 PDF 렌더링을 시작하지 않는다", async () => {
+  it("품질 게이트가 통과되지 않은 PDF 렌더링 결과를 반환하지 않는다", async () => {
     const generation = context();
     const model = { generate: jest.fn(async () => raw) };
     const connection = { load: jest.fn(async () => connectedResume()) };
@@ -580,7 +583,7 @@ describe("이력서 생성 원본 수명주기", () => {
       code: "RESUME_QUALITY_BLOCKED",
       generationId,
     });
-    expect(createResumePdf).not.toHaveBeenCalled();
+    expect(createResumePdf).toHaveBeenCalledTimes(1);
   });
 
   it("다른 사용자·환경·인스턴스와 변조된 클라이언트 본문은 보관 원본을 대체하지 못한다", async () => {

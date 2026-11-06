@@ -91,11 +91,17 @@ describe("이력서 디버깅 아카이브 재현", () => {
       status: "failed",
       failedStage: "pdf",
       errorCode: "RESUME_QUALITY_BLOCKED",
+      pdf: { byteLength: expect.any(Number) },
       validation: {
         qualityEvaluation: {
           run: {
             domain: "resume",
-            cases: [expect.objectContaining({ metricId: "claim-support" })],
+            cases: expect.arrayContaining([
+              expect.objectContaining({
+                metricId: "required-fact-preservation",
+              }),
+              expect.objectContaining({ metricId: "pdf-layout" }),
+            ]),
           },
           aggregates: expect.arrayContaining([
             expect.objectContaining({ metricId: "required-fact-preservation" }),
@@ -103,7 +109,7 @@ describe("이력서 디버깅 아카이브 재현", () => {
         },
       },
     });
-    expect(pdf.pdf).toBeUndefined();
+    expect(pdf.pdf?.toString("latin1")).toContain("%PDF-");
     expect(
       JSON.stringify(recordOf(storage, pdf.record.reproductionId)),
     ).not.toContain("JVBER");

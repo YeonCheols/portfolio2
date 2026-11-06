@@ -4,7 +4,10 @@ import { ResumeConnectionError } from "@mcp/infrastructure/connection/connection
 import { assertResumePdfReady } from "@mcp/modules/resume/validation/assert-resume-pdf-ready";
 import type { ResumeSelectionNode } from "@mcp/modules/resume/validation/check-resume-draft";
 import { createResumePdf } from "@mcp/modules/resume/render/create-resume-pdf";
-import { evaluateResumePdfQuality } from "@mcp/modules/resume/quality/evaluate-resume-pdf";
+import {
+  countResumePdfPages,
+  evaluateResumePdfQuality,
+} from "@mcp/modules/resume/quality/evaluate-resume-pdf";
 import { assertResumePdfQualityReady } from "@mcp/modules/resume/quality/assert-resume-pdf-quality-ready";
 import type { ResumeQualityEvaluation } from "@mcp/modules/resume/quality/evaluate-resume-pdf";
 import {
@@ -169,35 +172,41 @@ export const createResumeArchiveReproducer = (storage: ArchiveWriteStorage) => {
     if (action === "validate")
       return { outcome: { status: "completed", validation } };
     let qualityEvaluation: ResumeQualityEvaluation | undefined;
+    let candidatePdf: Buffer | undefined;
     try {
       assertResumePdfReady(generated);
+      candidatePdf = await createResumePdf({
+        resume: generated.resume,
+        claims: generated.claims,
+        selection: generated.selection,
+      });
       qualityEvaluation = evaluateResumePdfQuality({
         generated,
         evaluationId: randomUUID(),
         evaluatedAt: new Date().toISOString(),
         inputRef,
         outputRef,
+        pdfPageCount: countResumePdfPages(candidatePdf),
       });
       assertResumePdfQualityReady(qualityEvaluation);
-      const pdf = await createResumePdf({
-        resume: generated.resume,
-        claims: generated.claims,
-        selection: generated.selection,
-      });
       return {
         outcome: {
           status: "completed",
           validation: { ...validation, qualityEvaluation },
-          pdf: { byteLength: pdf.length },
+          pdf: { byteLength: candidatePdf.length },
         },
-        pdf,
+        pdf: candidatePdf,
       };
     } catch (error) {
+      const outcome = failure("pdf", codeOf(error, "PDF_GENERATION_FAILED"), {
+        ...validation,
+        ...(qualityEvaluation ? { qualityEvaluation } : {}),
+      });
       return {
-        outcome: failure("pdf", codeOf(error, "PDF_GENERATION_FAILED"), {
-          ...validation,
-          ...(qualityEvaluation ? { qualityEvaluation } : {}),
-        }),
+        outcome: candidatePdf
+          ? { ...outcome, pdf: { byteLength: candidatePdf.length } }
+          : outcome,
+        ...(candidatePdf ? { pdf: candidatePdf } : {}),
       };
     }
   };
