@@ -1,7 +1,10 @@
 import { assertResumePdfQualityReady } from "@mcp/modules/resume/quality/assert-resume-pdf-quality-ready";
 import type { ResumeQualityEvaluation } from "@mcp/modules/resume/quality/evaluate-resume-pdf";
 
-const evaluation = (blockingCases: number): ResumeQualityEvaluation => ({
+const evaluation = (
+  blockingCases: number,
+  needsReviewCases: number = blockingCases,
+): ResumeQualityEvaluation => ({
   run: {
     schemaVersion: 1,
     evaluationId: "evaluation-1",
@@ -32,7 +35,7 @@ const evaluation = (blockingCases: number): ResumeQualityEvaluation => ({
       caseIds: ["claim/0"],
       passedCases: 0,
       failedCases: 0,
-      needsReviewCases: blockingCases,
+      needsReviewCases,
       measurementFailedCases: 0,
       unknownCases: blockingCases,
       notApplicableCases: 0,
@@ -56,5 +59,9 @@ describe("assertResumePdfQualityReady", () => {
 
   it("정책상 차단할 평가 케이스가 없으면 PDF 완료를 허용한다", () => {
     expect(() => assertResumePdfQualityReady(evaluation(0))).not.toThrow();
+  });
+
+  it("검토 대기만 있으면 PDF 완료를 허용한다", () => {
+    expect(() => assertResumePdfQualityReady(evaluation(0, 1))).not.toThrow();
   });
 });

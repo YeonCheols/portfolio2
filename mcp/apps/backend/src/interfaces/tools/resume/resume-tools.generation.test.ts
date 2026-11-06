@@ -189,7 +189,7 @@ describe("이력서 생성 원본 수명주기", () => {
     expect(model.generate).toHaveBeenCalledTimes(1);
     expect(connection.load).toHaveBeenCalledTimes(1);
   });
-  it("PDF 품질 차단을 기록하고 모델 응답 원문을 보존한다", async () => {
+  it("검토 대기 품질 결과를 보존하면서 PDF 변환을 완료한다", async () => {
     const storage = {
       putJson: jest.fn(async (_path: string, _record: unknown) => {}),
     };
@@ -205,24 +205,39 @@ describe("이력서 생성 원본 수명주기", () => {
     );
     if (!first.ok) throw new Error(first.code);
     const { generationId } = JSON.parse(first.text);
-    expect(
-      await callResumeTool(
-        "convert_resume_to_pdf",
-        { generationId },
-        connection,
-        model,
-        generation,
-      ),
-    ).toEqual({ ok: false, code: "RESUME_QUALITY_BLOCKED", generationId });
+    const converted = await callResumeTool(
+      "convert_resume_to_pdf",
+      { generationId },
+      connection,
+      model,
+      generation,
+    );
+    expect(converted).toMatchObject({
+      ok: true,
+      text: "이력서 PDF를 생성했습니다.",
+    });
     expect(storage.putJson).toHaveBeenLastCalledWith(
       expect.any(String),
       expect.objectContaining({
-        stage: "failed",
+        stage: "completed",
         operation: "convert_resume_to_pdf",
         response: raw,
-        errorCode: "RESUME_QUALITY_BLOCKED",
         qualityEvaluation: expect.objectContaining({
-          run: expect.objectContaining({ domain: "resume" }),
+          run: expect.objectContaining({
+            domain: "resume",
+            cases: expect.arrayContaining([
+              expect.objectContaining({
+                decision: "needs_review",
+                blocking: false,
+              }),
+            ]),
+          }),
+          aggregates: expect.arrayContaining([
+            expect.objectContaining({
+              needsReviewCases: expect.any(Number),
+              blockingCases: 0,
+            }),
+          ]),
         }),
       }),
     );
@@ -230,7 +245,7 @@ describe("이력서 생성 원본 수명주기", () => {
     expect(model.generate).toHaveBeenCalledTimes(1);
     expect(connection.load).toHaveBeenCalledTimes(1);
   });
-  it("검토자가 승인한 미해결 사례를 적용하면 같은 생성의 PDF 게이트를 해제한다", async () => {
+  it("검토 기록이 없어도 대기 사례를 보존하고 PDF 변환을 허용한다", async () => {
     const storage = {
       putJson: jest.fn(async (_path: string, _record: unknown) => {}),
     };
@@ -249,10 +264,7 @@ describe("이력서 생성 원본 수명주기", () => {
           };
         }) =>
           evaluation.cases
-            .filter(
-              ({ decision, blocking }) =>
-                decision === "needs_review" && blocking,
-            )
+            .filter(({ decision }) => decision === "needs_review")
             .map(({ caseId }) => ({
               evaluationId: evaluation.evaluationId,
               caseSetVersion: evaluation.caseSetVersion,
@@ -454,7 +466,7 @@ describe("이력서 생성 원본 수명주기", () => {
     expect(model.generate).toHaveBeenCalledTimes(1);
     expect(connection.load).toHaveBeenCalledTimes(1);
   });
-  it("재검증에서 품질 미검토 claim은 PDF 완료를 막고 모델을 재호출하지 않는다", async () => {
+  it("재검증에서 품질 미검토 claim을 남기면서 PDF 완료를 허용하고 모델을 재호출하지 않는다", async () => {
     const generation = context();
     const model = { generate: jest.fn(async () => raw) };
     const connection = { load: jest.fn(async () => connectedResume()) };
@@ -489,10 +501,9 @@ describe("이력서 생성 원본 수명주기", () => {
         model,
         generation,
       );
-      expect(pdf).toEqual({
-        ok: false,
-        code: "RESUME_QUALITY_BLOCKED",
-        generationId,
+      expect(pdf).toMatchObject({
+        ok: true,
+        text: "이력서 PDF를 생성했습니다.",
       });
     }
     expect(model.generate).toHaveBeenCalledTimes(1);
@@ -534,7 +545,7 @@ describe("이력서 생성 원본 수명주기", () => {
     expect(connection.load).toHaveBeenCalledTimes(1);
   });
 
-  it("품질 차단 뒤에도 원본을 보존하고 같은 ID로 다시 판정한다", async () => {
+  it("검토 대기 상태에서도 원본을 보존하고 같은 ID로 PDF를 다시 만든다", async () => {
     const generation = context();
     const model = { generate: jest.fn(async () => raw) };
     const connection = { load: jest.fn(async () => connectedResume()) };
@@ -555,7 +566,7 @@ describe("이력서 생성 원본 수명주기", () => {
         model,
         generation,
       ),
-    ).toEqual({ ok: false, code: "RESUME_QUALITY_BLOCKED", generationId });
+    ).toMatchObject({ ok: true, text: "이력서 PDF를 생성했습니다." });
     expect(generation.store.read(generation.scope, generationId).response).toBe(
       raw,
     );
@@ -567,7 +578,7 @@ describe("이력서 생성 원본 수명주기", () => {
         model,
         generation,
       ),
-    ).toEqual({ ok: false, code: "RESUME_QUALITY_BLOCKED", generationId });
+    ).toMatchObject({ ok: true, text: "이력서 PDF를 생성했습니다." });
     expect(createResumePdf).toHaveBeenCalledTimes(2);
     expect(model.generate).toHaveBeenCalledTimes(1);
     expect(connection.load).toHaveBeenCalledTimes(1);
@@ -620,8 +631,41 @@ describe("이력서 생성 원본 수명주기", () => {
     expect(model.generate).toHaveBeenCalledTimes(2);
   });
 
-  it("품질 게이트가 통과되지 않은 PDF 렌더링 결과를 반환하지 않는다", async () => {
+  it("사람이 실패로 판정한 품질 사례가 있으면 PDF를 반환하지 않는다", async () => {
     const generation = context();
+    const qualityReviews = {
+      load: jest.fn(
+        async ({
+          evaluation,
+        }: {
+          evaluation: {
+            evaluationId: string;
+            caseSetVersion: string;
+            policyVersion: string;
+            inputRef: string;
+            outputRef: string;
+            cases: { metricId: string; caseId: string; decision: string }[];
+          };
+        }) =>
+          evaluation.cases
+            .filter(
+              ({ metricId, decision }) =>
+                metricId === "pdf-layout" && decision === "needs_review",
+            )
+            .map(({ caseId }) => ({
+              evaluationId: evaluation.evaluationId,
+              caseSetVersion: evaluation.caseSetVersion,
+              policyVersion: evaluation.policyVersion,
+              inputRef: evaluation.inputRef,
+              outputRef: evaluation.outputRef,
+              caseId,
+              decision: "fail" as const,
+              reviewedAt: "2026-11-06T01:00:00.000Z",
+              reviewerHash: "a".repeat(64),
+            })),
+      ),
+    };
+    Object.assign(generation, { qualityReviews });
     const model = { generate: jest.fn(async () => raw) };
     const connection = { load: jest.fn(async () => connectedResume()) };
     const first = await callResumeTool(
@@ -645,6 +689,7 @@ describe("이력서 생성 원본 수명주기", () => {
       code: "RESUME_QUALITY_BLOCKED",
       generationId,
     });
+    expect(qualityReviews.load).toHaveBeenCalledTimes(1);
     expect(createResumePdf).toHaveBeenCalledTimes(1);
   });
 

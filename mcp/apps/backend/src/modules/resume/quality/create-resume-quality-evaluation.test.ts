@@ -28,7 +28,7 @@ describe("createResumeQualityEvaluation", () => {
       domain: "resume",
       contractVersion: "1",
       caseSetVersion: "resume-quality-population-v1",
-      policyVersion: "resume-quality-policy-v1",
+      policyVersion: "resume-quality-policy-v2",
     });
     expect(run.cases).toEqual([
       expect.objectContaining({

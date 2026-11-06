@@ -91,7 +91,7 @@ const selection = {
   ],
 };
 
-// 직접 제출하는 문장이라 모델을 호출하지 않고 내부 검증만 실행한다. 인용은 샘플 XML 원문에서 그대로 가져왔다
+// 초안 검증 도구용 고정 주장이다. 인용은 샘플 XML 원문에서 그대로 가져왔다
 const claims = [
   {
     text: "사용자 경험과 성능을 함께 개선하는 프론트엔드 개발자입니다.",
@@ -126,13 +126,66 @@ const claims = [
 const source = { source: "embedded", xml: sampleResumeXml };
 const template = { ...source, ...selection, template: "기본형" };
 
+const qualitySampleXml = `<?xml version="1.0" encoding="utf-8"?>
+<resumeAsset id="resume-quality-sample" schemaVersion="0.2.0" xml:lang="ko-KR" status="draft" publicationStatus="internal-only" visibility="public">
+  <metadata><sourceDocument id="quality-source-sample" visibility="private-source" /></metadata>
+  <profile id="quality-profile-sample" sourceRefs="quality-source-sample" visibility="public">
+    <name visibility="public">홍길동</name>
+    <headline visibility="public">원문 근거를 보존하는 프론트엔드 개발자입니다</headline>
+  </profile>
+  <educationHistory visibility="public">
+    <education id="quality-education-sample" visibility="public">
+      <institution visibility="public">예시대학교</institution>
+    </education>
+  </educationHistory>
+  <projects visibility="public">
+    <project id="quality-project-sample" visibility="public">
+      <title visibility="public">품질 기준 샘플 프로젝트</title>
+      <role visibility="public">대시보드 개발</role>
+      <summary visibility="public">운영 상태를 한눈에 확인할 수 있는 대시보드를 구성했습니다</summary>
+    </project>
+    <project id="quality-project-secondary-sample" visibility="public">
+      <title visibility="public">품질 지표 조회 화면 구성</title>
+      <role visibility="public">화면 개발</role>
+    </project>
+  </projects>
+</resumeAsset>`;
+
+const qualityTemplate = {
+  source: "embedded",
+  xml: qualitySampleXml,
+  elementIds: [
+    "quality-profile-sample",
+    "quality-education-sample",
+    "quality-project-sample",
+    "quality-project-secondary-sample",
+  ],
+  sectionOrder: selection.sectionOrder,
+  template: "기본형",
+  // 원문 요약을 그대로 인용해 PDF 입력을 만들되, 실제 문장의 품질 검토는 그대로 측정한다
+  claims: [
+    {
+      text: "운영 상태를 한눈에 확인할 수 있는 대시보드를 구성했습니다",
+      sourceIds: ["quality-project-sample"],
+      formItem: "summary",
+      evidence: [
+        {
+          sourceId: "quality-project-sample",
+          quote: "운영 상태를 한눈에 확인할 수 있는 대시보드를 구성했습니다",
+        },
+      ],
+    },
+  ],
+};
+
 export const resumeToolSamples: Record<string, Record<string, unknown>> = {
   validate_resume_xml: source,
   list_resume_elements: source,
   preview_resume: { ...source, ...selection },
   read_resume_selection: template,
   check_resume_draft: { ...template, claims },
-  generate_resume: { ...template, claims },
+  // 품질 측정용 기준선은 원문 fallback만 사용하며 PDF 시각 검토 게이트는 그대로 적용한다
+  generate_resume: qualityTemplate,
   render_resume_template: template,
   render_resume_form: template,
   convert_resume_to_pdf: {

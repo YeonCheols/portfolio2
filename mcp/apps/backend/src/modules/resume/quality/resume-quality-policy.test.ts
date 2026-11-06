@@ -6,7 +6,7 @@ describe("resumeQualityPolicy", () => {
       domain: "resume",
       contractVersion: "1",
       caseSetVersion: "resume-quality-population-v1",
-      policyVersion: "resume-quality-policy-v1",
+      policyVersion: "resume-quality-policy-v2",
     });
 
     const metricIds = resumeQualityPolicy.metrics.map(
@@ -54,7 +54,7 @@ describe("resumeQualityPolicy", () => {
     ).toBe(true);
   });
 
-  it("필수 사실·필수 항목과 위험한 주장은 완료 차단 기준을 둔다", () => {
+  it("모든 품질 지표의 명시적 실패는 완료를 차단한다", () => {
     const blockingMetrics = resumeQualityPolicy.metrics.filter((metric) =>
       metric.blockingDecisions.includes("fail"),
     );
@@ -64,7 +64,23 @@ describe("resumeQualityPolicy", () => {
       "required-item-coverage",
       "claim-support",
       "numeric-integrity",
+      "duplicate-content",
+      "text-proofreading",
       "pdf-layout",
     ]);
+  });
+
+  it("사람 검토 대기는 허용하고 실패와 측정 불가만 차단한다", () => {
+    expect(
+      resumeQualityPolicy.metrics.map(({ metricId, blockingDecisions }) => ({
+        metricId,
+        blockingDecisions,
+      })),
+    ).toEqual(
+      resumeQualityPolicy.metrics.map(({ metricId }) => ({
+        metricId,
+        blockingDecisions: ["fail", "measurement_failed"],
+      })),
+    );
   });
 });

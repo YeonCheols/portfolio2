@@ -62,7 +62,7 @@ describe("evaluateResumePdfQuality", () => {
           metricId: "claim-support",
           caseId: "output/unassignedProjects/0/details/0/value",
           decision: "needs_review",
-          blocking: true,
+          blocking: false,
           evidence: expect.arrayContaining([
             { kind: "source_fact", reference: "source-1" },
             {
@@ -75,7 +75,7 @@ describe("evaluateResumePdfQuality", () => {
           metricId: "numeric-integrity",
           caseId: "output/unassignedProjects/0/details/0/value/number/0",
           decision: "needs_review",
-          blocking: true,
+          blocking: false,
         }),
       ]),
     );
@@ -87,7 +87,7 @@ describe("evaluateResumePdfQuality", () => {
           needsReviewCases: 1,
           denominator: 2,
           confirmedRate: null,
-          blockingCases: 1,
+          blockingCases: 0,
         }),
         expect.objectContaining({
           metricId: "numeric-integrity",
@@ -242,6 +242,7 @@ describe("evaluateResumePdfQuality", () => {
           metricId: "duplicate-content",
           caseId: "output/unassignedProjects/1/title",
           decision: "fail",
+          blocking: true,
         }),
         expect.objectContaining({
           metricId: "text-proofreading",
@@ -252,7 +253,7 @@ describe("evaluateResumePdfQuality", () => {
           metricId: "pdf-layout",
           caseId: "pdf-page/2",
           decision: "needs_review",
-          blocking: true,
+          blocking: false,
         }),
       ]),
     );

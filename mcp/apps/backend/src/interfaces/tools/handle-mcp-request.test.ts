@@ -217,7 +217,7 @@ describe("handleMcpRequest", () => {
     ]);
   });
 
-  it("품질 미검토 claim은 PDF 변환을 막고 모델을 재호출하지 않는다", async () => {
+  it("품질 미검토 claim을 기록하면서 PDF 변환을 허용하고 모델을 재호출하지 않는다", async () => {
     const generation = {
       store: createResumeGenerationStore(),
       scope: { subject: "fixture-user", environment: "production" },
@@ -280,11 +280,17 @@ describe("handleMcpRequest", () => {
     );
     expect(converted).toMatchObject({
       result: {
-        isError: true,
+        isError: false,
         content: [
           {
             type: "text",
-            text: expect.stringContaining('"code":"RESUME_QUALITY_BLOCKED"'),
+            text: "이력서 PDF를 생성했습니다.",
+          },
+          {
+            type: "resource",
+            resource: expect.objectContaining({
+              mimeType: "application/pdf",
+            }),
           },
         ],
       },

@@ -24,10 +24,46 @@ type ListState =
 
 type RunState =
   | { status: "idle" }
-  | { status: "running" }
+  | { status: "running"; generationId?: string; copyStatus?: CopyStatus }
   | { status: "invalid" }
-  | { status: "failed" }
-  | { status: "done"; result: ToolCallResult };
+  | { status: "failed"; generationId?: string; copyStatus?: CopyStatus }
+  | {
+      status: "done";
+      result: ToolCallResult;
+      generationId?: string;
+      copyStatus?: CopyStatus;
+    };
+
+type CopyStatus = "copied" | "failed";
+
+const generationIdFromResult = (result: ToolCallResult): string | undefined => {
+  if (result.isError) return undefined;
+  const textEntry = result.content.find((entry) => entry.type === "text");
+  const text = textEntry?.type === "text" ? textEntry.text : undefined;
+  if (!text) return undefined;
+  try {
+    const parsed: unknown = JSON.parse(text);
+    return typeof parsed === "object" &&
+      parsed !== null &&
+      "generationId" in parsed &&
+      typeof parsed.generationId === "string" &&
+      parsed.generationId.trim()
+      ? parsed.generationId
+      : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+const copyGenerationId = async (generationId: string): Promise<CopyStatus> => {
+  try {
+    if (!navigator.clipboard?.writeText) return "failed";
+    await navigator.clipboard.writeText(generationId);
+    return "copied";
+  } catch {
+    return "failed";
+  }
+};
 
 const parseArguments = (text: string): Record<string, unknown> | null => {
   try {
@@ -55,9 +91,11 @@ const panelClass = "rounded-2xl border border-slate-200 bg-white p-4 shadow-sm";
 const ResultPanel = ({
   run,
   panelRef,
+  onCopyGenerationId,
 }: {
   run: RunState;
   panelRef: RefObject<HTMLElement>;
+  onCopyGenerationId: (generationId: string) => void;
 }) => (
   <section
     ref={panelRef}
@@ -87,6 +125,33 @@ const ResultPanel = ({
         도구를 실행하지 못했습니다. 잠시 뒤 다시 시도해 주세요.
       </p>
     )}
+    {(run.status === "running" ||
+      run.status === "failed" ||
+      run.status === "done") &&
+      run.generationId && (
+        <div className="mt-3 rounded-xl border border-blue-100 bg-blue-50 p-3">
+          <p className="text-xs font-bold text-blue-900">generationId</p>
+          <code className="mt-1 block break-all text-xs text-blue-900">
+            {run.generationId}
+          </code>
+          <div className="mt-2 flex flex-wrap items-center gap-3">
+            <p role="status" className="text-xs text-blue-800">
+              {run.copyStatus === "copied"
+                ? "generationId를 클립보드에 복사했습니다."
+                : "자동 복사에 실패했습니다. 다시 복사할 수 있습니다."}
+            </p>
+            {run.copyStatus !== "copied" && (
+              <button
+                type="button"
+                onClick={() => onCopyGenerationId(run.generationId!)}
+                className="min-h-9 rounded-lg border border-blue-200 bg-white px-3 text-xs font-bold text-blue-800"
+              >
+                generationId 복사
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     {run.status === "done" && (
       <div aria-live="polite" className="mt-3">
         <p
@@ -117,16 +182,39 @@ const ToolRunner = ({
   name,
   schema,
   sample,
+  initialRun,
+  initialArguments,
+  onAutoPdfRun,
 }: {
   name: string;
   schema: unknown;
   sample?: Record<string, unknown>;
+  initialRun?: RunState;
+  initialArguments?: Record<string, unknown>;
+  onAutoPdfRun?: (generationId: string, run: RunState) => void;
 }) => {
-  const [text, setText] = useState(() => sampleText(sample));
-  const [run, setRun] = useState<RunState>({ status: "idle" });
+  const [text, setText] = useState(() =>
+    initialArguments ? sampleText(initialArguments) : sampleText(sample),
+  );
+  const [run, setRun] = useState<RunState>(initialRun ?? { status: "idle" });
   const [tab, setTab] = useState<InputTab>("arguments");
   const resultRef = useRef<HTMLElement>(null);
   const running = run.status === "running";
+
+  const updateCopyStatus = (generationId: string, copyStatus: CopyStatus) =>
+    setRun((current) =>
+      current.status === "done" ||
+      current.status === "failed" ||
+      current.status === "running"
+        ? { ...current, generationId, copyStatus }
+        : current,
+    );
+
+  const copyForResult = (generationId: string) => {
+    void copyGenerationId(generationId).then((copyStatus) =>
+      updateCopyStatus(generationId, copyStatus),
+    );
+  };
 
   // 좁은 화면에서는 결과가 입력 아래에 놓이므로 끝나면 결과 위치로 가져온다
   useEffect(() => {
@@ -144,7 +232,45 @@ const ToolRunner = ({
     }
     setRun({ status: "running" });
     callTool(name, args)
-      .then((result) => setRun({ status: "done", result }))
+      .then(async (result) => {
+        const generationId =
+          name === "generate_resume"
+            ? generationIdFromResult(result)
+            : undefined;
+        if (!generationId) {
+          setRun({ status: "done", result });
+          return;
+        }
+
+        const copyStatus = await copyGenerationId(generationId);
+        if (!onAutoPdfRun) {
+          setRun({ status: "done", result, generationId, copyStatus });
+          return;
+        }
+
+        onAutoPdfRun(generationId, {
+          status: "running",
+          generationId,
+          copyStatus,
+        });
+        try {
+          const pdfResult = await callTool("convert_resume_to_pdf", {
+            generationId,
+          });
+          onAutoPdfRun(generationId, {
+            status: "done",
+            result: pdfResult,
+            generationId,
+            copyStatus,
+          });
+        } catch {
+          onAutoPdfRun(generationId, {
+            status: "failed",
+            generationId,
+            copyStatus,
+          });
+        }
+      })
       .catch(() => setRun({ status: "failed" }));
   };
 
@@ -244,7 +370,11 @@ const ToolRunner = ({
           }}
         />
       </section>
-      <ResultPanel run={run} panelRef={resultRef} />
+      <ResultPanel
+        run={run}
+        panelRef={resultRef}
+        onCopyGenerationId={copyForResult}
+      />
     </div>
   );
 };
@@ -342,6 +472,10 @@ const EnabledSwitch = ({
 export const ToolListPage = () => {
   const [state, setState] = useState<ListState>({ status: "loading" });
   const [selected, setSelected] = useState<string | null>(null);
+  const [autoPdfRun, setAutoPdfRun] = useState<{
+    generationId: string;
+    run: RunState;
+  } | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -361,6 +495,9 @@ export const ToolListPage = () => {
     state.status === "done"
       ? state.tools.find((entry) => entry.name === selected)
       : undefined;
+  const hasPdfTool =
+    state.status === "done" &&
+    state.tools.some((entry) => entry.name === "convert_resume_to_pdf");
 
   return (
     <AdminLayout current="resume-tools" wide>
@@ -438,10 +575,28 @@ export const ToolListPage = () => {
                 }}
               />
               <ToolRunner
-                key={tool.name}
+                key={`${tool.name}-${tool.name === "convert_resume_to_pdf" ? (autoPdfRun?.run.status ?? "idle") : "idle"}`}
                 name={tool.name}
                 schema={tool.inputSchema}
                 sample={tool.sampleArguments}
+                initialRun={
+                  tool.name === "convert_resume_to_pdf"
+                    ? autoPdfRun?.run
+                    : undefined
+                }
+                initialArguments={
+                  tool.name === "convert_resume_to_pdf" && autoPdfRun
+                    ? { generationId: autoPdfRun.generationId }
+                    : undefined
+                }
+                onAutoPdfRun={
+                  tool.name === "generate_resume" && hasPdfTool
+                    ? (generationId, run) => {
+                        setAutoPdfRun({ generationId, run });
+                        setSelected("convert_resume_to_pdf");
+                      }
+                    : undefined
+                }
               />
             </section>
           ) : (

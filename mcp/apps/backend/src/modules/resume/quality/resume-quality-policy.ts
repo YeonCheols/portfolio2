@@ -20,7 +20,7 @@ export const resumeQualityPolicy = {
   domain: "resume",
   contractVersion: "1",
   caseSetVersion: "resume-quality-population-v1",
-  policyVersion: "resume-quality-policy-v1",
+  policyVersion: "resume-quality-policy-v2",
   metrics: [
     {
       metricId: "required-fact-preservation",
@@ -41,7 +41,7 @@ export const resumeQualityPolicy = {
         "원문과 재작성 출력의 의미 동등성을 결정할 수 없어 사람이 대조해야 합니다.",
       measurementFailedWhen:
         "원문 또는 최종 출력 참조가 없어 해당 사실을 평가할 수 없습니다.",
-      blockingDecisions: ["fail", "needs_review", "measurement_failed"],
+      blockingDecisions: ["fail", "measurement_failed"],
     },
     {
       metricId: "required-item-coverage",
@@ -62,7 +62,7 @@ export const resumeQualityPolicy = {
         "출력 내용이 항목을 실질적으로 충족하는지 자동 판정할 수 없습니다.",
       measurementFailedWhen:
         "선택 양식이나 최종 출력 모델을 읽을 수 없어 항목을 평가할 수 없습니다.",
-      blockingDecisions: ["fail", "needs_review", "measurement_failed"],
+      blockingDecisions: ["fail", "measurement_failed"],
     },
     {
       metricId: "claim-support",
@@ -83,7 +83,7 @@ export const resumeQualityPolicy = {
         "인용 일치는 확인됐지만 문장 의미가 원문 사실을 벗어나는지 자동 판정할 수 없습니다.",
       measurementFailedWhen:
         "출력 주장의 원문 또는 출력 참조가 없어 근거를 평가할 수 없습니다.",
-      blockingDecisions: ["fail", "needs_review", "measurement_failed"],
+      blockingDecisions: ["fail", "measurement_failed"],
     },
     {
       metricId: "numeric-integrity",
@@ -104,7 +104,7 @@ export const resumeQualityPolicy = {
         "원문 단위나 숫자 표기의 의미를 기계적으로 확정할 수 없습니다.",
       measurementFailedWhen:
         "수치 출력 또는 원문 수치를 추적할 수 없어 대조가 불가능합니다.",
-      blockingDecisions: ["fail", "needs_review", "measurement_failed"],
+      blockingDecisions: ["fail", "measurement_failed"],
     },
     {
       metricId: "duplicate-content",
@@ -125,7 +125,7 @@ export const resumeQualityPolicy = {
         "요약과 상세의 반복이 정당한 강조인지 의미 중복인지 판단할 수 없습니다.",
       measurementFailedWhen:
         "출력 블록을 분리하거나 해당 블록의 사실 출처를 추적할 수 없습니다.",
-      blockingDecisions: [],
+      blockingDecisions: ["fail", "measurement_failed"],
     },
     {
       metricId: "text-proofreading",
@@ -144,7 +144,7 @@ export const resumeQualityPolicy = {
         "회사명·고유명사·기술 용어의 표기가 원문과 맞는지 확인이 필요합니다.",
       measurementFailedWhen:
         "페이지 텍스트를 추출하거나 시각적으로 확인할 수 없습니다.",
-      blockingDecisions: [],
+      blockingDecisions: ["fail", "measurement_failed"],
     },
     {
       metricId: "pdf-layout",
@@ -165,7 +165,7 @@ export const resumeQualityPolicy = {
         "렌더링 페이지의 시각적 판정이 아직 완료되지 않았습니다.",
       measurementFailedWhen:
         "PDF가 없거나 페이지를 렌더링할 수 없어 배치를 평가할 수 없습니다.",
-      blockingDecisions: ["fail", "needs_review", "measurement_failed"],
+      blockingDecisions: ["fail", "measurement_failed"],
     },
   ],
 } as const satisfies {
