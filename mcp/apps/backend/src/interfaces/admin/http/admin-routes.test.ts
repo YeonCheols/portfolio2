@@ -1001,6 +1001,9 @@ describe("portfolio-api 관리자 라우트", () => {
       removeAttempt: jest.fn(),
       reproduce: jest.fn(),
       listReproductions: jest.fn(),
+      listQualityReviews: jest.fn(),
+      saveQualityReview: jest.fn(),
+      listQualityDashboard: jest.fn(),
     });
     const active = () =>
       jest.fn().mockResolvedValue({ active: true, sub: "7" });
@@ -1388,6 +1391,90 @@ describe("portfolio-api 관리자 라우트", () => {
           revision: { response: "저장된 응답" },
         });
         expect(reader.getRevision).toHaveBeenCalledWith(keyBody, "rev-1");
+      });
+    });
+
+    it("품질 판정은 인증된 관리자를 기록자로 넘기고 평가별 목록을 반환한다", async () => {
+      const reader = makeReader();
+      const review = {
+        evaluationId: "gen-1-pdf-quality",
+        caseId: "pdf-page/1",
+        decision: "pass",
+        reviewedAt: "2026-11-06T01:00:00.000Z",
+        reviewerHash: "a".repeat(64),
+      };
+      reader.listQualityReviews.mockResolvedValueOnce([review]);
+      reader.saveQualityReview.mockResolvedValueOnce(review);
+      const query = new URLSearchParams(keyBody).toString();
+      const api = "/admin/debug/resume/api/archives/quality-reviews";
+      await withServer({ reader }, async (port) => {
+        const listed = await request(
+          port,
+          `${api}?${query}&evaluationId=gen-1-pdf-quality`,
+          { headers: session },
+        );
+        expect(JSON.parse(listed.body)).toEqual({ ok: true, items: [review] });
+
+        const saved = await post(port, "quality-reviews", {
+          ...keyBody,
+          evaluationId: "gen-1-pdf-quality",
+          caseId: "pdf-page/1",
+          decision: "pass",
+        });
+        expect(saved.status).toBe(200);
+        expect(JSON.parse(saved.body)).toEqual({ ok: true, review });
+        expect(reader.saveQualityReview).toHaveBeenCalledWith(keyBody, {
+          evaluationId: "gen-1-pdf-quality",
+          caseId: "pdf-page/1",
+          decision: "pass",
+          reviewer: "7",
+        });
+      });
+    });
+
+    it("품질 대시보드는 환경과 페이지를 검증해 평가 요약을 반환한다", async () => {
+      const reader = makeReader();
+      const result = {
+        items: [
+          {
+            evaluationId: "gen-1-pdf-quality",
+            metrics: [{ metricId: "pdf-layout", confirmedRate: 0.9 }],
+          },
+        ],
+        hasMore: true,
+      };
+      reader.listQualityDashboard.mockResolvedValueOnce(result);
+      const log = jest.fn();
+      await withServer({ reader, log }, async (port) => {
+        const response = await request(
+          port,
+          "/admin/resume-quality/api/dashboard?environment=production&page=2&pageSize=10",
+          { headers: session },
+        );
+
+        expect(response.status).toBe(200);
+        expect(JSON.parse(response.body)).toEqual({ ok: true, ...result });
+        expect(reader.listQualityDashboard).toHaveBeenCalledWith({
+          environment: "production",
+          page: 2,
+          pageSize: 10,
+        });
+        expect(log).toHaveBeenCalledWith(
+          "ADMIN_RESUME_QUALITY sub=7 action=dashboard result=ok",
+        );
+      });
+    });
+
+    it("품질 대시보드 API는 관리자 세션이 없으면 저장소를 조회하지 않는다", async () => {
+      const reader = makeReader();
+      await withServer({ reader }, async (port) => {
+        const response = await request(
+          port,
+          "/admin/resume-quality/api/dashboard?environment=development",
+        );
+
+        expect(response.status).toBe(401);
+        expect(reader.listQualityDashboard).not.toHaveBeenCalled();
       });
     });
 

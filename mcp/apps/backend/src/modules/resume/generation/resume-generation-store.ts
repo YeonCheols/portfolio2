@@ -7,6 +7,8 @@ import type {
   ResumeModelInfo,
 } from "@mcp/modules/resume/generation/run-resume-harness";
 import type { JsonStorage } from "@mcp/infrastructure/storage/supabase-storage";
+import type { ResumeQualityReview } from "@mcp/modules/resume/quality/apply-resume-quality-reviews";
+import type { QualityEvaluationRun } from "@mcp/modules/quality-evaluation/evaluation-contract";
 import { ResumeConnectionError } from "@mcp/infrastructure/connection/connection";
 
 export type ResumeGenerationScope = { subject: string; environment: string };
@@ -85,4 +87,12 @@ export type ResumeGenerationContext = {
   store: ReturnType<typeof createResumeGenerationStore>;
   scope: ResumeGenerationScope;
   storage?: JsonStorage;
+  qualityReviews?: {
+    load: (input: {
+      environment: string;
+      subject: string;
+      generationId: string;
+      evaluation: QualityEvaluationRun;
+    }) => Promise<ResumeQualityReview[]>;
+  };
 };

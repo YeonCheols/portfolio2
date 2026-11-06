@@ -15,6 +15,12 @@ import {
   type ResumeSelectionNode,
 } from "@mcp/modules/resume/validation/check-resume-draft";
 import { createResumePdf } from "@mcp/modules/resume/render/create-resume-pdf";
+import {
+  countResumePdfPages,
+  evaluateResumePdfQuality,
+} from "@mcp/modules/resume/quality/evaluate-resume-pdf";
+import { applyResumeQualityReviews } from "@mcp/modules/resume/quality/apply-resume-quality-reviews";
+import { assertResumePdfQualityReady } from "@mcp/modules/resume/quality/assert-resume-pdf-quality-ready";
 import { previewResume } from "@mcp/modules/resume/render/preview-resume";
 import {
   renderResumeForm,
@@ -451,12 +457,43 @@ export const callResumeTool = async (
       if (!("resume" in generated) || !("claims" in generated))
         throw new ResumeConnectionError("INCOMPLETE_RESUME");
       assertResumePdfReady(generated);
-      if (debug) await debug.write("pdf");
       const pdf = await createResumePdf({
         resume: generated.resume,
         claims: generated.claims,
         selection: generated.selection,
       });
+      const qualityEvaluation = evaluateResumePdfQuality({
+        generated,
+        evaluationId: `${generationId}-pdf-quality`,
+        evaluatedAt: new Date().toISOString(),
+        inputRef: generationId,
+        outputRef: `${generationId}-pdf`,
+        pdfPageCount: countResumePdfPages(pdf),
+      });
+      let reviewedEvaluation = qualityEvaluation;
+      if (generation.qualityReviews) {
+        let reviews;
+        try {
+          reviews = await generation.qualityReviews.load({
+            environment: scope.environment,
+            subject: scope.subject,
+            generationId,
+            evaluation: qualityEvaluation.run,
+          });
+        } catch {
+          throw new ResumeConnectionError("QUALITY_REVIEW_STORAGE_FAILED");
+        }
+        reviewedEvaluation = applyResumeQualityReviews(
+          qualityEvaluation,
+          reviews,
+        );
+      }
+      if (debug)
+        await debug.write("quality_evaluation", {
+          qualityEvaluation: reviewedEvaluation,
+        });
+      assertResumePdfQualityReady(reviewedEvaluation);
+      if (debug) await debug.write("pdf");
       if (debug) await debug.write("completed");
       store.assertCurrent(scope, generationId);
       return {

@@ -53,6 +53,102 @@ const request = (
   });
 
 describe("createResumeMcpServer", () => {
+  it("관리자 검토 판정을 도구 호출 맥락에 전달해 같은 생성의 PDF 변환을 허용한다", async () => {
+    const generate = jest.fn(async () =>
+      JSON.stringify({
+        claims: [
+          {
+            text: "테스트 사용자입니다",
+            sourceIds: ["profile-test"],
+            evidence: [{ sourceId: "profile-test", quote: "테스트 사용자" }],
+          },
+        ],
+      }),
+    );
+    const qualityReviews = {
+      load: jest.fn(
+        async ({
+          evaluation,
+        }: {
+          evaluation: {
+            evaluationId: string;
+            caseSetVersion: string;
+            policyVersion: string;
+            inputRef: string;
+            outputRef: string;
+            cases: { caseId: string; decision: string; blocking: boolean }[];
+          };
+        }) =>
+          evaluation.cases
+            .filter(
+              ({ decision, blocking }) =>
+                decision === "needs_review" && blocking,
+            )
+            .map(({ caseId }) => ({
+              evaluationId: evaluation.evaluationId,
+              caseSetVersion: evaluation.caseSetVersion,
+              policyVersion: evaluation.policyVersion,
+              inputRef: evaluation.inputRef,
+              outputRef: evaluation.outputRef,
+              caseId,
+              decision: "pass" as const,
+              reviewedAt: "2026-11-06T01:00:00.000Z",
+              reviewerHash: "a".repeat(64),
+            })),
+      ),
+    };
+    const server = createResumeMcpServer({
+      introspect: async () => ({ active: true, sub: "user-a" }),
+      environment: "production",
+      connection: { load: async () => connectedResume() },
+      model: { generate },
+      qualityReviews,
+    });
+    await new Promise<void>((resolve) =>
+      server.listen(0, "127.0.0.1", resolve),
+    );
+    const address = server.address();
+    if (!address || typeof address === "string")
+      throw new Error("port missing");
+    const call = async (name: string, args: Record<string, unknown>) =>
+      request(address.port, {
+        method: "POST",
+        path: "/mcp",
+        headers: { authorization: "Bearer user-a" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "tools/call",
+          params: { name, arguments: args },
+        }),
+      });
+    try {
+      const created = JSON.parse(
+        (
+          await call("generate_resume", {
+            source: "embedded",
+            xml: validResumeXml,
+            template: "기본형",
+            elementIds: ["profile-test"],
+            sectionOrder: ["profile"],
+          })
+        ).body,
+      );
+      const { generationId } = JSON.parse(created.result.content[0].text);
+      const converted = JSON.parse(
+        (await call("convert_resume_to_pdf", { generationId })).body,
+      );
+
+      expect(converted.result.isError).toBe(false);
+      expect(converted.result.content[0].text).toContain("PDF를 생성했습니다");
+      expect(qualityReviews.load).toHaveBeenCalledWith(
+        expect.objectContaining({ generationId }),
+      );
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+
   it("인증된 생성 결과를 다른 요청에서 재사용하면 모델을 다시 호출하지 않고 다른 사용자는 거부한다", async () => {
     const generate = jest.fn(async () =>
       JSON.stringify({

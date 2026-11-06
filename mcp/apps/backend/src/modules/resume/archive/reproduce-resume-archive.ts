@@ -5,6 +5,12 @@ import { assertResumePdfReady } from "@mcp/modules/resume/validation/assert-resu
 import type { ResumeSelectionNode } from "@mcp/modules/resume/validation/check-resume-draft";
 import { createResumePdf } from "@mcp/modules/resume/render/create-resume-pdf";
 import {
+  countResumePdfPages,
+  evaluateResumePdfQuality,
+} from "@mcp/modules/resume/quality/evaluate-resume-pdf";
+import { assertResumePdfQualityReady } from "@mcp/modules/resume/quality/assert-resume-pdf-quality-ready";
+import type { ResumeQualityEvaluation } from "@mcp/modules/resume/quality/evaluate-resume-pdf";
+import {
   archiveDirectory,
   ArchiveQueryError,
   createResumeDebugArchiveReader,
@@ -46,6 +52,7 @@ export type ReproductionRecord = {
     conflicts: number;
     uncertain: number;
     issues: readonly unknown[];
+    qualityEvaluation?: ResumeQualityEvaluation;
   };
   pdf?: { byteLength: number };
 };
@@ -137,6 +144,8 @@ export const createResumeArchiveReproducer = (storage: ArchiveWriteStorage) => {
     selection: unknown,
     response: unknown,
     action: ReproductionAction,
+    inputRef: string,
+    outputRef: string,
   ): Promise<{ outcome: Outcome; pdf?: Buffer }> => {
     if (!Array.isArray(selection))
       return { outcome: failure("snapshot", "SNAPSHOT_MISSING") };
@@ -162,28 +171,42 @@ export const createResumeArchiveReproducer = (storage: ArchiveWriteStorage) => {
     };
     if (action === "validate")
       return { outcome: { status: "completed", validation } };
+    let qualityEvaluation: ResumeQualityEvaluation | undefined;
+    let candidatePdf: Buffer | undefined;
     try {
       assertResumePdfReady(generated);
-      const pdf = await createResumePdf({
+      candidatePdf = await createResumePdf({
         resume: generated.resume,
         claims: generated.claims,
         selection: generated.selection,
       });
+      qualityEvaluation = evaluateResumePdfQuality({
+        generated,
+        evaluationId: randomUUID(),
+        evaluatedAt: new Date().toISOString(),
+        inputRef,
+        outputRef,
+        pdfPageCount: countResumePdfPages(candidatePdf),
+      });
+      assertResumePdfQualityReady(qualityEvaluation);
       return {
         outcome: {
           status: "completed",
-          validation,
-          pdf: { byteLength: pdf.length },
+          validation: { ...validation, qualityEvaluation },
+          pdf: { byteLength: candidatePdf.length },
         },
-        pdf,
+        pdf: candidatePdf,
       };
     } catch (error) {
+      const outcome = failure("pdf", codeOf(error, "PDF_GENERATION_FAILED"), {
+        ...validation,
+        ...(qualityEvaluation ? { qualityEvaluation } : {}),
+      });
       return {
-        outcome: failure(
-          "pdf",
-          codeOf(error, "PDF_GENERATION_FAILED"),
-          validation,
-        ),
+        outcome: candidatePdf
+          ? { ...outcome, pdf: { byteLength: candidatePdf.length } }
+          : outcome,
+        ...(candidatePdf ? { pdf: candidatePdf } : {}),
       };
     }
   };
@@ -220,6 +243,8 @@ export const createResumeArchiveReproducer = (storage: ArchiveWriteStorage) => {
           snapshot.selection,
           response,
           action,
+          key.generationId,
+          `${source.kind}/${source.kind === "revision" ? source.revisionId : "original"}/${action}`,
         );
         const record: ReproductionRecord = {
           schemaVersion: 1,

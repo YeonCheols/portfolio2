@@ -44,4 +44,16 @@ describe("관리자 공통 메뉴 정의", () => {
     expect(adminPagePaths).toContain("/admin/tools/resume");
     expect(byId["portfolio-tools"]?.path).toBeUndefined();
   });
+
+  it("이력서 품질 대시보드는 관리 메뉴에서 조회 화면으로 이동한다", () => {
+    const qualityDashboard = adminMenuItems.find(
+      (item) => item.id === "resume-quality",
+    );
+
+    expect(qualityDashboard).toMatchObject({
+      label: "이력서 품질",
+      path: "/admin/resume-quality",
+    });
+    expect(adminPagePaths).toContain("/admin/resume-quality");
+  });
 });

@@ -20,7 +20,7 @@ pnpm local:up
 pnpm local:down
 ```
 
-`docker-compose.yml`은 Dockerfile의 local 단계를 빌드해 `http://localhost:3000`에서 개발 서버를 실행합니다. `WEB_LOCAL_PORT`로 호스트 포트만 바꿀 수 있습니다. 실행 시 최신 CLI를 조회해 실제 태그를 빌드 인자로 전달하며 컨테이너는 development/master 설정을 받습니다. 설정 원문을 Compose에 넣거나 호스트 `.env`를 마운트하지 않습니다. 소스 변경 반영은 `pnpm local:up`으로 다시 빌드합니다.
+`docker-compose.yml`은 Dockerfile의 local 단계를 빌드해 `http://localhost:3001`에서 개발 서버를 실행합니다. 호스트의 IPv4·IPv6 루프백에만 연결하며, `WEB_LOCAL_PORT`로 호스트 포트를 바꿀 수 있습니다. 실행 시 최신 CLI를 조회해 실제 태그를 빌드 인자로 전달하며 컨테이너는 development/master 설정을 받습니다. 설정 원문을 Compose에 넣거나 호스트 `.env`를 마운트하지 않습니다. 소스 변경 반영은 `pnpm local:up`으로 다시 빌드합니다.
 
 패키지 설치는 중앙 development 설정에서 조회한 `GITHUB_NPM_TOKEN`을 BuildKit secret으로 전달합니다. 설정 저장소 인증은 `GH_TOKEN`을 사용하며 CLI가 서버 자식 프로세스에서는 제거합니다. 패키지 토큰도 웹 서버 시작 전에 제거합니다. 호스트의 CLI 캐시·MCP 프로젝트·로컬 인증서는 이미지에서 제외합니다.
 

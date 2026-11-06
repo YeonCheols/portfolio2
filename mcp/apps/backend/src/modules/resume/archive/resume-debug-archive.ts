@@ -6,6 +6,7 @@ import type {
 } from "@mcp/modules/resume/generation/resume-generation-store";
 import type { ResumeModelRequest } from "@mcp/modules/resume/generation/run-resume-harness";
 import type { ResumeModelInfo } from "@mcp/modules/resume/generation/run-resume-harness";
+import type { ResumeQualityEvaluation } from "@mcp/modules/resume/quality/evaluate-resume-pdf";
 import type { JsonStorage } from "@mcp/infrastructure/storage/supabase-storage";
 import { ResumeConnectionError } from "@mcp/infrastructure/connection/connection";
 
@@ -18,6 +19,7 @@ type DebugData = {
     CheckedDraft,
     "gaps" | "conflicts" | "uncertain" | "validationIssues" | "diagnostics"
   > & { status?: "passed" | "blocked" };
+  qualityEvaluation?: ResumeQualityEvaluation;
   errorCode?: string;
 };
 export const resumeDebugStages = [
@@ -26,6 +28,7 @@ export const resumeDebugStages = [
   "model_request",
   "model_response",
   "validation",
+  "quality_evaluation",
   "pdf",
   "completed",
   "failed",

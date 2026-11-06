@@ -35,6 +35,12 @@ const ToolListPage = lazy(() =>
   })),
 );
 
+const ResumeQualityPage = lazy(() =>
+  import("./pages/resume-quality/resume-quality-page").then((module) => ({
+    default: module.ResumeQualityPage,
+  })),
+);
+
 type PageRenderer = (props: { search: string }) => ReactElement;
 
 // 메뉴 항목 ID → 화면. 경로와 이름은 공통 메뉴 정의가 소유하고 여기는 어떤 화면을 그릴지만 안다.
@@ -42,6 +48,7 @@ type PageRenderer = (props: { search: string }) => ReactElement;
 export const pageRegistry: Record<string, PageRenderer> = {
   "ai-models": () => <SettingsPage />,
   "resume-tools": () => <ToolListPage />,
+  "resume-quality": ({ search }) => <ResumeQualityPage search={search} />,
   "debug-archive": ({ search }) => {
     const archiveKey = parseDetailKey(search);
     // 실행 키가 URL에 있으면 새로고침해도 같은 상세로 돌아온다

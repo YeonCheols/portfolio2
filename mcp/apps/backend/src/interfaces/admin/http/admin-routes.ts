@@ -22,6 +22,7 @@ import {
   ArchiveDeleteError,
   ArchiveRevisionError,
 } from "@mcp/modules/resume/archive/resume-debug-archive-writer";
+import { ResumeQualityReviewError } from "@mcp/modules/resume/quality/resume-quality-review-store";
 
 const cookieName = "__Host-portfolio-admin-session";
 const oauthCookieName = "__Host-portfolio-admin-oauth-state";
@@ -175,6 +176,7 @@ const readApiPath = (pathname: string): string | null => {
 const connectPath = "/admin/ai-models/connect";
 const debugPagePath = "/admin/debug/resume";
 const debugApiPrefix = `${debugPagePath}/api/`;
+const resumeQualityApiPrefix = "/admin/resume-quality/api/";
 
 // 로그인 뒤 돌아갈 수 있는 화면은 공통 메뉴(adminMenu)에 있는 경로뿐이다. 쿠키로 오가는 값이라 사용할 때마다 다시 검증한다
 const returnPagePaths = adminPagePaths;
@@ -259,6 +261,7 @@ type DebugRoute = {
     archive: ResumeDebugArchiveAdmin,
     url: URL,
     body: Record<string, unknown>,
+    reviewer?: string,
   ) => Promise<Record<string, unknown>>;
 };
 
@@ -338,6 +341,40 @@ const debugRoutes: Record<string, DebugRoute> = {
       items: await archive.listReproductions(archiveKey(url)),
     }),
   },
+  "GET archives/quality-reviews": {
+    action: "quality_review_list",
+    run: async (archive, url) => {
+      if (!archive.listQualityReviews)
+        throw new ResumeQualityReviewError("QUALITY_REVIEW_UNAVAILABLE");
+      return {
+        items: await archive.listQualityReviews(
+          archiveKey(url),
+          url.searchParams.get("evaluationId") ?? "",
+        ),
+      };
+    },
+  },
+  "POST archives/quality-reviews": {
+    action: "quality_review_save",
+    run: async (archive, _url, body, reviewer) => {
+      if (!archive.saveQualityReview)
+        throw new ResumeQualityReviewError("QUALITY_REVIEW_UNAVAILABLE");
+      if (
+        typeof body.evaluationId !== "string" ||
+        typeof body.caseId !== "string" ||
+        (body.decision !== "pass" && body.decision !== "fail")
+      )
+        throw new ArchiveQueryError();
+      return {
+        review: await archive.saveQualityReview(bodyKey(body), {
+          evaluationId: body.evaluationId,
+          caseId: body.caseId,
+          decision: body.decision,
+          reviewer: reviewer ?? "",
+        }),
+      };
+    },
+  },
   "POST archives/reproductions": {
     action: "reproduce",
     run: async (archive, _url, body) => {
@@ -379,6 +416,17 @@ const sendDebugError = (res: ServerResponse, error: unknown): string => {
           remaining: error.remaining,
         })
       : reply(400, error.code);
+  }
+  if (error instanceof ResumeQualityReviewError) {
+    const status =
+      error.code === "QUALITY_REVIEW_NOT_FOUND"
+        ? 404
+        : error.code === "QUALITY_REVIEW_UNAVAILABLE"
+          ? 503
+          : error.code === "QUALITY_CASE_NOT_REVIEWABLE"
+            ? 409
+            : 502;
+    return reply(status, error.code);
   }
   if (error instanceof Error && error.message === "BODY_TOO_LARGE")
     return reply(413, "BODY_TOO_LARGE");
@@ -458,11 +506,74 @@ const handleDebugArchiveApi = async (
       if (!isRecord(parsed)) throw new ArchiveQueryError();
       body = parsed;
     }
-    const result = await route.run(archive, url, body);
+    const result = await route.run(archive, url, body, session.sub ?? "");
     logResult("ok");
     sendJson(res, 200, { ok: true, ...result });
   } catch (error) {
     logResult(`failed code=${sendDebugError(res, error)}`);
+  }
+};
+
+const handleResumeQualityApi = async (
+  req: IncomingMessage,
+  res: ServerResponse,
+  url: URL,
+  options: {
+    introspect: (token: string) => Promise<IntrospectedSession>;
+    debugArchive?: ResumeDebugArchiveAdmin;
+    log?: (message: string) => void;
+  },
+): Promise<void> => {
+  if (url.pathname !== `${resumeQualityApiPrefix}dashboard`) {
+    sendJson(res, 404, { ok: false, code: "NOT_FOUND" });
+    return;
+  }
+  if (req.method !== "GET") {
+    sendJson(res, 405, { ok: false, code: "METHOD_NOT_ALLOWED" });
+    return;
+  }
+  const token = readCookie(req);
+  if (!token) {
+    sendJson(res, 401, { ok: false, code: "UNAUTHORIZED" });
+    return;
+  }
+  let session: IntrospectedSession;
+  try {
+    session = await options.introspect(token);
+  } catch {
+    sendJson(res, 503, { ok: false, code: "AUTH_UNAVAILABLE" });
+    return;
+  }
+  if (!session.active) {
+    sendJson(res, 401, { ok: false, code: "UNAUTHORIZED" });
+    return;
+  }
+  const dashboard = options.debugArchive?.listQualityDashboard;
+  if (!dashboard) {
+    sendJson(res, 503, { ok: false, code: "RESUME_QUALITY_UNAVAILABLE" });
+    return;
+  }
+  const log = (result: string) =>
+    options.log?.(
+      `ADMIN_RESUME_QUALITY sub=${logSubject(session.sub)} action=dashboard result=${result}`,
+    );
+  try {
+    const result = await dashboard({
+      environment: url.searchParams.get("environment") ?? "",
+      page: optionalNumber(url, "page"),
+      pageSize: optionalNumber(url, "pageSize"),
+    });
+    log("ok");
+    sendJson(res, 200, { ok: true, ...result });
+  } catch (error) {
+    const status = error instanceof ArchiveQueryError ? 400 : 502;
+    log(
+      `failed code=${status === 400 ? "INVALID_ARCHIVE_QUERY" : "STORAGE_FAILED"}`,
+    );
+    sendJson(res, status, {
+      ok: false,
+      code: status === 400 ? "INVALID_ARCHIVE_QUERY" : "STORAGE_FAILED",
+    });
   }
 };
 
@@ -1000,6 +1111,11 @@ export const handleAdminRequest = async (
 
   if (pathname.startsWith(debugApiPrefix)) {
     await handleDebugArchiveApi(req, res, url, options);
+    return true;
+  }
+
+  if (pathname.startsWith(resumeQualityApiPrefix)) {
+    await handleResumeQualityApi(req, res, url, options);
     return true;
   }
 

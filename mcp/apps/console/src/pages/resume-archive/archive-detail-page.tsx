@@ -12,6 +12,7 @@ import type {
   ArchiveStatus,
   ReproductionRecord,
   RevisionSummary,
+  ResumeQualityEvaluation,
 } from "../../types";
 import { AdminLayout } from "../../shared/ui/admin-layout";
 
@@ -19,6 +20,7 @@ import { listHref } from "./archive-search";
 import { DeleteSection } from "./delete-section";
 import { ReproductionSection } from "./reproduction-section";
 import { RevisionSection } from "./revision-section";
+import { QualityReviewSection } from "./quality-review-section";
 
 type DetailState =
   | { status: "loading" }
@@ -39,8 +41,44 @@ const record = (value: unknown): Record<string, unknown> =>
     ? (value as Record<string, unknown>)
     : {};
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
 const asJson = (value: unknown): string | null =>
   value === undefined ? null : JSON.stringify(value, null, 2);
+
+const qualityEvaluationOf = (
+  value: unknown,
+): ResumeQualityEvaluation | null => {
+  if (!isRecord(value) || !isRecord(value.run)) return null;
+  const run = value.run;
+  if (
+    typeof run.evaluationId !== "string" ||
+    typeof run.caseSetVersion !== "string" ||
+    typeof run.policyVersion !== "string" ||
+    typeof run.inputRef !== "string" ||
+    typeof run.outputRef !== "string" ||
+    !Array.isArray(run.cases) ||
+    !run.cases.every(
+      (item) =>
+        isRecord(item) &&
+        typeof item.caseId === "string" &&
+        typeof item.metricId === "string" &&
+        typeof item.decision === "string" &&
+        typeof item.blocking === "boolean" &&
+        Array.isArray(item.evidence),
+    ) ||
+    !Array.isArray(value.aggregates) ||
+    !value.aggregates.every(
+      (item) =>
+        isRecord(item) &&
+        typeof item.metricId === "string" &&
+        typeof item.blockingCases === "number",
+    )
+  )
+    return null;
+  return value as unknown as ResumeQualityEvaluation;
+};
 
 const Block = ({ title, text }: { title: string; text: string | null }) => (
   <section
@@ -228,6 +266,7 @@ const DetailBody = ({
   const latest = record(detail.latest);
   const model = record(latest.model);
   const validation = record(latest.validation);
+  const qualityEvaluation = qualityEvaluationOf(latest.qualityEvaluation);
   const errorCode =
     typeof latest.errorCode === "string" ? latest.errorCode : null;
   return (
@@ -302,6 +341,12 @@ const DetailBody = ({
         text={typeof latest.response === "string" ? latest.response : null}
       />
       <Block title="검증 결과" text={asJson(latest.validation)} />
+      {qualityEvaluation && (
+        <QualityReviewSection
+          archiveKey={archiveKey}
+          evaluation={qualityEvaluation}
+        />
+      )}
 
       <section
         aria-label="단계 파일"

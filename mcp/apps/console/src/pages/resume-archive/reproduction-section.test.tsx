@@ -67,6 +67,43 @@ describe("ReproductionSection", () => {
     expect(onRecorded).toHaveBeenCalledTimes(1);
   });
 
+  it("품질 검토가 필요한 실패 결과에서도 후보 PDF를 내려받게 한다", async () => {
+    const failed: ReproductionRecord = {
+      ...completed,
+      status: "failed",
+      failedStage: "pdf",
+      errorCode: "RESUME_QUALITY_BLOCKED",
+    };
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        jsonResponse({
+          ok: true,
+          record: failed,
+          pdfBase64: "JVBERi0=",
+        }),
+      ),
+    );
+    const user = userEvent.setup();
+    render(
+      <ReproductionSection
+        archiveKey={archiveKey}
+        revisions={[]}
+        history={[]}
+        onRecorded={vi.fn()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "PDF 재현" }));
+
+    expect((await screen.findByRole("status")).textContent).toContain(
+      "PDF 재현에 실패했습니다",
+    );
+    expect(
+      screen.getByRole("link", { name: "후보 PDF 검토" }).getAttribute("href"),
+    ).toBe("data:application/pdf;base64,JVBERi0=");
+  });
+
   it("실패 단계와 코드를 보여주고 중복 실행 거절은 안내하며 진행 중에는 다시 누를 수 없다", async () => {
     let resolve!: (response: Response) => void;
     const fetchMock = vi

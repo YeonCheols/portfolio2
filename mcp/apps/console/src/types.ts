@@ -74,6 +74,66 @@ export type ArchiveQuery = {
 
 export type RevisionSummary = { revisionId: string; createdAt?: string };
 
+export type ResumeQualityReview = {
+  reviewId: string;
+  evaluationId: string;
+  caseSetVersion: string;
+  policyVersion: string;
+  inputRef: string;
+  outputRef: string;
+  caseId: string;
+  decision: "pass" | "fail";
+  reviewedAt: string;
+  reviewerHash: string;
+};
+
+export type ResumeQualityEvaluation = {
+  run: {
+    evaluationId: string;
+    caseSetVersion: string;
+    policyVersion: string;
+    inputRef: string;
+    outputRef: string;
+    cases: {
+      metricId: string;
+      caseId: string;
+      decision: string;
+      blocking: boolean;
+      reasonCode?: string;
+      evidence: readonly { kind: string; reference: string }[];
+    }[];
+  };
+  aggregates: readonly {
+    metricId: string;
+    confirmedRate: number | null;
+    denominator: number;
+    blockingCases: number;
+  }[];
+  manualReviews?: readonly ResumeQualityReview[];
+};
+
+export type ResumeQualityDashboardMetric = {
+  metricId: string;
+  confirmedRate: number | null;
+  lowerBound: number | null;
+  upperBound: number | null;
+  denominator: number;
+  blockingCases: number;
+  needsReviewCases: number;
+  failedCases: number;
+  passedCases: number;
+};
+
+export type ResumeQualityDashboardItem = {
+  archive: ArchiveKey & {
+    startedAt?: string;
+    status: ArchiveStatus;
+  };
+  evaluationId: string;
+  evaluatedAt: string;
+  metrics: ResumeQualityDashboardMetric[];
+};
+
 export type RevisionRecord = {
   revisionId: string;
   createdAt?: string;
