@@ -115,6 +115,7 @@ describe("handleMcpRequest", () => {
           expect.objectContaining({
             name: "generate_resume",
             inputSchema: {
+              type: "object",
               oneOf: [
                 expect.objectContaining({
                   required: [
@@ -215,6 +216,28 @@ describe("handleMcpRequest", () => {
     expect(byName.convert_resume_to_pdf.inputSchema.required).toEqual([
       "generationId",
     ]);
+  });
+
+  it("모든 도구의 입력 스키마 최상위 type이 MCP 규격대로 object이다", async () => {
+    const response = await handleMcpRequest(
+      { jsonrpc: "2.0", id: 10, method: "tools/list" },
+      connection,
+    );
+    const tools =
+      response && "result" in response
+        ? (
+            response.result as {
+              tools: { name: string; inputSchema: { type?: string } }[];
+            }
+          ).tools
+        : [];
+
+    expect(tools.length).toBeGreaterThan(0);
+    expect(
+      tools
+        .filter((tool) => tool.inputSchema.type !== "object")
+        .map((tool) => tool.name),
+    ).toEqual([]);
   });
 
   it("품질 미검토 claim을 기록하면서 PDF 변환을 허용하고 모델을 재호출하지 않는다", async () => {
