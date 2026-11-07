@@ -85,6 +85,7 @@ const generationReferenceSchema = {
 };
 
 const generateInputSchema = {
+  type: "object",
   oneOf: [
     {
       ...templateInputSchema,
