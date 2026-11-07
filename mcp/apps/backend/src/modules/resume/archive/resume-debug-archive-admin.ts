@@ -16,18 +16,22 @@ type QualityReviewAdmin = Pick<
 export const createResumeDebugArchiveAdmin = (
   storage: ArchiveWriteStorage,
   qualityReviews?: QualityReviewAdmin,
-) => ({
-  ...createResumeDebugArchiveReader(storage),
-  ...createResumeDebugArchiveWriter(storage),
-  ...createResumeArchiveReproducer(storage),
-  listQualityDashboard: createResumeQualityDashboardReader(storage).list,
-  ...(qualityReviews
-    ? {
-        listQualityReviews: qualityReviews.list,
-        saveQualityReview: qualityReviews.save,
-      }
-    : {}),
-});
+) => {
+  const dashboard = createResumeQualityDashboardReader(storage);
+  return {
+    ...createResumeDebugArchiveReader(storage),
+    ...createResumeDebugArchiveWriter(storage),
+    ...createResumeArchiveReproducer(storage),
+    listQualityDashboard: dashboard.list,
+    summarizeQualityDashboard: dashboard.summarize,
+    ...(qualityReviews
+      ? {
+          listQualityReviews: qualityReviews.list,
+          saveQualityReview: qualityReviews.save,
+        }
+      : {}),
+  };
+};
 
 export type ResumeDebugArchiveAdmin = ReturnType<
   typeof createResumeDebugArchiveAdmin

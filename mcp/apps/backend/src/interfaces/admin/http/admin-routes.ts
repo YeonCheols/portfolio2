@@ -22,6 +22,7 @@ import {
   ArchiveDeleteError,
   ArchiveRevisionError,
 } from "@mcp/modules/resume/archive/resume-debug-archive-writer";
+import { maxQualityDashboardArchives } from "@mcp/modules/resume/archive/resume-quality-dashboard-reader";
 import { ResumeQualityReviewError } from "@mcp/modules/resume/quality/resume-quality-review-store";
 
 const cookieName = "__Host-portfolio-admin-session";
@@ -524,7 +525,14 @@ const handleResumeQualityApi = async (
     log?: (message: string) => void;
   },
 ): Promise<void> => {
-  if (url.pathname !== `${resumeQualityApiPrefix}dashboard`) {
+  // 목록(dashboard)은 페이지로 읽고, 합산(dashboard/all)은 최근 실행 상한까지 한 번에 읽는다
+  const action =
+    url.pathname === `${resumeQualityApiPrefix}dashboard`
+      ? "dashboard"
+      : url.pathname === `${resumeQualityApiPrefix}dashboard/all`
+        ? "dashboard_all"
+        : null;
+  if (!action) {
     sendJson(res, 404, { ok: false, code: "NOT_FOUND" });
     return;
   }
@@ -548,21 +556,28 @@ const handleResumeQualityApi = async (
     sendJson(res, 401, { ok: false, code: "UNAUTHORIZED" });
     return;
   }
-  const dashboard = options.debugArchive?.listQualityDashboard;
-  if (!dashboard) {
+  const archive = options.debugArchive;
+  if (!archive) {
     sendJson(res, 503, { ok: false, code: "RESUME_QUALITY_UNAVAILABLE" });
     return;
   }
   const log = (result: string) =>
     options.log?.(
-      `ADMIN_RESUME_QUALITY sub=${logSubject(session.sub)} action=dashboard result=${result}`,
+      `ADMIN_RESUME_QUALITY sub=${logSubject(session.sub)} action=${action} result=${result}`,
     );
   try {
-    const result = await dashboard({
-      environment: url.searchParams.get("environment") ?? "",
-      page: optionalNumber(url, "page"),
-      pageSize: optionalNumber(url, "pageSize"),
-    });
+    const environment = url.searchParams.get("environment") ?? "";
+    const result =
+      action === "dashboard"
+        ? await archive.listQualityDashboard({
+            environment,
+            page: optionalNumber(url, "page"),
+            pageSize: optionalNumber(url, "pageSize"),
+          })
+        : await archive.summarizeQualityDashboard({
+            environment,
+            maxArchives: maxQualityDashboardArchives,
+          });
     log("ok");
     sendJson(res, 200, { ok: true, ...result });
   } catch (error) {

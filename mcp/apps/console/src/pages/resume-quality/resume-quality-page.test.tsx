@@ -29,7 +29,8 @@ describe("ResumeQualityPage", () => {
         status: 200,
         json: async () => ({
           ok: true,
-          hasMore: false,
+          truncated: false,
+          archivesScanned: 1,
           items: [
             {
               archive: {
@@ -130,7 +131,8 @@ describe("ResumeQualityPage", () => {
         status: 200,
         json: async () => ({
           ok: true,
-          hasMore: false,
+          truncated: false,
+          archivesScanned: 1,
           items: [
             {
               archive: {
@@ -165,5 +167,52 @@ describe("ResumeQualityPage", () => {
     ).getAllByRole("row");
     expect(rows[1].textContent).toContain("문장 근거");
     expect(rows[2].textContent).toContain("PDF 레이아웃");
+  });
+
+  it("서버가 최근 실행까지만 읽었다고 알리면 몇 개까지 합산했는지 안내한다", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          ok: true,
+          items: [
+            {
+              archive: {
+                environment: "development",
+                subjectHash: "s",
+                generationId: "g",
+                attemptId: "a",
+                status: "completed",
+              },
+              evaluationId: "g-pdf-quality",
+              evaluatedAt: "2026-11-06T00:01:00.000Z",
+              metrics: [
+                {
+                  metricId: "pdf-layout",
+                  confirmedRate: 1,
+                  lowerBound: 1,
+                  upperBound: 1,
+                  denominator: 1,
+                  blockingCases: 0,
+                  needsReviewCases: 0,
+                  failedCases: 0,
+                  passedCases: 1,
+                },
+              ],
+            },
+          ],
+          truncated: true,
+          archivesScanned: 300,
+        }),
+      }),
+    );
+
+    render(<ResumeQualityPage search="" />);
+
+    expect(
+      await screen.findByText(/실행이 많아 최근 300개까지만 합산했습니다/),
+    ).toBeTruthy();
   });
 });

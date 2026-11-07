@@ -119,4 +119,86 @@ describe("createResumeQualityDashboardReader", () => {
     expect(result.items[0].evaluationId).toBe("gen-2-pdf-quality");
     expect(result.hasMore).toBe(true);
   });
+
+  it("실행이 100개를 넘어도 환경 폴더를 한 번만 훑는다", async () => {
+    const initial: Record<string, unknown> = {};
+    for (let index = 0; index < 101; index += 1)
+      initial[
+        `debug/resume/development/subj-a/gen-${String(index).padStart(3, "0")}/att-1/001-started.json`
+      ] = { stage: "started" };
+    const storage = createFakeArchiveStorage(initial);
+    const listObjects = jest.spyOn(storage, "listObjects");
+    const dashboard = createResumeQualityDashboardReader(storage);
+
+    await dashboard.list({ environment: "development" });
+
+    const rootListings = listObjects.mock.calls.filter(
+      ([prefix]) => prefix === "debug/resume/development",
+    );
+    expect(rootListings).toHaveLength(1);
+  });
+
+  it("summarize는 페이지 수와 상관없이 평가가 있는 모든 기록을 한 번에 돌려준다", async () => {
+    const initial: Record<string, unknown> = {};
+    for (let index = 0; index < 25; index += 1) {
+      const generation = `gen-${String(index).padStart(2, "0")}`;
+      initial[
+        `debug/resume/development/subj-a/${generation}/att-1/001-quality_evaluation.json`
+      ] = {
+        qualityEvaluation: {
+          ...evaluation,
+          run: { ...evaluation.run, evaluationId: `${generation}-pdf-quality` },
+        },
+      };
+    }
+    const storage = createFakeArchiveStorage(initial);
+    const dashboard = createResumeQualityDashboardReader(storage);
+
+    const result = await dashboard.summarize({
+      environment: "development",
+      maxArchives: 300,
+    });
+
+    expect(result.items).toHaveLength(25);
+    expect(result.truncated).toBe(false);
+    expect(result.archivesScanned).toBe(25);
+  });
+
+  it("summarize는 최근 실행부터 상한까지만 읽고 잘렸음을 알린다", async () => {
+    const initial: Record<string, unknown> = {};
+    for (const generation of ["gen-1", "gen-2", "gen-3"])
+      initial[
+        `debug/resume/development/subj-a/${generation}/att-1/001-quality_evaluation.json`
+      ] = {
+        qualityEvaluation: {
+          ...evaluation,
+          run: { ...evaluation.run, evaluationId: `${generation}-pdf-quality` },
+        },
+      };
+    const storage = createFakeArchiveStorage(initial);
+    const dashboard = createResumeQualityDashboardReader(storage);
+
+    const result = await dashboard.summarize({
+      environment: "development",
+      maxArchives: 2,
+    });
+
+    expect(result.truncated).toBe(true);
+    expect(result.archivesScanned).toBe(2);
+    expect(result.items).toHaveLength(2);
+    expect(result.items.map((item) => item.archive.generationId)).toEqual([
+      "gen-3",
+      "gen-2",
+    ]);
+  });
+
+  it("summarize도 잘못된 환경 이름은 저장소를 읽기 전에 거부한다", async () => {
+    const storage = createFakeArchiveStorage({});
+    const dashboard = createResumeQualityDashboardReader(storage);
+
+    await expect(
+      dashboard.summarize({ environment: "../x", maxArchives: 10 }),
+    ).rejects.toThrow();
+    expect(storage.calls.listObjects).toBe(0);
+  });
 });

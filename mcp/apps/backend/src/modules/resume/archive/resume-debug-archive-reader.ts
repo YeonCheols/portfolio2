@@ -181,6 +181,81 @@ const summarize = (
   };
 };
 
+type ArchiveListQuery = {
+  environment: string;
+  generationId?: string;
+  attemptId?: string;
+  failedStage?: string;
+  page?: number;
+  pageSize?: number;
+};
+
+// 환경 폴더를 한 번 훑어 모든 실행 요약을 최신순으로 만든다. 폴더는 단계마다 병렬로 조회한다
+const collectSummaries = async (
+  storage: ArchiveListStorage,
+  query: ArchiveListQuery,
+): Promise<ArchiveSummary[]> => {
+  validateQuery(query);
+  const root = `debug/resume/${query.environment}`;
+  const folders = (entries: StorageEntry[]) =>
+    entries.filter((entry) => entry.kind === "folder");
+  // 단계마다 폴더를 병렬로 조회한다. 일치하지 않는 폴더는 열지 않아 필터가 Storage 호출 수를 줄인다
+  const subjects = folders(await listAllObjects(storage, root));
+  const generations = (
+    await mapLimit(subjects, archiveListConcurrency, async (subject) =>
+      folders(await listAllObjects(storage, `${root}/${subject.name}`))
+        .filter(
+          (generation) =>
+            !query.generationId || generation.name === query.generationId,
+        )
+        .map((generation) => ({
+          subject: subject.name,
+          generation: generation.name,
+        })),
+    )
+  ).flat();
+  const attempts = (
+    await mapLimit(generations, archiveListConcurrency, async (entry) =>
+      folders(
+        await listAllObjects(
+          storage,
+          `${root}/${entry.subject}/${entry.generation}`,
+        ),
+      )
+        .filter((attempt) => attempt.name !== qualityReviewsDirectoryName)
+        .filter(
+          (attempt) => !query.attemptId || attempt.name === query.attemptId,
+        )
+        .map((attempt) => ({ ...entry, attempt: attempt.name })),
+    )
+  ).flat();
+  const summaries = await mapLimit(
+    attempts,
+    archiveListConcurrency,
+    async (entry) =>
+      summarize(
+        entry.subject,
+        entry.generation,
+        entry.attempt,
+        await listAllObjects(
+          storage,
+          `${root}/${entry.subject}/${entry.generation}/${entry.attempt}`,
+        ),
+      ),
+  );
+  const items = summaries.filter(
+    (summary) =>
+      !query.failedStage || summary.failedAfter === query.failedStage,
+  );
+  // 폴더 이름에는 시각이 없어 전체를 모은 뒤 첫 기록의 생성 시각으로 최신순을 만든다
+  items.sort(
+    (a, b) =>
+      (b.startedAt ?? "").localeCompare(a.startedAt ?? "") ||
+      a.attemptId.localeCompare(b.attemptId),
+  );
+  return items;
+};
+
 export const createResumeDebugArchiveReader = (
   storage: ArchiveReadStorage,
 ) => ({
@@ -226,72 +301,10 @@ export const createResumeDebugArchiveReader = (
       latest: await storage.getJson(`${path}/${last.name}`),
     };
   },
-  list: async (query: {
-    environment: string;
-    generationId?: string;
-    attemptId?: string;
-    failedStage?: string;
-    page?: number;
-    pageSize?: number;
-  }): Promise<{ items: ArchiveSummary[]; hasMore: boolean }> => {
-    validateQuery(query);
-    const root = `debug/resume/${query.environment}`;
-    const folders = (entries: StorageEntry[]) =>
-      entries.filter((entry) => entry.kind === "folder");
-    // 단계마다 폴더를 병렬로 조회한다. 일치하지 않는 폴더는 열지 않아 필터가 Storage 호출 수를 줄인다
-    const subjects = folders(await listAllObjects(storage, root));
-    const generations = (
-      await mapLimit(subjects, archiveListConcurrency, async (subject) =>
-        folders(await listAllObjects(storage, `${root}/${subject.name}`))
-          .filter(
-            (generation) =>
-              !query.generationId || generation.name === query.generationId,
-          )
-          .map((generation) => ({
-            subject: subject.name,
-            generation: generation.name,
-          })),
-      )
-    ).flat();
-    const attempts = (
-      await mapLimit(generations, archiveListConcurrency, async (entry) =>
-        folders(
-          await listAllObjects(
-            storage,
-            `${root}/${entry.subject}/${entry.generation}`,
-          ),
-        )
-          .filter((attempt) => attempt.name !== qualityReviewsDirectoryName)
-          .filter(
-            (attempt) => !query.attemptId || attempt.name === query.attemptId,
-          )
-          .map((attempt) => ({ ...entry, attempt: attempt.name })),
-      )
-    ).flat();
-    const summaries = await mapLimit(
-      attempts,
-      archiveListConcurrency,
-      async (entry) =>
-        summarize(
-          entry.subject,
-          entry.generation,
-          entry.attempt,
-          await listAllObjects(
-            storage,
-            `${root}/${entry.subject}/${entry.generation}/${entry.attempt}`,
-          ),
-        ),
-    );
-    const items = summaries.filter(
-      (summary) =>
-        !query.failedStage || summary.failedAfter === query.failedStage,
-    );
-    // 폴더 이름에는 시각이 없어 전체를 모은 뒤 첫 기록의 생성 시각으로 최신순을 만든다
-    items.sort(
-      (a, b) =>
-        (b.startedAt ?? "").localeCompare(a.startedAt ?? "") ||
-        a.attemptId.localeCompare(b.attemptId),
-    );
+  list: async (
+    query: ArchiveListQuery,
+  ): Promise<{ items: ArchiveSummary[]; hasMore: boolean }> => {
+    const items = await collectSummaries(storage, query);
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? defaultPageSize;
     const start = (page - 1) * pageSize;
@@ -300,8 +313,8 @@ export const createResumeDebugArchiveReader = (
       hasMore: items.length > start + pageSize,
     };
   },
+  // 페이지 없이 모든 실행을 최신순으로 한 번의 훑기로 돌려준다. 합산처럼 전체가 필요한 소비자가 쓴다
+  listAll: async (
+    query: Omit<ArchiveListQuery, "page" | "pageSize">,
+  ): Promise<ArchiveSummary[]> => collectSummaries(storage, query),
 });
-
-export type ResumeDebugArchiveReader = ReturnType<
-  typeof createResumeDebugArchiveReader
->;

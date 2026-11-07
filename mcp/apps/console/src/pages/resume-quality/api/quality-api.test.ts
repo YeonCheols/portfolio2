@@ -1,19 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import {
-  dashboardPageSize,
-  listAllResumeQualityDashboard,
-  listResumeQualityDashboard,
-  maxDashboardPages,
-} from "./quality-api";
+import { listAllResumeQualityDashboard } from "./quality-api";
 
-const response = (body: unknown) =>
-  ({ ok: true, status: 200, json: async () => body }) as Response;
+const response = (body: unknown, status = 200) =>
+  ({ ok: status < 400, status, json: async () => body }) as Response;
 
 describe("quality-api", () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it("환경과 페이지를 별도 품질 대시보드 API에 보내 평가 요약을 읽는다", async () => {
+  it("선택한 환경의 합산 API를 한 번만 호출해 모든 평가 기록을 읽는다", async () => {
     const result = {
       items: [
         {
@@ -21,7 +16,8 @@ describe("quality-api", () => {
           metrics: [{ metricId: "pdf-layout", confirmedRate: 0.875 }],
         },
       ],
-      hasMore: true,
+      truncated: false,
+      archivesScanned: 1,
     };
     const fetchMock = vi
       .fn()
@@ -29,71 +25,56 @@ describe("quality-api", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(
-      listResumeQualityDashboard({
-        environment: "production",
-        page: 2,
-        pageSize: 10,
-      }),
+      listAllResumeQualityDashboard({ environment: "production" }),
     ).resolves.toEqual(result);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledWith(
-      "/admin/resume-quality/api/dashboard?environment=production&page=2&pageSize=10",
+      "/admin/resume-quality/api/dashboard/all?environment=production",
       expect.objectContaining({ credentials: "same-origin", method: "GET" }),
     );
   });
 
-  it("마지막 페이지까지 이어서 읽어 모든 평가 기록을 한 목록으로 합친다", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(
-        response({ ok: true, items: [{ evaluationId: "a" }], hasMore: true }),
-      )
-      .mockResolvedValueOnce(
-        response({ ok: true, items: [{ evaluationId: "b" }], hasMore: false }),
-      );
-    vi.stubGlobal("fetch", fetchMock);
+  it("서버가 잘렸다고 알리면 그대로 전달한다", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        response({
+          ok: true,
+          items: [],
+          truncated: true,
+          archivesScanned: 300,
+        }),
+      ),
+    );
 
     const result = await listAllResumeQualityDashboard({
       environment: "development",
     });
 
-    expect(result.items.map((item) => item.evaluationId)).toEqual(["a", "b"]);
-    expect(result.truncated).toBe(false);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
-      `/admin/resume-quality/api/dashboard?environment=development&page=1&pageSize=${dashboardPageSize}`,
-      `/admin/resume-quality/api/dashboard?environment=development&page=2&pageSize=${dashboardPageSize}`,
-    ]);
-  });
-
-  it("페이지 수 상한에 닿으면 읽은 만큼만 돌려주고 잘렸음을 알린다", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(
-        response({ ok: true, items: [{ evaluationId: "x" }], hasMore: true }),
-      );
-    vi.stubGlobal("fetch", fetchMock);
-
-    const result = await listAllResumeQualityDashboard({
-      environment: "production",
-    });
-
-    expect(fetchMock).toHaveBeenCalledTimes(maxDashboardPages);
-    expect(result.items).toHaveLength(maxDashboardPages);
     expect(result.truncated).toBe(true);
+    expect(result.archivesScanned).toBe(300);
   });
 
-  it("중간 페이지가 실패하면 일부만 보여주지 않고 오류를 그대로 던진다", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(
-        response({ ok: true, items: [{ evaluationId: "a" }], hasMore: true }),
-      )
-      .mockResolvedValueOnce({
-        ok: false,
-        status: 502,
-        json: async () => ({ ok: false, code: "STORAGE_FAILED" }),
-      } as Response);
-    vi.stubGlobal("fetch", fetchMock);
+  it("응답 형식이 맞지 않으면 일부만 쓰지 않고 오류를 던진다", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(response({ ok: true, items: [] })),
+    );
+
+    await expect(
+      listAllResumeQualityDashboard({ environment: "development" }),
+    ).rejects.toThrow("품질 대시보드 응답 형식이 올바르지 않습니다.");
+  });
+
+  it("서버 오류는 그대로 오류로 던진다", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          response({ ok: false, code: "STORAGE_FAILED" }, 502),
+        ),
+    );
 
     await expect(
       listAllResumeQualityDashboard({ environment: "development" }),

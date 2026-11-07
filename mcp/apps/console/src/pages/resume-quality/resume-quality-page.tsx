@@ -3,8 +3,11 @@ import { useEffect, useState, type ReactNode } from "react";
 import { AdminLayout } from "../../shared/ui/admin-layout";
 import { LoadingSpinner } from "../../shared/ui/loading-spinner";
 import { SelectField } from "../../shared/ui/select-field";
-import type { ModelEnvironment, ResumeQualityDashboardItem } from "../../types";
-import { listAllResumeQualityDashboard } from "./api/quality-api";
+import type { ModelEnvironment } from "../../types";
+import {
+  listAllResumeQualityDashboard,
+  type ResumeQualitySummary,
+} from "./api/quality-api";
 import { MetricRateChart } from "./metric-rate-chart";
 import { OutcomeBars } from "./outcome-bars";
 import { QualityDataTable } from "./quality-data-table";
@@ -21,7 +24,7 @@ import { TrendChart } from "./trend-chart";
 type PageState =
   | { status: "loading" }
   | { status: "error"; message: string }
-  | { status: "done"; items: ResumeQualityDashboardItem[]; truncated: boolean };
+  | ({ status: "done" } & ResumeQualitySummary);
 
 const environments = [
   { value: "development", label: "개발" },
@@ -126,7 +129,7 @@ export const ResumeQualityPage = ({ search }: { search: string }) => {
           <p className="text-sm text-slate-600">
             {`기록 ${items.length}건을 합산했습니다.`}
             {state.truncated &&
-              ` 기록이 많아 최근 ${items.length}건까지만 합산했습니다.`}
+              ` 실행이 많아 최근 ${state.archivesScanned}개까지만 합산했습니다.`}
           </p>
           <QualityKpiRow totals={totals} />
           <div className="mt-4 grid gap-4 lg:grid-cols-2">

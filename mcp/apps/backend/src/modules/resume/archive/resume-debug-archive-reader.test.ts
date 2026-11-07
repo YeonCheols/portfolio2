@@ -124,6 +124,27 @@ describe("이력서 디버깅 아카이브 목록", () => {
     expect(result.items.map((item) => item.attemptId)).toEqual(["att-1"]);
   });
 
+  it("listAll은 페이지 없이 모든 실행을 최신순으로 한 번의 훑기로 돌려준다", async () => {
+    const storage = fakeStorage({
+      [`${base}/s/g/att-1/001-started.json`]: "2026-11-01T00:00:00.000Z",
+      [`${base}/s/g/att-2/001-started.json`]: "2026-11-02T00:00:00.000Z",
+      [`${base}/s/g/att-3/001-started.json`]: "2026-11-03T00:00:00.000Z",
+    });
+    const reader = createResumeDebugArchiveReader(storage);
+
+    const all = await reader.listAll({ environment: "development" });
+    const listCallsForAll = storage.listObjects.mock.calls.length;
+    storage.listObjects.mockClear();
+    await reader.list({ environment: "development", pageSize: 1 });
+
+    expect(all.map((item) => item.attemptId)).toEqual([
+      "att-3",
+      "att-2",
+      "att-1",
+    ]);
+    expect(listCallsForAll).toBe(storage.listObjects.mock.calls.length);
+  });
+
   it("최신순 목록을 페이지 단위로 자르고 다음 페이지가 있으면 hasMore로 알린다", async () => {
     const storage = fakeStorage({
       [`${base}/s/g/att-1/001-started.json`]: "2026-11-01T00:00:00.000Z",

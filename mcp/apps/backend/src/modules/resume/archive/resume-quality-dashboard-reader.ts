@@ -30,6 +30,9 @@ export type ResumeQualityDashboardItem = {
   metrics: ResumeQualityDashboardMetric[];
 };
 
+// 목록 전체를 합산할 때 읽는 최근 실행의 상한이다. 실행 하나마다 저장소를 읽으므로 비용을 제한한다
+export const maxQualityDashboardArchives = 300;
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
@@ -92,6 +95,53 @@ export const createResumeQualityDashboardReader = (
 ) => {
   const archiveReader = createResumeDebugArchiveReader(storage);
 
+  // 실행 하나의 마지막 기록에서 평가 요약을 읽는다. 평가가 없거나 형식이 맞지 않으면 건너뛴다
+  const toItem = async (
+    environment: string,
+    summary: ArchiveSummary,
+  ): Promise<ResumeQualityDashboardItem | null> => {
+    const detail = await archiveReader.get({
+      environment,
+      subjectHash: summary.subjectHash,
+      generationId: summary.generationId,
+      attemptId: summary.attemptId,
+    });
+    const latest = isRecord(detail.latest) ? detail.latest : null;
+    const evaluation = latest?.qualityEvaluation;
+    if (!isRecord(evaluation) || !isRecord(evaluation.run)) return null;
+    const run = evaluation.run;
+    if (
+      typeof run.evaluationId !== "string" ||
+      typeof run.evaluatedAt !== "string" ||
+      !Array.isArray(evaluation.aggregates)
+    )
+      return null;
+    const metrics = evaluation.aggregates.map(asMetric);
+    if (metrics.length === 0 || metrics.some((metric) => metric === null))
+      return null;
+    return {
+      archive: {
+        environment,
+        subjectHash: summary.subjectHash,
+        generationId: summary.generationId,
+        attemptId: summary.attemptId,
+        ...(summary.startedAt ? { startedAt: summary.startedAt } : {}),
+        status: summary.status,
+      },
+      evaluationId: run.evaluationId,
+      evaluatedAt: run.evaluatedAt,
+      metrics: metrics as ResumeQualityDashboardMetric[],
+    };
+  };
+
+  const readItems = async (
+    environment: string,
+    summaries: readonly ArchiveSummary[],
+  ): Promise<ResumeQualityDashboardItem[]> =>
+    (
+      await mapLimit(summaries, 8, (summary) => toItem(environment, summary))
+    ).filter((item): item is ResumeQualityDashboardItem => item !== null);
+
   return {
     list: async (query: {
       environment: string;
@@ -111,62 +161,46 @@ export const createResumeQualityDashboardReader = (
 
       const start = (page - 1) * pageSize;
       const needed = start + pageSize + 1;
+      // 환경 폴더는 한 번만 훑고, 평가를 읽는 실행만 필요한 만큼 이어서 읽는다
+      const summaries = await archiveReader.listAll({
+        environment: query.environment,
+      });
       const matches: ResumeQualityDashboardItem[] = [];
-      let archivePage = 1;
-      let archiveHasMore = true;
-
-      while (archiveHasMore && matches.length < needed) {
-        const result = await archiveReader.list({
-          environment: query.environment,
-          page: archivePage,
-          pageSize: 100,
-        });
-        const pageMatches = await mapLimit(result.items, 8, async (summary) => {
-          const detail = await archiveReader.get({
-            environment: query.environment,
-            subjectHash: summary.subjectHash,
-            generationId: summary.generationId,
-            attemptId: summary.attemptId,
-          });
-          const latest = isRecord(detail.latest) ? detail.latest : null;
-          const evaluation = latest?.qualityEvaluation;
-          if (!isRecord(evaluation) || !isRecord(evaluation.run)) return null;
-          const run = evaluation.run;
-          if (
-            typeof run.evaluationId !== "string" ||
-            typeof run.evaluatedAt !== "string" ||
-            !Array.isArray(evaluation.aggregates)
-          )
-            return null;
-          const metrics = evaluation.aggregates.map(asMetric);
-          if (metrics.length === 0 || metrics.some((metric) => metric === null))
-            return null;
-          return {
-            archive: {
-              environment: query.environment,
-              subjectHash: summary.subjectHash,
-              generationId: summary.generationId,
-              attemptId: summary.attemptId,
-              ...(summary.startedAt ? { startedAt: summary.startedAt } : {}),
-              status: summary.status,
-            },
-            evaluationId: run.evaluationId,
-            evaluatedAt: run.evaluatedAt,
-            metrics: metrics as ResumeQualityDashboardMetric[],
-          } satisfies ResumeQualityDashboardItem;
-        });
+      for (
+        let offset = 0;
+        offset < summaries.length && matches.length < needed;
+        offset += 100
+      )
         matches.push(
-          ...pageMatches.filter(
-            (item): item is ResumeQualityDashboardItem => item !== null,
-          ),
+          ...(await readItems(
+            query.environment,
+            summaries.slice(offset, offset + 100),
+          )),
         );
-        archiveHasMore = result.hasMore;
-        archivePage += 1;
-      }
 
       return {
         items: matches.slice(start, start + pageSize),
         hasMore: matches.length > start + pageSize,
+      };
+    },
+
+    // 목록 전체를 합산하려는 화면용이다. 최근 실행부터 maxArchives개까지만 읽어 읽기 비용을 제한한다
+    summarize: async (query: {
+      environment: string;
+      maxArchives: number;
+    }): Promise<{
+      items: ResumeQualityDashboardItem[];
+      truncated: boolean;
+      archivesScanned: number;
+    }> => {
+      const summaries = await archiveReader.listAll({
+        environment: query.environment,
+      });
+      const scanned = summaries.slice(0, query.maxArchives);
+      return {
+        items: await readItems(query.environment, scanned),
+        truncated: summaries.length > query.maxArchives,
+        archivesScanned: scanned.length,
       };
     },
   };
