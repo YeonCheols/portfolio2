@@ -13,6 +13,9 @@ export type ArchiveReadStorage = ArchiveListStorage & {
   createSignedUrl: (path: string) => Promise<string>;
 };
 
+// 품질 리뷰는 시도 폴더와 같은 깊이에 저장되므로 시도 목록에서 이 이름은 제외한다
+export const qualityReviewsDirectoryName = "quality-reviews";
+
 export type ArchiveKey = {
   environment: string;
   subjectHash: string;
@@ -258,6 +261,7 @@ export const createResumeDebugArchiveReader = (
             `${root}/${entry.subject}/${entry.generation}`,
           ),
         )
+          .filter((attempt) => attempt.name !== qualityReviewsDirectoryName)
           .filter(
             (attempt) => !query.attemptId || attempt.name === query.attemptId,
           )

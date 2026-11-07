@@ -4,6 +4,7 @@ import type { ArchiveKey } from "@mcp/modules/resume/archive/resume-debug-archiv
 import {
   archiveDirectory,
   createResumeDebugArchiveReader,
+  qualityReviewsDirectoryName,
 } from "@mcp/modules/resume/archive/resume-debug-archive-reader";
 import type { ArchiveWriteStorage } from "@mcp/modules/resume/archive/resume-debug-archive-writer";
 import type { QualityEvaluationRun } from "@mcp/modules/quality-evaluation/evaluation-contract";
@@ -78,7 +79,7 @@ const generationDirectory = (key: ArchiveKey): string => {
 const reviewDirectory = (directory: string, evaluationId: string): string => {
   if (!/^[A-Za-z0-9_-]{1,128}$/.test(evaluationId))
     throw new ResumeQualityReviewError("QUALITY_CASE_NOT_REVIEWABLE");
-  return `${directory}/quality-reviews/${evaluationId}`;
+  return `${directory}/${qualityReviewsDirectoryName}/${evaluationId}`;
 };
 
 export const createResumeQualityReviewStore = (

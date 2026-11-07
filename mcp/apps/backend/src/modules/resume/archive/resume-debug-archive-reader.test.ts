@@ -111,6 +111,19 @@ describe("이력서 디버깅 아카이브 목록", () => {
     expect(byStage.items.map((item) => item.attemptId)).toEqual(["att-2"]);
   });
 
+  it("품질 리뷰 폴더는 시도 목록에서 제외한다", async () => {
+    const storage = fakeStorage({
+      [`${base}/s/g/att-1/001-started.json`]: "2026-11-01T00:00:00.000Z",
+      [`${base}/s/g/quality-reviews/eval-1/review-1.json`]:
+        "2026-11-02T00:00:00.000Z",
+    });
+    const reader = createResumeDebugArchiveReader(storage);
+
+    const result = await reader.list({ environment: "development" });
+
+    expect(result.items.map((item) => item.attemptId)).toEqual(["att-1"]);
+  });
+
   it("최신순 목록을 페이지 단위로 자르고 다음 페이지가 있으면 hasMore로 알린다", async () => {
     const storage = fakeStorage({
       [`${base}/s/g/att-1/001-started.json`]: "2026-11-01T00:00:00.000Z",

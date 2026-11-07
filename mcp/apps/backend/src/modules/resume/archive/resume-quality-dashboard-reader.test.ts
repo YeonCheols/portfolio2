@@ -70,6 +70,25 @@ describe("createResumeQualityDashboardReader", () => {
     expect(JSON.stringify(result)).not.toContain("private-case-id");
   });
 
+  it("같은 생성 아래 저장된 품질 리뷰 폴더가 있어도 평가 기록을 조회한다", async () => {
+    const storage = createFakeArchiveStorage({
+      ...failedAttemptObjects(validResponse),
+      "debug/resume/development/subj-a/gen-1/att-1/005-quality_evaluation.json":
+        {
+          qualityEvaluation: evaluation,
+        },
+      "debug/resume/development/subj-a/gen-1/quality-reviews/gen-1-pdf-quality/review-1.json":
+        { reviewId: "review-1" },
+    });
+    const dashboard = createResumeQualityDashboardReader(storage);
+
+    const result = await dashboard.list({ environment: "development" });
+
+    expect(result.items.map((item) => item.archive.attemptId)).toEqual([
+      "att-1",
+    ]);
+  });
+
   it("오래된 아카이브 페이지를 건너뛰고 평가 기록만 페이지로 나눈다", async () => {
     const storage = createFakeArchiveStorage({
       ...failedAttemptObjects(validResponse),
