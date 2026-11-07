@@ -31,6 +31,15 @@ const tools = [
     description: "모델을 호출해 이력서를 작성한다",
     inputSchema: { type: "object", properties: {}, required: [] },
   },
+  {
+    name: "convert_resume_to_pdf",
+    description: "생성한 이력서를 PDF로 변환한다",
+    inputSchema: {
+      type: "object",
+      properties: { generationId: { type: "string" } },
+      required: ["generationId"],
+    },
+  },
 ];
 
 describe("ToolListPage", () => {
@@ -48,12 +57,13 @@ describe("ToolListPage", () => {
     render(<ToolListPage />);
 
     expect(screen.getByRole("status").textContent).toContain("불러오는 중");
+    expect(screen.getByTestId("loading-spinner")).toBeTruthy();
     const list = await screen.findByRole("list", { name: "도구 목록" });
     expect(fetchMock).toHaveBeenCalledWith(
       "/admin/tools/resume/api/tools",
       expect.anything(),
     );
-    expect(within(list).getAllByRole("listitem")).toHaveLength(2);
+    expect(within(list).getAllByRole("listitem")).toHaveLength(3);
     expect(within(list).getByText("generate_resume")).toBeTruthy();
     expect(
       within(list).getByText("XML을 공통 이력서 모델로 검증한다"),
@@ -120,6 +130,126 @@ describe("ToolListPage", () => {
       fireEvent.change(within(detail).getByLabelText("입력 인자(JSON)"), {
         target: { value },
       });
+
+    it("이력서 생성에 성공하면 ID를 자동 복사하고 PDF 도구를 실행해 해당 도구로 전환한다", async () => {
+      const generationId = "resume-generation-1";
+      const user = userEvent.setup();
+      const writeText = vi
+        .spyOn(navigator.clipboard, "writeText")
+        .mockResolvedValue(undefined);
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse({ ok: true, tools }))
+        .mockResolvedValueOnce(
+          jsonResponse({
+            ok: true,
+            isError: false,
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify({ generationId }),
+              },
+            ],
+          }),
+        )
+        .mockResolvedValueOnce(
+          jsonResponse({
+            ok: true,
+            isError: false,
+            content: [{ type: "text", text: "PDF 변환 완료" }],
+          }),
+        );
+      stubFetch(fetchMock);
+      render(<ToolListPage />);
+      const list = await screen.findByRole("list", { name: "도구 목록" });
+      await user.click(
+        within(list).getByRole("button", { name: /generate_resume/ }),
+      );
+      const generate = screen.getByRole("region", {
+        name: "generate_resume 상세",
+      });
+
+      await user.click(within(generate).getByRole("button", { name: "실행" }));
+
+      const convert = await screen.findByRole("region", {
+        name: "convert_resume_to_pdf 상세",
+      });
+      expect(await within(convert).findByText("PDF 변환 완료")).toBeTruthy();
+      expect(
+        JSON.parse(
+          (
+            within(convert).getByLabelText(
+              "입력 인자(JSON)",
+            ) as HTMLTextAreaElement
+          ).value,
+        ),
+      ).toEqual({ generationId });
+      expect(writeText).toHaveBeenCalledWith(generationId);
+      expect(
+        within(convert).getByText("generationId를 클립보드에 복사했습니다."),
+      ).toBeTruthy();
+      expect(fetchMock).toHaveBeenCalledTimes(3);
+      expect(
+        JSON.parse((fetchMock.mock.calls[2][1] as RequestInit).body as string),
+      ).toEqual({
+        name: "convert_resume_to_pdf",
+        arguments: { generationId },
+      });
+      expect(
+        within(list)
+          .getByRole("button", { name: /convert_resume_to_pdf/ })
+          .getAttribute("aria-pressed"),
+      ).toBe("true");
+    });
+
+    it("PDF 품질 게이트가 차단해도 변환 결과와 generationId를 PDF 도구 화면에 보여준다", async () => {
+      const generationId = "resume-generation-blocked";
+      const user = userEvent.setup();
+      vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue(undefined);
+      const fetchMock = vi
+        .fn()
+        .mockResolvedValueOnce(jsonResponse({ ok: true, tools }))
+        .mockResolvedValueOnce(
+          jsonResponse({
+            ok: true,
+            isError: false,
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify({ generationId }),
+              },
+            ],
+          }),
+        )
+        .mockResolvedValueOnce(
+          jsonResponse({
+            ok: true,
+            isError: true,
+            content: [{ type: "text", text: "RESUME_QUALITY_BLOCKED" }],
+          }),
+        );
+      stubFetch(fetchMock);
+      render(<ToolListPage />);
+      const list = await screen.findByRole("list", { name: "도구 목록" });
+      await user.click(
+        within(list).getByRole("button", { name: /generate_resume/ }),
+      );
+
+      await user.click(
+        within(
+          screen.getByRole("region", { name: "generate_resume 상세" }),
+        ).getByRole("button", { name: "실행" }),
+      );
+
+      const convert = await screen.findByRole("region", {
+        name: "convert_resume_to_pdf 상세",
+      });
+      expect(
+        await within(convert).findByText("RESUME_QUALITY_BLOCKED"),
+      ).toBeTruthy();
+      expect(within(convert).getByText("실패")).toBeTruthy();
+      expect(within(convert).getByText(generationId)).toBeTruthy();
+    });
 
     it("도구를 고르면 입력란이 그 도구의 샘플로 채워지고 샘플이 없으면 빈 객체이며 되돌리기로 샘플을 복원한다", async () => {
       stubFetch(vi.fn().mockResolvedValue(jsonResponse({ ok: true, tools })));

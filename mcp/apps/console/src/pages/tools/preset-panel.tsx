@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
+import { LoadingSpinner } from "../../shared/ui/loading-spinner";
 import {
   ApiError,
   deletePreset,
@@ -129,13 +130,7 @@ export const PresetPanel = ({
     >
       <h3 className="text-sm font-bold text-slate-900">프리셋</h3>
       {list.status === "loading" && (
-        <p
-          role="status"
-          aria-live="polite"
-          className="mt-2 text-sm text-slate-600"
-        >
-          프리셋을 불러오는 중입니다.
-        </p>
+        <LoadingSpinner label="프리셋을 불러오는 중입니다." className="mt-2" />
       )}
       {list.status === "error" && (
         <p role="alert" className="mt-2 text-sm font-bold text-red-700">

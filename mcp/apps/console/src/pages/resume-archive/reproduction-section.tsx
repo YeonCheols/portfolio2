@@ -165,7 +165,7 @@ export const ReproductionSection = ({
               download={`resume-${record.reproductionId}.pdf`}
               className="mt-2 inline-block font-bold underline"
             >
-              PDF 내려받기
+              {record.status === "completed" ? "PDF 내려받기" : "후보 PDF 검토"}
             </a>
           )}
         </div>

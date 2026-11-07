@@ -217,7 +217,7 @@ describe("handleMcpRequest", () => {
     ]);
   });
 
-  it("생성 ID를 PDF에 전달하면 모델 추가 호출 없이 실제 PDF 바이너리 리소스를 반환한다", async () => {
+  it("품질 미검토 claim을 기록하면서 PDF 변환을 허용하고 모델을 재호출하지 않는다", async () => {
     const generation = {
       store: createResumeGenerationStore(),
       scope: { subject: "fixture-user", environment: "production" },
@@ -278,22 +278,23 @@ describe("handleMcpRequest", () => {
       model,
       generation,
     );
-    expect(converted).toMatchObject({ result: { isError: false } });
-    if (
-      !converted ||
-      !("result" in converted) ||
-      !converted.result ||
-      !("content" in converted.result)
-    )
-      throw new Error("content missing");
-    const resource = converted.result.content?.find(
-      (item) => "resource" in item,
-    );
-    if (!resource || !("resource" in resource)) throw new Error("PDF missing");
-    expect(resource.resource.mimeType).toBe("application/pdf");
-    expect(
-      Buffer.from(resource.resource.blob, "base64").subarray(0, 5).toString(),
-    ).toBe("%PDF-");
+    expect(converted).toMatchObject({
+      result: {
+        isError: false,
+        content: [
+          {
+            type: "text",
+            text: "이력서 PDF를 생성했습니다.",
+          },
+          {
+            type: "resource",
+            resource: expect.objectContaining({
+              mimeType: "application/pdf",
+            }),
+          },
+        ],
+      },
+    });
     expect(model.generate).toHaveBeenCalledTimes(1);
   });
 

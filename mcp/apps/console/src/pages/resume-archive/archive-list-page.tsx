@@ -7,6 +7,7 @@ import type {
   ModelEnvironment,
 } from "../../types";
 import { AdminLayout } from "../../shared/ui/admin-layout";
+import { LoadingSpinner } from "../../shared/ui/loading-spinner";
 import { SelectField } from "../../shared/ui/select-field";
 
 import {
@@ -150,13 +151,7 @@ export const ArchiveListPage = ({ search }: { search: string }) => {
 
       <section aria-label="실행 목록" className="mt-7">
         {state.status === "loading" && (
-          <p
-            role="status"
-            aria-live="polite"
-            className="text-sm text-slate-600"
-          >
-            불러오는 중입니다.
-          </p>
+          <LoadingSpinner label="불러오는 중입니다." />
         )}
         {state.status === "error" && (
           <p

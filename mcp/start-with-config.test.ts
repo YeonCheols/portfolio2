@@ -75,6 +75,16 @@ describe("컨테이너 설정 진입점", () => {
 });
 
 describe("Compose 실행 도구", () => {
+  it("로컬 서버는 선택한 포트를 IPv4와 IPv6 루프백에만 공개한다", () => {
+    const compose = fs.readFileSync(
+      path.join(__dirname, "docker-compose.yml"),
+      "utf8",
+    );
+
+    expect(compose).toContain('"127.0.0.1:${MCP_LOCAL_PORT:-8080}:8080"');
+    expect(compose).toContain('"[::1]:${MCP_LOCAL_PORT:-8080}:8080"');
+  });
+
   it.each(["up", "verify", "down"])(
     "%s에 필요한 인증과 Docker 인자만 전달한다",
     (action) => {

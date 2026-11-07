@@ -380,6 +380,7 @@ describe("SettingsPage", () => {
     render(<SettingsPage />);
 
     expect(screen.getAllByText("설정을 불러오는 중입니다.")).toHaveLength(2);
+    expect(screen.getAllByTestId("loading-spinner")).toHaveLength(2);
     expect(screen.queryByText("등록된 설정이 없습니다.")).toBeNull();
 
     resolveFetch(jsonResponse([]));
@@ -388,6 +389,7 @@ describe("SettingsPage", () => {
       2,
     );
     expect(screen.queryByText("설정을 불러오는 중입니다.")).toBeNull();
+    expect(screen.queryByTestId("loading-spinner")).toBeNull();
   });
 
   it("수정 중인 설정을 삭제하면 폼이 추가 모드로 돌아간다", async () => {

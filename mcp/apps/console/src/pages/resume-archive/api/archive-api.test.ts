@@ -6,10 +6,12 @@ import {
   getRevision,
   listArchives,
   listReproductions,
+  listQualityReviews,
   listRevisions,
   removeArchive,
   reproduceArchive,
   saveRevision,
+  saveQualityReview,
 } from "./archive-api";
 
 const jsonResponse = (body: unknown, status = 200) =>
@@ -262,6 +264,42 @@ describe("archive-api", () => {
     ).resolves.toEqual({
       record: { reproductionId: "rep-1" },
       pdfOmitted: true,
+    });
+  });
+
+  it("품질 판정 목록과 수정을 평가 ID와 같은 출처 쿠키로 주고받는다", async () => {
+    const review = {
+      reviewId: "00000000-0000-4000-8000-000000000001",
+      evaluationId: "gen-1-pdf-quality",
+      caseId: "pdf-page/1",
+      decision: "pass" as const,
+      reviewedAt: "2026-11-06T01:00:00.000Z",
+      reviewerHash: "a".repeat(64),
+    };
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ ok: true, items: [review] }))
+      .mockResolvedValueOnce(jsonResponse({ ok: true, review }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(listQualityReviews(key, review.evaluationId)).resolves.toEqual(
+      [review],
+    );
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      `/admin/debug/resume/api/archives/quality-reviews?environment=development&subjectHash=subj-a&generationId=gen-1&attemptId=att-1&evaluationId=${review.evaluationId}`,
+    );
+    await expect(
+      saveQualityReview(key, {
+        evaluationId: review.evaluationId,
+        caseId: review.caseId,
+        decision: "pass",
+      }),
+    ).resolves.toEqual(review);
+    expect(JSON.parse(fetchMock.mock.calls[1][1].body)).toEqual({
+      ...key,
+      evaluationId: review.evaluationId,
+      caseId: review.caseId,
+      decision: "pass",
     });
   });
 });

@@ -80,6 +80,18 @@ const extras = {
 };
 
 describe("ArchiveDetailPage", () => {
+  it("상세를 조회하는 동안 로딩 표시를 보여준다", () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockReturnValue(new Promise<Response>(() => {})),
+    );
+
+    render(<ArchiveDetailPage archiveKey={archiveKey} />);
+
+    expect(screen.getByRole("status").textContent).toContain("불러오는 중");
+    expect(screen.getByTestId("loading-spinner")).toBeTruthy();
+  });
+
   it("생성 작업이 완료돼도 검증이 차단되면 PDF 변환 불가를 안내한다", async () => {
     vi.stubGlobal(
       "fetch",
@@ -101,6 +113,47 @@ describe("ArchiveDetailPage", () => {
       await screen.findByText(
         "생성 응답은 보관됐지만 검증에서 차단되어 PDF로 변환할 수 없습니다.",
       ),
+    ).toBeTruthy();
+  });
+  it("저장된 PDF 품질 평가가 있으면 같은 실행의 검토 판정 UI를 보여준다", async () => {
+    vi.stubGlobal(
+      "fetch",
+      router({
+        "/detail?": () =>
+          jsonResponse({
+            ...detail,
+            latest: {
+              ...detail.latest,
+              qualityEvaluation: {
+                run: {
+                  evaluationId: "gen-1-pdf-quality",
+                  caseSetVersion: "resume-quality-population-v1",
+                  policyVersion: "resume-quality-policy-v1",
+                  inputRef: "gen-1",
+                  outputRef: "gen-1-pdf",
+                  cases: [
+                    {
+                      metricId: "pdf-layout",
+                      caseId: "pdf-page/1",
+                      decision: "needs_review",
+                      blocking: true,
+                      evidence: [],
+                    },
+                  ],
+                },
+                aggregates: [],
+              },
+            },
+          }),
+        ...extras,
+        "/quality-reviews?": () => jsonResponse({ ok: true, items: [] }),
+      }),
+    );
+
+    render(<ArchiveDetailPage archiveKey={archiveKey} />);
+
+    expect(
+      await screen.findByRole("region", { name: "품질 검토" }),
     ).toBeTruthy();
   });
   it("상단 실행 요약에 당시 AI 공급자와 모델명을 보여주고 이전 기록은 기록 없음으로 표시한다", async () => {

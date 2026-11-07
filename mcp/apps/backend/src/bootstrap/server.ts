@@ -27,6 +27,7 @@ import {
   type RuntimeEnv,
 } from "@mcp/bootstrap/runtime-config";
 import { createResumeDebugArchiveAdmin } from "@mcp/modules/resume/archive/resume-debug-archive-admin";
+import { createResumeQualityReviewStore } from "@mcp/modules/resume/quality/resume-quality-review-store";
 import type { ResumeModelClient } from "@mcp/modules/resume/generation/run-resume-harness";
 import { createSupabaseStorage } from "@mcp/infrastructure/storage/supabase-storage";
 import { resumeToolDefinitions } from "@mcp/interfaces/tools/handle-mcp-request";
@@ -128,11 +129,15 @@ export const startResumeMcpServer = () => {
   const storage = config.storage
     ? createSupabaseStorage(config.storage)
     : undefined;
+  const qualityReviews = storage
+    ? createResumeQualityReviewStore(storage)
+    : undefined;
 
   return createResumeMcpServer({
     introspect,
     environment: config.modelSetting.environment,
     storage,
+    qualityReviews,
     // 저장소가 없으면 정책도 없어 모든 도구가 활성인 기존 동작을 유지한다
     toolPolicy: storage
       ? createResumeToolPolicy({
@@ -165,7 +170,7 @@ export const startResumeMcpServer = () => {
     admin: {
       api: adminApi,
       debugArchive: storage
-        ? createResumeDebugArchiveAdmin(storage)
+        ? createResumeDebugArchiveAdmin(storage, qualityReviews)
         : undefined,
       testSetting: createSettingConnectionTester({
         api: adminApi,

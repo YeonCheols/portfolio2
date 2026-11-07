@@ -1,5 +1,6 @@
 import http, { type IncomingMessage, type ServerResponse } from "http";
 import type { JsonStorage } from "@mcp/infrastructure/storage/supabase-storage";
+import type { ResumeGenerationContext } from "@mcp/modules/resume/generation/resume-generation-store";
 
 import type { PortfolioAdminApi } from "@mcp/infrastructure/portfolio-api/admin-api";
 import type { createPortfolioAdminOAuth } from "@mcp/interfaces/admin/auth/admin-oauth";
@@ -68,6 +69,7 @@ export const createResumeMcpServer = (options: {
   connection: ResumeConnection;
   model?: ResumeModelSource;
   storage?: JsonStorage;
+  qualityReviews?: ResumeGenerationContext["qualityReviews"];
   // 도구 활성 정책. /mcp의 목록·호출과 관리 화면이 같은 정책을 읽는다
   toolPolicy?: AdminToolPolicy;
   // 관리 화면의 시험 입력(프리셋) 저장소. 관리 화면에서만 쓴다
@@ -116,6 +118,7 @@ export const createResumeMcpServer = (options: {
             store: generations,
             scope: { subject: session.sub, environment: options.environment },
             storage: options.storage,
+            qualityReviews: options.qualityReviews,
           }
         : undefined,
       policy,

@@ -14,7 +14,7 @@ pnpm verify:container
 
 상위 저장소에서는 `pnpm --dir mcp local:up`처럼 실행합니다. 컨테이너의 의존성·빌드·검증은 컨테이너 내부에서 수행하므로 호스트에 프로젝트 의존성을 설치할 필요는 없습니다.
 
-`local:up`은 이미지를 빌드하고 서버의 헬스체크를 기다립니다. 기본 연결은 `http://localhost:8080`이며 외부 인터페이스에는 포트를 노출하지 않습니다. 필요하면 `MCP_LOCAL_PORT=18080 pnpm local:up`처럼 호스트 포트만 변경할 수 있습니다. OAuth를 포함한 전체 사용에는 중앙 설정의 MCP 공개 URL과 포트도 일치해야 합니다.
+`local:up`은 이미지를 빌드하고 서버의 헬스체크를 기다립니다. 기본 연결은 `http://localhost:8080`이며 IPv4·IPv6 루프백에만 포트를 노출합니다. 필요하면 `MCP_LOCAL_PORT=18080 pnpm local:up`처럼 호스트 포트만 변경할 수 있습니다. OAuth를 포함한 전체 사용에는 중앙 설정의 MCP 공개 URL과 포트도 일치해야 합니다.
 
 ## 설정과 인증
 

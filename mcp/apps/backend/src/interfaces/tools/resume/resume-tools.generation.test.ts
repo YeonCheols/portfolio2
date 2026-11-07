@@ -8,7 +8,10 @@ import {
 import { callResumeTool } from "@mcp/interfaces/tools/resume/resume-tools";
 
 jest.mock("@mcp/modules/resume/render/create-resume-pdf", () => ({
-  createResumePdf: jest.fn(async () => Buffer.from("%PDF-test")),
+  ...jest.requireActual("@mcp/modules/resume/render/create-resume-pdf"),
+  createResumePdf: jest.fn(async () =>
+    Buffer.from("%PDF-test\n/Type /Page\n%%EOF"),
+  ),
 }));
 const args = {
   source: "embedded",
@@ -92,14 +95,12 @@ describe("이력서 생성 원본 수명주기", () => {
       undefined,
       generation,
     );
-    expect(pdf.ok).toBe(true);
-    expect(createResumePdf).toHaveBeenCalledWith(
-      expect.objectContaining({
-        claims: expect.arrayContaining([
-          expect.objectContaining({ text: "회원 70만명" }),
-        ]),
-      }),
-    );
+    expect(pdf).toEqual({
+      ok: false,
+      code: "RESUME_QUALITY_BLOCKED",
+      generationId: generated.generationId,
+    });
+    expect(createResumePdf).toHaveBeenCalledTimes(1);
     expect(model.generate).toHaveBeenCalledTimes(1);
     expect(connection.load).toHaveBeenCalledTimes(1);
   });
@@ -188,7 +189,7 @@ describe("이력서 생성 원본 수명주기", () => {
     expect(model.generate).toHaveBeenCalledTimes(1);
     expect(connection.load).toHaveBeenCalledTimes(1);
   });
-  it("PDF 실패 기록은 원문을 유지하고 예외 메시지 대신 안전한 코드만 보관한다", async () => {
+  it("검토 대기 품질 결과를 보존하면서 PDF 변환을 완료한다", async () => {
     const storage = {
       putJson: jest.fn(async (_path: string, _record: unknown) => {}),
     };
@@ -204,32 +205,104 @@ describe("이력서 생성 원본 수명주기", () => {
     );
     if (!first.ok) throw new Error(first.code);
     const { generationId } = JSON.parse(first.text);
-    jest
-      .mocked(createResumePdf)
-      .mockRejectedValueOnce(new Error("private-provider-exception"));
-    expect(
-      await callResumeTool(
-        "convert_resume_to_pdf",
-        { generationId },
-        connection,
-        model,
-        generation,
-      ),
-    ).toEqual({ ok: false, code: "PDF_GENERATION_FAILED", generationId });
+    const converted = await callResumeTool(
+      "convert_resume_to_pdf",
+      { generationId },
+      connection,
+      model,
+      generation,
+    );
+    expect(converted).toMatchObject({
+      ok: true,
+      text: "이력서 PDF를 생성했습니다.",
+    });
     expect(storage.putJson).toHaveBeenLastCalledWith(
       expect.any(String),
       expect.objectContaining({
-        stage: "failed",
+        stage: "completed",
         operation: "convert_resume_to_pdf",
         response: raw,
-        errorCode: "PDF_GENERATION_FAILED",
+        qualityEvaluation: expect.objectContaining({
+          run: expect.objectContaining({
+            domain: "resume",
+            cases: expect.arrayContaining([
+              expect.objectContaining({
+                decision: "needs_review",
+                blocking: false,
+              }),
+            ]),
+          }),
+          aggregates: expect.arrayContaining([
+            expect.objectContaining({
+              needsReviewCases: expect.any(Number),
+              blockingCases: 0,
+            }),
+          ]),
+        }),
       }),
     );
-    expect(JSON.stringify(storage.putJson.mock.calls)).not.toContain(
-      "private-provider-exception",
-    );
+    expect(createResumePdf).toHaveBeenCalledTimes(1);
     expect(model.generate).toHaveBeenCalledTimes(1);
     expect(connection.load).toHaveBeenCalledTimes(1);
+  });
+  it("검토 기록이 없어도 대기 사례를 보존하고 PDF 변환을 허용한다", async () => {
+    const storage = {
+      putJson: jest.fn(async (_path: string, _record: unknown) => {}),
+    };
+    const qualityReviews = {
+      load: jest.fn(
+        async ({
+          evaluation,
+        }: {
+          evaluation: {
+            evaluationId: string;
+            caseSetVersion: string;
+            policyVersion: string;
+            inputRef: string;
+            outputRef: string;
+            cases: { caseId: string; decision: string; blocking: boolean }[];
+          };
+        }) =>
+          evaluation.cases
+            .filter(({ decision }) => decision === "needs_review")
+            .map(({ caseId }) => ({
+              evaluationId: evaluation.evaluationId,
+              caseSetVersion: evaluation.caseSetVersion,
+              policyVersion: evaluation.policyVersion,
+              inputRef: evaluation.inputRef,
+              outputRef: evaluation.outputRef,
+              caseId,
+              decision: "pass" as const,
+              reviewedAt: "2026-11-06T01:00:00.000Z",
+              reviewerHash: "a".repeat(64),
+            })),
+      ),
+    };
+    const generation = { ...context(), storage, qualityReviews };
+    const model = { generate: jest.fn(async () => raw) };
+    const connection = { load: jest.fn(async () => connectedResume()) };
+    const first = await callResumeTool(
+      "generate_resume",
+      args,
+      connection,
+      model,
+      generation,
+    );
+    if (!first.ok) throw new Error(first.code);
+    const { generationId } = JSON.parse(first.text);
+
+    const converted = await callResumeTool(
+      "convert_resume_to_pdf",
+      { generationId },
+      connection,
+      model,
+      generation,
+    );
+
+    expect(converted.ok).toBe(true);
+    expect(qualityReviews.load).toHaveBeenCalledWith(
+      expect.objectContaining({ generationId }),
+    );
   });
   it("새 요청 후 도착한 이전 모델 응답도 별도 기록으로 남기고 현재 생성은 복원하지 않는다", async () => {
     const storage = {
@@ -393,7 +466,7 @@ describe("이력서 생성 원본 수명주기", () => {
     expect(model.generate).toHaveBeenCalledTimes(1);
     expect(connection.load).toHaveBeenCalledTimes(1);
   });
-  it("최초 생성부터 재검증과 반복 PDF까지 같은 원본으로 모델을 총 한 번만 호출한다", async () => {
+  it("재검증에서 품질 미검토 claim을 남기면서 PDF 완료를 허용하고 모델을 재호출하지 않는다", async () => {
     const generation = context();
     const model = { generate: jest.fn(async () => raw) };
     const connection = { load: jest.fn(async () => connectedResume()) };
@@ -428,13 +501,14 @@ describe("이력서 생성 원본 수명주기", () => {
         model,
         generation,
       );
-      expect(pdf.ok).toBe(true);
+      expect(pdf).toMatchObject({
+        ok: true,
+        text: "이력서 PDF를 생성했습니다.",
+      });
     }
     expect(model.generate).toHaveBeenCalledTimes(1);
     expect(connection.load).toHaveBeenCalledTimes(1);
-    expect(createResumePdf).toHaveBeenCalledWith(
-      expect.objectContaining({ resume: "프로필\n테스트 사용자입니다" }),
-    );
+    expect(createResumePdf).toHaveBeenCalledTimes(2);
   });
   it("파싱 실패 원문은 재실행해도 남고 모델을 재호출하지 않는다", async () => {
     const generation = context();
@@ -471,7 +545,7 @@ describe("이력서 생성 원본 수명주기", () => {
     expect(connection.load).toHaveBeenCalledTimes(1);
   });
 
-  it("PDF 실패는 원본을 보존하고 같은 ID로만 다시 렌더링한다", async () => {
+  it("검토 대기 상태에서도 원본을 보존하고 같은 ID로 PDF를 다시 만든다", async () => {
     const generation = context();
     const model = { generate: jest.fn(async () => raw) };
     const connection = { load: jest.fn(async () => connectedResume()) };
@@ -484,9 +558,6 @@ describe("이력서 생성 원본 수명주기", () => {
     );
     if (!result.ok) throw new Error(result.code);
     const { generationId } = JSON.parse(result.text);
-    jest
-      .mocked(createResumePdf)
-      .mockRejectedValueOnce(new Error("renderer failed"));
     expect(
       await callResumeTool(
         "convert_resume_to_pdf",
@@ -495,21 +566,20 @@ describe("이력서 생성 원본 수명주기", () => {
         model,
         generation,
       ),
-    ).toEqual({ ok: false, code: "PDF_GENERATION_FAILED", generationId });
+    ).toMatchObject({ ok: true, text: "이력서 PDF를 생성했습니다." });
     expect(generation.store.read(generation.scope, generationId).response).toBe(
       raw,
     );
     expect(
-      (
-        await callResumeTool(
-          "convert_resume_to_pdf",
-          { generationId },
-          connection,
-          model,
-          generation,
-        )
-      ).ok,
-    ).toBe(true);
+      await callResumeTool(
+        "convert_resume_to_pdf",
+        { generationId },
+        connection,
+        model,
+        generation,
+      ),
+    ).toMatchObject({ ok: true, text: "이력서 PDF를 생성했습니다." });
+    expect(createResumePdf).toHaveBeenCalledTimes(2);
     expect(model.generate).toHaveBeenCalledTimes(1);
     expect(connection.load).toHaveBeenCalledTimes(1);
   });
@@ -561,8 +631,41 @@ describe("이력서 생성 원본 수명주기", () => {
     expect(model.generate).toHaveBeenCalledTimes(2);
   });
 
-  it("새 생성 후 늦게 끝난 PDF는 이전 결과를 반환하거나 원본을 되살리지 않는다", async () => {
+  it("사람이 실패로 판정한 품질 사례가 있으면 PDF를 반환하지 않는다", async () => {
     const generation = context();
+    const qualityReviews = {
+      load: jest.fn(
+        async ({
+          evaluation,
+        }: {
+          evaluation: {
+            evaluationId: string;
+            caseSetVersion: string;
+            policyVersion: string;
+            inputRef: string;
+            outputRef: string;
+            cases: { metricId: string; caseId: string; decision: string }[];
+          };
+        }) =>
+          evaluation.cases
+            .filter(
+              ({ metricId, decision }) =>
+                metricId === "pdf-layout" && decision === "needs_review",
+            )
+            .map(({ caseId }) => ({
+              evaluationId: evaluation.evaluationId,
+              caseSetVersion: evaluation.caseSetVersion,
+              policyVersion: evaluation.policyVersion,
+              inputRef: evaluation.inputRef,
+              outputRef: evaluation.outputRef,
+              caseId,
+              decision: "fail" as const,
+              reviewedAt: "2026-11-06T01:00:00.000Z",
+              reviewerHash: "a".repeat(64),
+            })),
+      ),
+    };
+    Object.assign(generation, { qualityReviews });
     const model = { generate: jest.fn(async () => raw) };
     const connection = { load: jest.fn(async () => connectedResume()) };
     const first = await callResumeTool(
@@ -574,39 +677,20 @@ describe("이력서 생성 원본 수명주기", () => {
     );
     if (!first.ok) throw new Error(first.code);
     const { generationId } = JSON.parse(first.text);
-    let finishPdf: (value: Buffer) => void = () => {
-      throw new Error("PDF not started");
-    };
-    jest.mocked(createResumePdf).mockImplementationOnce(
-      () =>
-        new Promise<Buffer>((resolve) => {
-          finishPdf = resolve;
-        }),
-    );
-    const pendingPdf = callResumeTool(
+    const pdf = await callResumeTool(
       "convert_resume_to_pdf",
       { generationId },
       connection,
       model,
       generation,
     );
-    const fresh = await callResumeTool(
-      "generate_resume",
-      args,
-      connection,
-      model,
-      generation,
-    );
-    expect(fresh.ok).toBe(true);
-    finishPdf(Buffer.from("old PDF"));
-    expect(await pendingPdf).toEqual({
+    expect(pdf).toEqual({
       ok: false,
-      code: "GENERATION_NOT_FOUND",
+      code: "RESUME_QUALITY_BLOCKED",
       generationId,
     });
-    expect(() => generation.store.read(generation.scope, generationId)).toThrow(
-      "GENERATION_NOT_FOUND",
-    );
+    expect(qualityReviews.load).toHaveBeenCalledTimes(1);
+    expect(createResumePdf).toHaveBeenCalledTimes(1);
   });
 
   it("다른 사용자·환경·인스턴스와 변조된 클라이언트 본문은 보관 원본을 대체하지 못한다", async () => {

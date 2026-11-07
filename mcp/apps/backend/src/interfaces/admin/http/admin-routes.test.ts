@@ -1001,6 +1001,10 @@ describe("portfolio-api 관리자 라우트", () => {
       removeAttempt: jest.fn(),
       reproduce: jest.fn(),
       listReproductions: jest.fn(),
+      listQualityReviews: jest.fn(),
+      saveQualityReview: jest.fn(),
+      listQualityDashboard: jest.fn(),
+      summarizeQualityDashboard: jest.fn(),
     });
     const active = () =>
       jest.fn().mockResolvedValue({ active: true, sub: "7" });
@@ -1388,6 +1392,168 @@ describe("portfolio-api 관리자 라우트", () => {
           revision: { response: "저장된 응답" },
         });
         expect(reader.getRevision).toHaveBeenCalledWith(keyBody, "rev-1");
+      });
+    });
+
+    it("품질 판정은 인증된 관리자를 기록자로 넘기고 평가별 목록을 반환한다", async () => {
+      const reader = makeReader();
+      const review = {
+        evaluationId: "gen-1-pdf-quality",
+        caseId: "pdf-page/1",
+        decision: "pass",
+        reviewedAt: "2026-11-06T01:00:00.000Z",
+        reviewerHash: "a".repeat(64),
+      };
+      reader.listQualityReviews.mockResolvedValueOnce([review]);
+      reader.saveQualityReview.mockResolvedValueOnce(review);
+      const query = new URLSearchParams(keyBody).toString();
+      const api = "/admin/debug/resume/api/archives/quality-reviews";
+      await withServer({ reader }, async (port) => {
+        const listed = await request(
+          port,
+          `${api}?${query}&evaluationId=gen-1-pdf-quality`,
+          { headers: session },
+        );
+        expect(JSON.parse(listed.body)).toEqual({ ok: true, items: [review] });
+
+        const saved = await post(port, "quality-reviews", {
+          ...keyBody,
+          evaluationId: "gen-1-pdf-quality",
+          caseId: "pdf-page/1",
+          decision: "pass",
+        });
+        expect(saved.status).toBe(200);
+        expect(JSON.parse(saved.body)).toEqual({ ok: true, review });
+        expect(reader.saveQualityReview).toHaveBeenCalledWith(keyBody, {
+          evaluationId: "gen-1-pdf-quality",
+          caseId: "pdf-page/1",
+          decision: "pass",
+          reviewer: "7",
+        });
+      });
+    });
+
+    it("품질 대시보드는 환경과 페이지를 검증해 평가 요약을 반환한다", async () => {
+      const reader = makeReader();
+      const result = {
+        items: [
+          {
+            evaluationId: "gen-1-pdf-quality",
+            metrics: [{ metricId: "pdf-layout", confirmedRate: 0.9 }],
+          },
+        ],
+        hasMore: true,
+      };
+      reader.listQualityDashboard.mockResolvedValueOnce(result);
+      const log = jest.fn();
+      await withServer({ reader, log }, async (port) => {
+        const response = await request(
+          port,
+          "/admin/resume-quality/api/dashboard?environment=production&page=2&pageSize=10",
+          { headers: session },
+        );
+
+        expect(response.status).toBe(200);
+        expect(JSON.parse(response.body)).toEqual({ ok: true, ...result });
+        expect(reader.listQualityDashboard).toHaveBeenCalledWith({
+          environment: "production",
+          page: 2,
+          pageSize: 10,
+        });
+        expect(log).toHaveBeenCalledWith(
+          "ADMIN_RESUME_QUALITY sub=7 action=dashboard result=ok",
+        );
+      });
+    });
+
+    it("품질 대시보드 API는 관리자 세션이 없으면 저장소를 조회하지 않는다", async () => {
+      const reader = makeReader();
+      await withServer({ reader }, async (port) => {
+        const response = await request(
+          port,
+          "/admin/resume-quality/api/dashboard?environment=development",
+        );
+
+        expect(response.status).toBe(401);
+        expect(reader.listQualityDashboard).not.toHaveBeenCalled();
+      });
+    });
+
+    it("품질 대시보드 합산은 환경만 검증해 최근 실행 상한과 함께 한 번에 읽는다", async () => {
+      const reader = makeReader();
+      const result = {
+        items: [{ evaluationId: "gen-1-pdf-quality", metrics: [] }],
+        truncated: true,
+        archivesScanned: 300,
+      };
+      reader.summarizeQualityDashboard.mockResolvedValueOnce(result);
+      const log = jest.fn();
+      await withServer({ reader, log }, async (port) => {
+        const response = await request(
+          port,
+          "/admin/resume-quality/api/dashboard/all?environment=production",
+          { headers: session },
+        );
+
+        expect(response.status).toBe(200);
+        expect(JSON.parse(response.body)).toEqual({ ok: true, ...result });
+        expect(reader.summarizeQualityDashboard).toHaveBeenCalledWith({
+          environment: "production",
+          maxArchives: 300,
+        });
+        expect(log).toHaveBeenCalledWith(
+          "ADMIN_RESUME_QUALITY sub=7 action=dashboard_all result=ok",
+        );
+      });
+    });
+
+    it("품질 대시보드 합산은 세션이 없거나 GET이 아니면 저장소를 읽지 않는다", async () => {
+      const reader = makeReader();
+      await withServer({ reader }, async (port) => {
+        const anonymous = await request(
+          port,
+          "/admin/resume-quality/api/dashboard/all?environment=development",
+        );
+        const post = await request(
+          port,
+          "/admin/resume-quality/api/dashboard/all?environment=development",
+          { method: "POST", headers: { ...session, ...sameOrigin } },
+        );
+
+        expect(anonymous.status).toBe(401);
+        expect(post.status).toBe(405);
+        expect(reader.summarizeQualityDashboard).not.toHaveBeenCalled();
+      });
+    });
+
+    it("품질 대시보드 합산은 잘못된 환경을 400으로, 저장소 오류를 코드만 담아 502로 알린다", async () => {
+      const reader = makeReader();
+      reader.summarizeQualityDashboard
+        .mockRejectedValueOnce(new ArchiveQueryError())
+        .mockRejectedValueOnce(new Error("secret storage detail"));
+      const log = jest.fn();
+      await withServer({ reader, log }, async (port) => {
+        const invalid = await request(
+          port,
+          "/admin/resume-quality/api/dashboard/all?environment=x",
+          { headers: session },
+        );
+        const failed = await request(
+          port,
+          "/admin/resume-quality/api/dashboard/all?environment=development",
+          { headers: session },
+        );
+
+        expect(invalid.status).toBe(400);
+        expect(failed.status).toBe(502);
+        expect(JSON.parse(failed.body)).toEqual({
+          ok: false,
+          code: "STORAGE_FAILED",
+        });
+        expect(failed.body).not.toContain("secret");
+        expect(log).toHaveBeenCalledWith(
+          "ADMIN_RESUME_QUALITY sub=7 action=dashboard_all result=failed code=STORAGE_FAILED",
+        );
       });
     });
 
