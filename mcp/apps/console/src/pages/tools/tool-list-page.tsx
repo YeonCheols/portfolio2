@@ -9,6 +9,7 @@ import {
   type ToolDefinition,
 } from "./api/tool-api";
 import { AdminLayout } from "../../shared/ui/admin-layout";
+import { LoadingSpinner } from "../../shared/ui/loading-spinner";
 import { formatResultText } from "./format-result";
 import { PresetPanel } from "./preset-panel";
 
@@ -508,13 +509,10 @@ export const ToolListPage = () => {
         )}
       </div>
       {state.status === "loading" && (
-        <p
-          role="status"
-          aria-live="polite"
-          className="mt-4 text-sm text-slate-600"
-        >
-          도구 목록을 불러오는 중입니다.
-        </p>
+        <LoadingSpinner
+          label="도구 목록을 불러오는 중입니다."
+          className="mt-4"
+        />
       )}
       {state.status === "error" && (
         <p role="alert" className="mt-4 text-sm font-bold text-red-700">

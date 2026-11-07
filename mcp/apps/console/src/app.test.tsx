@@ -145,6 +145,7 @@ describe("App", () => {
     expect(screen.getByRole("status").textContent).toContain(
       "화면을 불러오는 중입니다.",
     );
+    expect(screen.getByTestId("loading-spinner")).toBeTruthy();
     expect(
       screen.getByRole("navigation", { name: "현재 위치" }).textContent,
     ).toContain("AI 모델 설정");

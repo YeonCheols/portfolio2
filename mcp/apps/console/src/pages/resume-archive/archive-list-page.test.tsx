@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -83,6 +83,29 @@ describe("ArchiveListPage", () => {
       screen.getByRole("link", { name: "다음 페이지" }).getAttribute("href"),
     ).toBe(
       "/admin/debug/resume?environment=production&generationId=gen-1&failedStage=validation&page=3",
+    );
+  });
+
+  it("목록을 조회하는 동안 로딩 표시를 보여주고 조회가 끝나면 숨긴다", async () => {
+    let resolveFetch!: (response: Response) => void;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockReturnValue(
+        new Promise<Response>((resolve) => {
+          resolveFetch = resolve;
+        }),
+      ),
+    );
+
+    render(<ArchiveListPage search="" />);
+
+    expect(screen.getByRole("status").textContent).toContain("불러오는 중");
+    expect(screen.getByTestId("loading-spinner")).toBeTruthy();
+
+    resolveFetch(jsonResponse({ ok: true, items: [], hasMore: false }));
+
+    await waitFor(() =>
+      expect(screen.queryByTestId("loading-spinner")).toBeNull(),
     );
   });
 

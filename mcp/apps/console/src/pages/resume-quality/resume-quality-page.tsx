@@ -1,14 +1,27 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { AdminLayout } from "../../shared/ui/admin-layout";
+import { LoadingSpinner } from "../../shared/ui/loading-spinner";
 import { SelectField } from "../../shared/ui/select-field";
 import type { ModelEnvironment, ResumeQualityDashboardItem } from "../../types";
-import { listResumeQualityDashboard } from "./api/quality-api";
+import { listAllResumeQualityDashboard } from "./api/quality-api";
+import { MetricRateChart } from "./metric-rate-chart";
+import { OutcomeBars } from "./outcome-bars";
+import { QualityDataTable } from "./quality-data-table";
+import { MetricGuide, QualityGuide } from "./quality-guide";
+import { QualityKpiRow } from "./quality-kpi-row";
+import {
+  metricBreakdown,
+  sortByRateDesc,
+  summarizeQuality,
+  trendSeries,
+} from "./quality-stats";
+import { TrendChart } from "./trend-chart";
 
 type PageState =
   | { status: "loading" }
   | { status: "error"; message: string }
-  | { status: "done"; items: ResumeQualityDashboardItem[]; hasMore: boolean };
+  | { status: "done"; items: ResumeQualityDashboardItem[]; truncated: boolean };
 
 const environments = [
   { value: "development", label: "개발" },
@@ -20,45 +33,17 @@ const environmentOf = (search: string): ModelEnvironment =>
     ? "production"
     : "development";
 
-const pageOf = (search: string): number => {
-  const value = Number(new URLSearchParams(search).get("page"));
-  return Number.isInteger(value) && value > 0 ? value : 1;
-};
-
-const archiveHref = (item: ResumeQualityDashboardItem): string => {
-  const params = new URLSearchParams({
-    environment: item.archive.environment,
-    subjectHash: item.archive.subjectHash,
-    generationId: item.archive.generationId,
-    attemptId: item.archive.attemptId,
-  });
-  return `/admin/debug/resume?${params}`;
-};
-
-const percentage = (metric: ResumeQualityDashboardItem["metrics"][number]) => {
-  if (metric.confirmedRate !== null)
-    return `${Math.round(metric.confirmedRate * 100)}%`;
-  if (metric.lowerBound !== null && metric.upperBound !== null)
-    return `${Math.round(metric.lowerBound * 100)}–${Math.round(metric.upperBound * 100)}% 예상 범위`;
-  return "측정 대기";
-};
-
-const statusLabel = (status: string): string =>
-  status === "completed" ? "완료" : status === "failed" ? "실패" : "진행 중";
-
 export const ResumeQualityPage = ({ search }: { search: string }) => {
   const environment = environmentOf(search);
-  const page = pageOf(search);
   const [selectedEnvironment, setSelectedEnvironment] =
     useState<ModelEnvironment>(environment);
   const [state, setState] = useState<PageState>({ status: "loading" });
-  const queryKey = `${environment}:${page}`;
 
   useEffect(() => {
     let active = true;
     setSelectedEnvironment(environment);
     setState({ status: "loading" });
-    listResumeQualityDashboard({ environment, page, pageSize: 20 })
+    listAllResumeQualityDashboard({ environment })
       .then((result) => {
         if (active) setState({ status: "done", ...result });
       })
@@ -75,23 +60,14 @@ export const ResumeQualityPage = ({ search }: { search: string }) => {
     return () => {
       active = false;
     };
-    // queryKey는 필터와 페이지를 반영하며 같은 쿼리의 재렌더링은 재호출하지 않는다
+    // 환경이 바뀔 때만 다시 조회하고 같은 환경의 재렌더링은 재호출하지 않는다
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [queryKey]);
+  }, [environment]);
 
   const items = state.status === "done" ? state.items : [];
-  const blockingCount = items.reduce(
-    (total, item) =>
-      total +
-      item.metrics.reduce((sum, metric) => sum + metric.blockingCases, 0),
-    0,
-  );
-  const reviewCount = items.reduce(
-    (total, item) =>
-      total +
-      item.metrics.reduce((sum, metric) => sum + metric.needsReviewCases, 0),
-    0,
-  );
+  const totals = summarizeQuality(items);
+  const ranked = sortByRateDesc(metricBreakdown(items));
+  const trend = trendSeries(items);
 
   return (
     <AdminLayout current="resume-quality">
@@ -102,8 +78,10 @@ export const ResumeQualityPage = ({ search }: { search: string }) => {
         이력서 품질 대시보드
       </h1>
       <p className="leading-relaxed text-slate-600">
-        PDF 평가의 확인율과 검토 대기·차단 항목을 생성 기록별로 조회합니다.
+        AI가 만든 이력서 PDF의 품질 검사 결과를 한눈에 확인합니다.
       </p>
+
+      <QualityGuide />
 
       <form
         action="/admin/resume-quality"
@@ -127,22 +105,9 @@ export const ResumeQualityPage = ({ search }: { search: string }) => {
         </button>
       </form>
 
-      {state.status === "done" && (
-        <section
-          aria-label="현재 페이지 요약"
-          className="mt-6 grid gap-3 sm:grid-cols-3"
-        >
-          <SummaryCard label="평가 기록" value={`${items.length}건`} />
-          <SummaryCard label="검토 대기" value={`${reviewCount}건`} />
-          <SummaryCard label="차단 항목" value={`${blockingCount}건`} />
-        </section>
-      )}
-
-      <section aria-label="품질 평가 목록" className="mt-7 grid gap-4">
+      <section aria-label="조회 상태" className="mt-6">
         {state.status === "loading" && (
-          <p role="status" className="text-sm text-slate-600">
-            품질 평가를 불러오는 중입니다.
-          </p>
+          <LoadingSpinner label="품질 평가를 불러오는 중입니다." />
         )}
         {state.status === "error" && (
           <p role="alert" className="text-sm text-red-700">
@@ -154,86 +119,67 @@ export const ResumeQualityPage = ({ search }: { search: string }) => {
             선택한 환경에 저장된 품질 평가가 없습니다.
           </p>
         )}
-        {items.map((item) => (
-          <article
-            key={`${item.archive.generationId}/${item.archive.attemptId}/${item.evaluationId}`}
-            className="rounded-2xl border border-slate-200 bg-white p-5"
-          >
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <a
-                  href={archiveHref(item)}
-                  className="font-mono text-sm font-bold text-blue-700 underline underline-offset-4"
-                >
-                  {item.archive.generationId}
-                </a>
-                <p className="mt-1 text-xs text-slate-500">
-                  실행 {item.archive.attemptId} ·{" "}
-                  {statusLabel(item.archive.status)}
-                </p>
-              </div>
-              <p className="text-xs text-slate-500">
-                평가 시각 {item.evaluatedAt.replace("T", " ").slice(0, 16)}
-              </p>
-            </div>
-            <ul className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {item.metrics.map((metric) => (
-                <li
-                  key={metric.metricId}
-                  className="rounded-xl border border-slate-200 bg-slate-50 p-4"
-                >
-                  <p className="text-xs font-semibold text-slate-600">
-                    {metric.metricId}
-                  </p>
-                  <p className="mt-1 text-2xl font-bold text-slate-900">
-                    {percentage(metric)}
-                  </p>
-                  <p className="mt-2 text-xs text-slate-600">
-                    확인 {metric.passedCases}/{metric.denominator}건 · 검토 대기{" "}
-                    {metric.needsReviewCases}건 · 차단 {metric.blockingCases}건
-                  </p>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-3 text-right text-xs text-slate-500">
-              평가 ID {item.evaluationId}
-            </p>
-          </article>
-        ))}
       </section>
 
-      {state.status === "done" && (page > 1 || state.hasMore) && (
-        <nav
-          aria-label="품질 평가 페이지"
-          className="mt-6 flex justify-between"
-        >
-          {page > 1 ? (
-            <a
-              className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold"
-              href={`?environment=${environment}&page=${page - 1}`}
+      {state.status === "done" && items.length > 0 && (
+        <>
+          <p className="text-sm text-slate-600">
+            {`기록 ${items.length}건을 합산했습니다.`}
+            {state.truncated &&
+              ` 기록이 많아 최근 ${items.length}건까지만 합산했습니다.`}
+          </p>
+          <QualityKpiRow totals={totals} />
+          <div className="mt-4 grid gap-4 lg:grid-cols-2">
+            <ChartCard
+              title="지표별 통과율"
+              description="지표마다 검사 건 중 몇 %가 통과했는지 보여줍니다. 막대가 길수록 좋고, 높은 순서로 정렬했습니다."
             >
-              이전
-            </a>
-          ) : (
-            <span />
-          )}
-          {state.hasMore && (
-            <a
-              className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold"
-              href={`?environment=${environment}&page=${page + 1}`}
+              <MetricRateChart rows={ranked} />
+            </ChartCard>
+            <ChartCard
+              title="판정 구성"
+              description="지표마다 검사 건이 어떤 판정으로 나뉘었는지 비율로 보여줍니다. 초록(통과)이 길수록 좋고, 통과율이 높은 순서로 정렬했습니다."
             >
-              다음
-            </a>
-          )}
-        </nav>
+              <OutcomeBars rows={ranked} />
+            </ChartCard>
+          </div>
+          <div className="mt-4">
+            <ChartCard
+              title="통과율 추이"
+              description="평가 시각 순으로 지표별 통과율이 오르는지 내리는지 봅니다. 평가 기록이 2건 이상 있어야 그려집니다."
+            >
+              <TrendChart metricIds={trend.metricIds} points={trend.points} />
+            </ChartCard>
+          </div>
+          <div className="mt-4">
+            <QualityDataTable
+              rows={ranked}
+              metricIds={trend.metricIds}
+              points={trend.points}
+            />
+          </div>
+        </>
       )}
+
+      <MetricGuide />
     </AdminLayout>
   );
 };
 
-const SummaryCard = ({ label, value }: { label: string; value: string }) => (
-  <div className="rounded-2xl border border-slate-200 bg-white p-4">
-    <p className="text-xs font-semibold text-slate-500">{label}</p>
-    <p className="mt-1 text-2xl font-bold">{value}</p>
-  </div>
+const ChartCard = ({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description: string;
+  children: ReactNode;
+}) => (
+  <section className="rounded-2xl border border-slate-200 bg-white p-5">
+    <h2 className="text-base font-bold text-slate-900">{title}</h2>
+    <p className="mb-4 mt-1 text-xs leading-relaxed text-slate-500">
+      {description}
+    </p>
+    {children}
+  </section>
 );

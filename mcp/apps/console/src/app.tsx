@@ -6,6 +6,7 @@ import { parseDetailKey } from "./pages/resume-archive/archive-search";
 import { LoginPage } from "./pages/login/login-page";
 import { AdminMenuPage } from "./pages/menu/admin-menu-page";
 import { AdminLayout } from "./shared/ui/admin-layout";
+import { LoadingSpinner } from "./shared/ui/loading-spinner";
 
 type AppProps = {
   pathname: string;
@@ -65,9 +66,7 @@ const connectPath = "/admin/ai-models/connect";
 // 화면 코드가 도착하기 전에도 현재 위치는 보이도록 레이아웃은 먼저 그린다
 const PageLoading = ({ current }: { current: string }) => (
   <AdminLayout current={current}>
-    <p role="status" aria-live="polite" className="text-sm text-slate-600">
-      화면을 불러오는 중입니다.
-    </p>
+    <LoadingSpinner label="화면을 불러오는 중입니다." />
   </AdminLayout>
 );
 

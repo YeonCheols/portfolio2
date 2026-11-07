@@ -1,5 +1,6 @@
 import type { ConnectionTestState, ModelSetting } from "../../types";
 
+import { LoadingSpinner } from "../../shared/ui/loading-spinner";
 import { SettingCard } from "./setting-card";
 
 type EnvironmentSectionProps = {
@@ -34,7 +35,7 @@ export const EnvironmentSection = ({
     </h2>
     <div className="space-y-3">
       {loading ? (
-        <p className="text-sm text-slate-500">설정을 불러오는 중입니다.</p>
+        <LoadingSpinner label="설정을 불러오는 중입니다." />
       ) : settings.length === 0 ? (
         <p className="text-sm text-slate-500">등록된 설정이 없습니다.</p>
       ) : (

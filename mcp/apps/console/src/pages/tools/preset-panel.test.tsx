@@ -48,6 +48,7 @@ describe("PresetPanel", () => {
     setup(fetchMock);
 
     expect(screen.getByRole("status").textContent).toContain("불러오는 중");
+    expect(screen.getByTestId("loading-spinner")).toBeTruthy();
     const list = await screen.findByRole("list", { name: "프리셋 목록" });
     expect(fetchMock).toHaveBeenCalledWith(
       "/admin/tools/resume/api/presets?tool=generate_resume",

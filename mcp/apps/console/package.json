@@ -8,10 +8,11 @@
     "test": "vitest run --config vite.config.ts"
   },
   "dependencies": {
-    "@portfolio-mcp/admin-contracts": "workspace:*",
     "@headlessui/react": "^2",
+    "@portfolio-mcp/admin-contracts": "workspace:*",
     "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react-dom": "18.3.1",
+    "recharts": "3.10.1"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.2",

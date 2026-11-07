@@ -57,6 +57,7 @@ describe("ToolListPage", () => {
     render(<ToolListPage />);
 
     expect(screen.getByRole("status").textContent).toContain("불러오는 중");
+    expect(screen.getByTestId("loading-spinner")).toBeTruthy();
     const list = await screen.findByRole("list", { name: "도구 목록" });
     expect(fetchMock).toHaveBeenCalledWith(
       "/admin/tools/resume/api/tools",

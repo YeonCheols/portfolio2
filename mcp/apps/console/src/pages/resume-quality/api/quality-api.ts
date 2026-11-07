@@ -33,3 +33,24 @@ export const listResumeQualityDashboard = async (query: {
     hasMore: body.hasMore,
   };
 };
+
+export const maxDashboardPages = 20;
+export const dashboardPageSize = 100;
+
+// 목록 전체의 합산 통계를 만들려고 마지막 페이지까지 읽는다. 상한에 닿으면 읽은 만큼만 돌려주고 잘렸음을 알린다.
+// 중간 페이지가 실패하면 일부 합계를 전체처럼 보이지 않도록 오류를 그대로 던진다
+export const listAllResumeQualityDashboard = async (query: {
+  environment: ModelEnvironment;
+}): Promise<{ items: ResumeQualityDashboardItem[]; truncated: boolean }> => {
+  const items: ResumeQualityDashboardItem[] = [];
+  for (let page = 1; page <= maxDashboardPages; page += 1) {
+    const result = await listResumeQualityDashboard({
+      environment: query.environment,
+      page,
+      pageSize: dashboardPageSize,
+    });
+    items.push(...result.items);
+    if (!result.hasMore) return { items, truncated: false };
+  }
+  return { items, truncated: true };
+};

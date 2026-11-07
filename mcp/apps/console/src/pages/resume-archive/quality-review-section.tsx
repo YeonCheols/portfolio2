@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import { LoadingSpinner } from "../../shared/ui/loading-spinner";
 import { listQualityReviews, saveQualityReview } from "./api/archive-api";
 import type {
   ArchiveKey,
@@ -85,9 +86,10 @@ export const QualityReviewSection = ({
         적용됩니다. 차단 건수 {blockingCases}건입니다.
       </p>
       {loading && (
-        <p role="status" className="mt-3 text-sm text-slate-600">
-          저장된 판정을 불러오는 중입니다.
-        </p>
+        <LoadingSpinner
+          label="저장된 판정을 불러오는 중입니다."
+          className="mt-3"
+        />
       )}
       {!loading && unresolved.length === 0 && (
         <p className="mt-3 text-sm text-slate-600">

@@ -51,6 +51,18 @@ const response = (body: Record<string, unknown>) =>
 describe("QualityReviewSection", () => {
   afterEach(() => vi.unstubAllGlobals());
 
+  it("저장된 판정을 조회하는 동안 로딩 표시를 보여준다", () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockReturnValue(new Promise<Response>(() => {})),
+    );
+
+    render(<QualityReviewSection archiveKey={key} evaluation={evaluation} />);
+
+    expect(screen.getByRole("status").textContent).toContain("불러오는 중");
+    expect(screen.getByTestId("loading-spinner")).toBeTruthy();
+  });
+
   it("관리자가 검토 통과를 저장하면 판정 결과를 표시한다", async () => {
     const review = {
       reviewId: "00000000-0000-4000-8000-000000000001",

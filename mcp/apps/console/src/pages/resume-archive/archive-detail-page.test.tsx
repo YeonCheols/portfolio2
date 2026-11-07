@@ -80,6 +80,18 @@ const extras = {
 };
 
 describe("ArchiveDetailPage", () => {
+  it("상세를 조회하는 동안 로딩 표시를 보여준다", () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockReturnValue(new Promise<Response>(() => {})),
+    );
+
+    render(<ArchiveDetailPage archiveKey={archiveKey} />);
+
+    expect(screen.getByRole("status").textContent).toContain("불러오는 중");
+    expect(screen.getByTestId("loading-spinner")).toBeTruthy();
+  });
+
   it("생성 작업이 완료돼도 검증이 차단되면 PDF 변환 불가를 안내한다", async () => {
     vi.stubGlobal(
       "fetch",
