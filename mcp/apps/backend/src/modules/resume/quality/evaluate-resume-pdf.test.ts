@@ -566,4 +566,58 @@ describe("evaluateResumePdfQuality", () => {
       ),
     ).toEqual([expect.objectContaining({ decision: "fail" })]);
   });
+  it("경력 연차의 구조화 값은 출력된 reportedText의 구성 요소이면 보존으로 본다", () => {
+    const part = (name: string, text: string, unit?: string) => ({
+      section: "profile",
+      name,
+      text,
+      ...(unit ? { unit } : {}),
+      sourceRefs: [],
+      visibility: "public",
+      children: [],
+    });
+    const profileSource = {
+      id: "profile-1",
+      section: "profile",
+      name: "profile",
+      text: "",
+      sourceRefs: [],
+      visibility: "public",
+      children: [
+        part("name", "홍길동"),
+        {
+          ...part("careerSummary", ""),
+          children: [
+            part("reportedYears", "6", "year"),
+            part("reportedMonths", "4", "month"),
+            part("reportedText", "총 6년 4개월"),
+          ],
+        },
+      ],
+    };
+    const { run } = evaluateResumePdfQuality({
+      generated: {
+        ...generated,
+        claims: [],
+        // reportedText는 첫 경력의 요약 카드에 출력됩니다.
+        selection: [profileSource, employment],
+      },
+      evaluationId: "evaluation-1",
+      evaluatedAt: "2026-11-06T00:00:00.000Z",
+      inputRef: "snapshot-1",
+      outputRef: "output-1",
+      pdfPageCount: 1,
+    });
+
+    expect(
+      run.cases.filter(
+        ({ metricId, caseId }) =>
+          metricId === "required-fact-preservation" &&
+          /\/(reportedYears|reportedMonths)\/text$/u.test(caseId),
+      ),
+    ).toEqual([
+      expect.objectContaining({ decision: "pass" }),
+      expect.objectContaining({ decision: "pass" }),
+    ]);
+  });
 });
