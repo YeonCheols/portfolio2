@@ -620,4 +620,64 @@ describe("evaluateResumePdfQuality", () => {
       expect.objectContaining({ decision: "pass" }),
     ]);
   });
+  const careerProfile = (reportedText: string) => {
+    const part = (name: string, text: string, unit?: string) => ({
+      section: "profile",
+      name,
+      text,
+      ...(unit ? { unit } : {}),
+      sourceRefs: [],
+      visibility: "public",
+      children: [],
+    });
+    return {
+      id: "profile-2",
+      section: "profile",
+      name: "profile",
+      text: "",
+      sourceRefs: [],
+      visibility: "public",
+      children: [
+        part("name", "홍길동"),
+        {
+          ...part("careerSummary", ""),
+          children: [
+            part("reportedYears", "6", "year"),
+            part("reportedMonths", "4", "month"),
+            part("reportedText", reportedText),
+          ],
+        },
+      ],
+    };
+  };
+  const reportedComponentDecisions = (
+    selection: readonly unknown[],
+  ): string[] =>
+    evaluateResumePdfQuality({
+      generated: { ...generated, claims: [], selection } as never,
+      evaluationId: "evaluation-1",
+      evaluatedAt: "2026-11-06T00:00:00.000Z",
+      inputRef: "snapshot-1",
+      outputRef: "output-1",
+      pdfPageCount: 1,
+    })
+      .run.cases.filter(
+        ({ metricId, caseId }) =>
+          metricId === "required-fact-preservation" &&
+          /\/(reportedYears|reportedMonths)\/text$/u.test(caseId),
+      )
+      .map(({ decision }) => decision);
+
+  it("reportedText가 출력되지 않으면 경력 연차 구조화 값은 누락으로 판정한다", () => {
+    // reportedText는 첫 경력의 요약 카드에만 출력되므로 경력이 없으면 PDF에 없습니다.
+    expect(reportedComponentDecisions([careerProfile("총 6년 4개월")])).toEqual(
+      ["fail", "fail"],
+    );
+  });
+
+  it("reportedText가 구조화 값과 다른 연차를 말하면 보존으로 보지 않는다", () => {
+    expect(
+      reportedComponentDecisions([careerProfile("총 5년 9개월"), employment]),
+    ).toEqual(["fail", "fail"]);
+  });
 });
