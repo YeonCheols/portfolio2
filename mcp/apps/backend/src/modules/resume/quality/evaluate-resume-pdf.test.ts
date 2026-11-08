@@ -680,4 +680,76 @@ describe("evaluateResumePdfQuality", () => {
       reportedComponentDecisions([careerProfile("총 5년 9개월"), employment]),
     ).toEqual(["fail", "fail"]);
   });
+  const eduLeaf = (name: string, text: string, children: unknown[] = []) => ({
+    section: "educationHistory",
+    name,
+    text,
+    sourceRefs: [],
+    visibility: "public",
+    children,
+  });
+  const education = (id: string, completion: string) => ({
+    id,
+    section: "educationHistory",
+    name: "education",
+    text: "",
+    sourceRefs: [],
+    visibility: "public",
+    children: [
+      eduLeaf("institution", `예시학교 ${id}`),
+      eduLeaf("level", "대학(2,3년)"),
+      eduLeaf("completion", completion),
+      eduLeaf("grade", "", [eduLeaf("value", "3.0"), eduLeaf("scale", "4.5")]),
+    ],
+  });
+  const evaluateEducation = (selection: readonly unknown[]) =>
+    evaluateResumePdfQuality({
+      generated: { ...generated, claims: [], selection } as never,
+      evaluationId: "evaluation-1",
+      evaluatedAt: "2026-11-06T00:00:00.000Z",
+      inputRef: "snapshot-1",
+      outputRef: "output-1",
+      pdfPageCount: 1,
+    }).run.cases;
+
+  it("학력 요약 카드의 이어 붙인 문자열은 출처를 찾아 차단하지 않는다", () => {
+    const blocked = evaluateEducation([education("edu-1", "졸업")]).filter(
+      ({ blocking, caseId }) => blocking && caseId.includes("summaryCards"),
+    );
+
+    expect(blocked).toEqual([]);
+  });
+
+  it("학점의 값과 만점은 이어 붙인 학점 블록에 보존된 것으로 본다", () => {
+    const cases = evaluateEducation([education("edu-1", "졸업")]);
+
+    expect(
+      cases.filter(
+        ({ metricId, caseId }) =>
+          metricId === "required-fact-preservation" &&
+          /\/grade\//u.test(caseId),
+      ),
+    ).toEqual([
+      expect.objectContaining({ decision: "pass" }),
+      expect.objectContaining({ decision: "pass" }),
+    ]);
+    expect(
+      cases.filter(
+        ({ blocking, caseId }) => blocking && caseId.includes("/details/"),
+      ),
+    ).toEqual([]);
+  });
+  it("서로 다른 레코드가 같은 필드 값을 가져도 중복 출력으로 보지 않는다", () => {
+    const cases = evaluateEducation([
+      education("edu-1", "졸업"),
+      education("edu-2", "졸업"),
+    ]);
+
+    expect(
+      cases.filter(
+        ({ metricId, decision }) =>
+          metricId === "duplicate-content" && decision === "fail",
+      ),
+    ).toEqual([]);
+  });
 });

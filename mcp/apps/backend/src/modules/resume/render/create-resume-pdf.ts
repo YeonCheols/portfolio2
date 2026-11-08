@@ -72,7 +72,7 @@ const childOf = (
   name: string,
 ): ResumeSelectionNode | undefined => childrenOf(node, name)[0];
 
-const field = (node: ResumeSelectionNode, name: string): string => {
+export const field = (node: ResumeSelectionNode, name: string): string => {
   if (node.visibility !== "public") return "";
   const value = childOf(node, name);
   if (!value || value.visibility !== "public") return "";
@@ -94,6 +94,9 @@ export const periodOf = (node: ResumeSelectionNode): string => {
   const end = field(period ?? node, "end");
   return [start, end].filter(Boolean).join(" ~ ");
 };
+
+export const educationSummaryOf = (node: ResumeSelectionNode): string =>
+  [field(node, "level"), field(node, "completion")].filter(Boolean).join(" · ");
 
 export const subtitleOf = (node: ResumeSelectionNode): string =>
   [field(node, "position"), field(node, "department")]
@@ -527,20 +530,9 @@ export const buildResumePdfModel = (input: ResumePdfInput): ResumePdfModel => {
       ? {
           label: "학력",
           title: education[0].title,
-          detail: [
-            field(
-              selection.find((node) => node.id === education[0].id) ??
-                emptyNode,
-              "level",
-            ),
-            field(
-              selection.find((node) => node.id === education[0].id) ??
-                emptyNode,
-              "completion",
-            ),
-          ]
-            .filter(Boolean)
-            .join(" · "),
+          detail: educationSummaryOf(
+            selection.find((node) => node.id === education[0].id) ?? emptyNode,
+          ),
         }
       : undefined,
     employment[0]
