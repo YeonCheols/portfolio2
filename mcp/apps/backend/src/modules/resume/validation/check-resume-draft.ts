@@ -156,6 +156,21 @@ const hasSingleProjectScope = (
   );
 };
 
+/** 원문에 같은 이름의 항목이 여러 개(예: 서비스별 link)이면 문장이 달라도 병렬 값입니다. */
+const isRepeatedField = (
+  selection: readonly ResumeSelectionNode[],
+  sourceId: string,
+  formItem?: string,
+): boolean => {
+  if (!formItem) return false;
+  const source = findById(selection, sourceId);
+  return (
+    (source?.children.filter(
+      (child) => child.name === formItem && hasText(child),
+    ).length ?? 0) > 1
+  );
+};
+
 const claimScopeKey = (sourceId: string, formItem?: string): string =>
   `${sourceId}\u0000${formItem ?? ""}`;
 
@@ -186,18 +201,18 @@ export const checkResumeDraft = (
   claims: readonly DraftClaim[],
 ): CheckedDraft => {
   const texts = textsBySourceId(claims);
-  const conflicts = [...texts.entries()]
-    .filter(([, { texts: values }]) => values.length > 1)
-    .map(([, { sourceId, formItem, texts: values }]) => ({
+  const conflictEntries = [...texts.entries()].filter(
+    ([, { sourceId, formItem, texts: values }]) =>
+      values.length > 1 && !isRepeatedField(selection, sourceId, formItem),
+  );
+  const conflicts = conflictEntries.map(
+    ([, { sourceId, formItem, texts: values }]) => ({
       sourceId,
       texts: values,
       ...(formItem ? { formItem } : {}),
-    }));
-  const conflictIds = new Set(
-    [...texts.entries()]
-      .filter(([, { texts: values }]) => values.length > 1)
-      .map(([key]) => key),
+    }),
   );
+  const conflictIds = new Set(conflictEntries.map(([key]) => key));
   const accepted: CheckedDraftClaim[] = [];
   const gaps: DraftClaim[] = [];
   const validationIssues: DraftValidationIssue[] = conflicts.map(
