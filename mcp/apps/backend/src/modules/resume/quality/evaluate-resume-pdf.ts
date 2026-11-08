@@ -6,6 +6,8 @@ import type {
 } from "@mcp/modules/quality-evaluation/evaluation-contract";
 import {
   buildResumePdfModel,
+  educationSummaryOf,
+  field,
   periodOf,
   subtitleOf,
 } from "@mcp/modules/resume/render/create-resume-pdf";
@@ -194,6 +196,10 @@ const collectDerivedTexts = (
     return [
       ["period", periodOf(node)],
       ["subtitle", subtitleOf(node)],
+      ["grade", field(node, "grade")],
+      ...(node.section === "educationHistory"
+        ? [["educationSummary", educationSummaryOf(node)]]
+        : []),
     ].flatMap(([name, text]) =>
       text
         ? [
@@ -333,7 +339,7 @@ export const evaluateResumePdfQuality = (
   const blocks = collectPdfTextBlocks(model).map((block) => {
     if (block.ownerId) return block;
     const sourceOwners = new Set(
-      sourceTexts
+      [...sourceTexts, ...derivedTexts]
         .filter(
           (fact) => normalizeText(fact.text) === normalizeText(block.text),
         )
@@ -407,13 +413,18 @@ export const evaluateResumePdfQuality = (
 
   const isPeriodEdge = (fact: ResumeSourceFact) =>
     /\/start\/text$|\/end\/text$/u.test(fact.factPath);
+  const isGradePart = (fact: ResumeSourceFact) =>
+    /\/grade\/[^/]+\/\d+\/(value|scale)\/text$/u.test(fact.factPath);
+  const hasToken = (block: PdfTextBlock, separator: RegExp, fact: string) =>
+    block.text
+      .split(separator)
+      .some((part) => normalizeText(part) === normalizeText(fact));
   const textMatches = (block: PdfTextBlock, fact: ResumeSourceFact) =>
     normalizeText(block.text) === normalizeText(fact.text) ||
     (isPeriodEdge(fact) &&
       /\/period$/u.test(block.caseId) &&
-      block.text
-        .split("~")
-        .some((edge) => normalizeText(edge) === normalizeText(fact.text)));
+      hasToken(block, /~/u, fact.text)) ||
+    (isGradePart(fact) && hasToken(block, /·/u, fact.text));
   // 자신이 소유한 블록을 먼저 배정하고, 상위 레코드 블록은 남은 것만 자식 원문에 연결합니다.
   const exactBlocks = new Map<ResumeSourceFact, PdfTextBlock>();
   sourceTexts.forEach((fact) => {
@@ -510,7 +521,10 @@ export const evaluateResumePdfQuality = (
         !/\/employment\/\d+\/organization$|\/period$/u.test(block.caseId),
     )
     .forEach((block) => {
-      const key = normalizeText(block.text);
+      // 필드 값(졸업 등)은 레코드마다 같을 수 있어 같은 레코드 안에서만 비교합니다.
+      const key = /\/details\/\d+\/value$/u.test(block.caseId)
+        ? `${block.ownerId ?? ""}\u0000${normalizeText(block.text)}`
+        : normalizeText(block.text);
       const group = duplicateGroups.get(key) ?? [];
       group.push(block);
       duplicateGroups.set(key, group);

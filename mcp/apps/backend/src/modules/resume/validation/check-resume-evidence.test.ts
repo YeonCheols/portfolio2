@@ -247,4 +247,34 @@ describe("checkResumeEvidence", () => {
       expect(result.validationIssues[0]?.code).toBe("INVALID_SOURCE_EVIDENCE");
     }
   });
+  it("만점의 만은 단위로 읽지 않고 만 단위의 값 변경은 계속 거부한다", () => {
+    const grade: ResumeSelectionNode = {
+      ...source,
+      id: "education",
+      name: "education",
+      text: "",
+      children: [
+        { ...source, id: undefined, name: "value", text: "3.0" },
+        { ...source, id: undefined, name: "scale", text: "4.5" },
+      ],
+    };
+    const claim = (text: string) => ({
+      text,
+      sourceIds: ["education"],
+      formItem: "education",
+      evidence: [
+        { sourceId: "education", quote: "3.0" },
+        { sourceId: "education", quote: "4.5" },
+      ],
+    });
+
+    expect(
+      checkResumeEvidence([grade], [claim("학점은 4.5 만점에 3.0입니다.")]),
+    ).toMatchObject({ gaps: [], validationIssues: [] });
+    expect(
+      checkResumeEvidence([grade], [claim("학점은 4.5만에 3.0입니다.")]),
+    ).toMatchObject({
+      validationIssues: [{ code: "UNSUPPORTED_NUMERIC_FACT" }],
+    });
+  });
 });
