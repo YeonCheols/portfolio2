@@ -4,7 +4,11 @@ import type {
   MetricEvaluationAggregate,
   QualityEvaluationRun,
 } from "@mcp/modules/quality-evaluation/evaluation-contract";
-import { buildResumePdfModel } from "@mcp/modules/resume/render/create-resume-pdf";
+import {
+  buildResumePdfModel,
+  periodOf,
+  subtitleOf,
+} from "@mcp/modules/resume/render/create-resume-pdf";
 import type { ResumeQualityReview } from "@mcp/modules/resume/quality/apply-resume-quality-reviews";
 import { createResumeQualityEvaluation } from "@mcp/modules/resume/quality/create-resume-quality-evaluation";
 import { resumeQualityPolicy } from "@mcp/modules/resume/quality/resume-quality-policy";
@@ -31,6 +35,8 @@ type ResumeSourceFact = {
   section: string;
   text: string;
   ownerId?: string;
+  /** 자신과 상위 노드의 id입니다. 출력 블록의 소유자는 이 중 하나입니다. */
+  ownerIds: readonly string[];
 };
 
 const resumePdfSections = new Set([
@@ -149,30 +155,58 @@ const collectSourceTexts = (
     nodes: readonly GeneratedResume["selection"][number][],
     parentReference: string,
     parentPath: string,
+    ancestorIds: readonly string[],
   ) => {
     nodes.forEach((node, index) => {
-      if (node.visibility !== "public") return;
+      if (node.visibility !== "public" || node.status === "superseded") return;
       const path = `${parentPath}/${node.section}/${index}/${node.name}`;
       const reference = node.id ?? (parentReference || path);
       const text = node.text.trim();
+      const ownerIds = node.id ? [...ancestorIds, node.id] : ancestorIds;
       if (text)
         facts.push({
           reference,
           factPath: `${path}/text`,
           section: node.section,
           text,
+          ownerIds,
           ...(node.id
             ? { ownerId: node.id }
             : parentReference
               ? { ownerId: parentReference }
               : {}),
         });
-      visit(node.children, reference, path);
+      visit(node.children, reference, path, ownerIds);
     });
   };
-  visit(selection, "", "selection");
+  visit(selection, "", "selection", []);
   return facts;
 };
+
+/** PDF 모델이 원문 필드를 이어 붙여 만드는 기간·소제목의 기대값입니다. */
+const collectDerivedTexts = (
+  selection: readonly GeneratedResume["selection"][number][],
+): ResumeSourceFact[] =>
+  selection.flatMap((node) => {
+    if (node.visibility !== "public" || !node.id) return [];
+    return [
+      ["period", periodOf(node)],
+      ["subtitle", subtitleOf(node)],
+    ].flatMap(([name, text]) =>
+      text
+        ? [
+            {
+              reference: node.id as string,
+              factPath: `selection/${node.section}/${node.id}/${name}`,
+              section: node.section,
+              text,
+              ownerId: node.id as string,
+              ownerIds: [node.id as string],
+            },
+          ]
+        : [],
+    );
+  });
 
 const normalizeText = (value: string): string =>
   value.normalize("NFC").replace(/\s+/gu, " ").trim();
@@ -292,6 +326,7 @@ export const evaluateResumePdfQuality = (
   const sourceTexts = collectSourceTexts(input.generated.selection).filter(
     ({ section }) => resumePdfSections.has(section),
   );
+  const derivedTexts = collectDerivedTexts(input.generated.selection);
   const blocks = collectPdfTextBlocks(model).map((block) => {
     if (block.ownerId) return block;
     const sourceOwners = new Set(
@@ -310,10 +345,11 @@ export const evaluateResumePdfQuality = (
     const matchingClaim = input.generated.claims.find(
       (claim) => normalizeText(claim.text) === normalized,
     );
-    const matchingSource = sourceTexts.find(
+    const matchingSource = [...sourceTexts, ...derivedTexts].find(
       (fact) =>
         normalizeText(fact.text) === normalized &&
-        fact.reference === block.ownerId,
+        Boolean(block.ownerId) &&
+        fact.ownerIds.includes(block.ownerId as string),
     );
     const sourceReferences =
       matchingClaim?.sourceIds ??
@@ -366,12 +402,35 @@ export const evaluateResumePdfQuality = (
     return [claimCase, ...numericCases];
   });
 
-  const sourceFactCases = sourceTexts.map((fact) => {
-    const matchingBlock = blocks.find(
-      (block) =>
-        normalizeText(block.text) === normalizeText(fact.text) &&
-        block.ownerId === fact.reference,
+  const isPeriodEdge = (fact: ResumeSourceFact) =>
+    /\/start\/text$|\/end\/text$/u.test(fact.factPath);
+  const textMatches = (block: PdfTextBlock, fact: ResumeSourceFact) =>
+    normalizeText(block.text) === normalizeText(fact.text) ||
+    (isPeriodEdge(fact) &&
+      /\/period$/u.test(block.caseId) &&
+      block.text
+        .split("~")
+        .some((edge) => normalizeText(edge) === normalizeText(fact.text)));
+  // 자신이 소유한 블록을 먼저 배정하고, 상위 레코드 블록은 남은 것만 자식 원문에 연결합니다.
+  const exactBlocks = new Map<ResumeSourceFact, PdfTextBlock>();
+  sourceTexts.forEach((fact) => {
+    const block = blocks.find(
+      (candidate) =>
+        candidate.ownerId === fact.reference && textMatches(candidate, fact),
     );
+    if (block) exactBlocks.set(fact, block);
+  });
+  const claimedBlocks = new Set(exactBlocks.values());
+  const sourceFactCases = sourceTexts.map((fact) => {
+    const matchingBlock =
+      exactBlocks.get(fact) ??
+      blocks.find(
+        (block) =>
+          !claimedBlocks.has(block) &&
+          Boolean(block.ownerId) &&
+          fact.ownerIds.includes(block.ownerId as string) &&
+          textMatches(block, fact),
+      );
     const supportedClaim = Boolean(
       fact.ownerId &&
         input.generated.claims.some(
@@ -379,7 +438,8 @@ export const evaluateResumePdfQuality = (
             claim.sourceIds.includes(fact.ownerId as string) &&
             blocks.some(
               (block) =>
-                block.ownerId === fact.ownerId &&
+                Boolean(block.ownerId) &&
+                fact.ownerIds.includes(block.ownerId as string) &&
                 normalizeText(block.text) === normalizeText(claim.text),
             ),
         ),
@@ -413,7 +473,12 @@ export const evaluateResumePdfQuality = (
   );
   const duplicateGroups = new Map<string, PdfTextBlock[]>();
   blocks
-    .filter((block) => !block.caseId.includes("/summaryCards/"))
+    .filter(
+      (block) =>
+        !block.caseId.includes("/summaryCards/") &&
+        // organization은 title을 복사한 별칭이고, 기간은 경력·프로젝트가 같은 값을 가질 수 있습니다.
+        !/\/employment\/\d+\/organization$|\/period$/u.test(block.caseId),
+    )
     .forEach((block) => {
       const key = normalizeText(block.text);
       const group = duplicateGroups.get(key) ?? [];

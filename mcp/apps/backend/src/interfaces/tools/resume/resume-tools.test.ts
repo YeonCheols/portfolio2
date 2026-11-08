@@ -57,6 +57,36 @@ describe("callResumeTool", () => {
     });
     expect(result.text).not.toContain("do-not-copy");
   });
+  it("현재 기준값이 아닌 superseded 상태만 선택 결과에 보존한다", async () => {
+    const superseded = resumeNode("periodVariant", {
+      text: "2023-11",
+      attributes: { visibility: "public", status: "superseded" },
+    });
+    const reported = resumeNode("headline", {
+      text: "소개",
+      attributes: { visibility: "public", status: "source-reported" },
+    });
+    const source = {
+      load: async () => connectedResume([superseded, reported]),
+    };
+    const result = await callResumeTool(
+      "read_resume_selection",
+      {
+        source: "repository",
+        elementIds: ["profile-test"],
+        sectionOrder: ["profile"],
+        template: "기본형",
+      },
+      source,
+    );
+    if (!result.ok) throw new Error(result.code);
+    const children = JSON.parse(result.text)[0].children;
+    expect(children[0]).toMatchObject({
+      name: "periodVariant",
+      status: "superseded",
+    });
+    expect(children[1]).not.toHaveProperty("status");
+  });
   beforeEach(() => {
     generation = { ...generation, store: createResumeGenerationStore() };
   });

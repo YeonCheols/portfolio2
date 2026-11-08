@@ -183,6 +183,9 @@ const selectionNode = (
     name: node.name,
     text: node.text,
     ...(node.attributes.unit ? { unit: node.attributes.unit } : {}),
+    ...(node.attributes.status === "superseded"
+      ? { status: "superseded" as const }
+      : {}),
     sourceRefs: node.references.sourceRefs ?? [],
     visibility: node.attributes.visibility ?? "",
     children: node.children.map((child) => selectionNode(section, child)),

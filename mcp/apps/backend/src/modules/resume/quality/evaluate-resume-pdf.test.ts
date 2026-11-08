@@ -258,4 +258,312 @@ describe("evaluateResumePdfQuality", () => {
       ]),
     );
   });
+  const leaf = (name: string, text: string) => ({
+    section: "employmentHistory",
+    name,
+    text,
+    sourceRefs: [],
+    visibility: "public",
+    children: [],
+  });
+  const employment = {
+    id: "employment-1",
+    section: "employmentHistory",
+    name: "employment",
+    text: "",
+    sourceRefs: [],
+    visibility: "public",
+    children: [
+      leaf("organization", "예시회사"),
+      leaf("position", "선임"),
+      leaf("department", "플랫폼팀"),
+      {
+        ...leaf("period", ""),
+        children: [leaf("start", "2020-01"), leaf("end", "2022-03")],
+      },
+    ],
+  };
+  const evaluateEmployment = () =>
+    evaluateResumePdfQuality({
+      generated: {
+        ...generated,
+        claims: [],
+        selection: [employment],
+        resume: "경력",
+      },
+      evaluationId: "evaluation-1",
+      evaluatedAt: "2026-11-06T00:00:00.000Z",
+      inputRef: "snapshot-1",
+      outputRef: "output-1",
+      pdfPageCount: 1,
+    });
+
+  it("원문 필드를 이어 붙인 기간과 소제목은 출처를 찾아 차단하지 않는다", () => {
+    const { run } = evaluateEmployment();
+
+    expect(
+      run.cases.filter(
+        ({ caseId, blocking }) =>
+          blocking && /\/(period|subtitle)(\/|$)/u.test(caseId),
+      ),
+    ).toEqual([]);
+  });
+
+  it("기간 원문 start·end는 이어 붙인 기간 블록에 보존된 것으로 본다", () => {
+    const { run } = evaluateEmployment();
+
+    expect(
+      run.cases.filter(
+        ({ metricId, caseId }) =>
+          metricId === "required-fact-preservation" &&
+          /\/(start|end)\/text$/u.test(caseId),
+      ),
+    ).toEqual([
+      expect.objectContaining({ decision: "pass" }),
+      expect.objectContaining({ decision: "pass" }),
+    ]);
+  });
+  it("경력의 title과 같은 값을 복사한 organization은 중복 출력으로 보지 않는다", () => {
+    const { run } = evaluateEmployment();
+
+    expect(
+      run.cases.filter(
+        ({ metricId, decision }) =>
+          metricId === "duplicate-content" && decision === "fail",
+      ),
+    ).toEqual([]);
+  });
+
+  it("프로젝트 기간이 소속 경력 기간과 같아도 중복 출력으로 보지 않는다", () => {
+    const project = {
+      id: "project-1",
+      section: "projects",
+      name: "project",
+      text: "",
+      sourceRefs: [],
+      visibility: "public",
+      employmentRef: "employment-1",
+      children: [
+        { ...leaf("title", "검색 서비스"), section: "projects" },
+        {
+          ...leaf("period", ""),
+          section: "projects",
+          children: [leaf("start", "2020-01"), leaf("end", "2022-03")],
+        },
+      ],
+    };
+    const { run } = evaluateResumePdfQuality({
+      generated: {
+        ...generated,
+        claims: [],
+        selection: [employment, project],
+        resume: "경력",
+      },
+      evaluationId: "evaluation-1",
+      evaluatedAt: "2026-11-06T00:00:00.000Z",
+      inputRef: "snapshot-1",
+      outputRef: "output-1",
+      pdfPageCount: 1,
+    });
+
+    expect(
+      run.cases.filter(
+        ({ metricId, decision }) =>
+          metricId === "duplicate-content" && decision === "fail",
+      ),
+    ).toEqual([]);
+  });
+  it("자체 id를 가진 자식 원문이 소유 레코드의 출력에 그대로 있으면 보존으로 본다", () => {
+    const project = {
+      ...projectSource,
+      id: "project-3",
+      children: [
+        projectSource.children[0],
+        {
+          ...projectSource.children[1],
+          id: "approach-1",
+          name: "projectApproach",
+          text: "요구사항부터 배포까지 담당",
+        },
+      ],
+    };
+    const { run } = evaluateResumePdfQuality({
+      generated: { ...generated, claims: [], selection: [project] },
+      evaluationId: "evaluation-1",
+      evaluatedAt: "2026-11-06T00:00:00.000Z",
+      inputRef: "snapshot-1",
+      outputRef: "output-1",
+      pdfPageCount: 1,
+    });
+
+    expect(
+      run.cases.filter(
+        ({ metricId, caseId }) =>
+          metricId === "required-fact-preservation" &&
+          caseId.endsWith("/projectApproach/text"),
+      ),
+    ).toEqual([expect.objectContaining({ decision: "pass" })]);
+  });
+  it("자체 id를 가진 자식 원문을 claim으로 재작성해도 소유 레코드 출력과 연결해 검토로 둔다", () => {
+    const child = {
+      ...projectSource.children[1],
+      id: "approach-1",
+      name: "technicalStructure",
+      text: "계층을 나눠 책임을 분리",
+    };
+    const project = {
+      ...projectSource,
+      id: "project-4",
+      children: [projectSource.children[0], child],
+    };
+    const { run } = evaluateResumePdfQuality({
+      generated: {
+        ...generated,
+        selection: [project],
+        claims: [
+          {
+            text: "계층을 분리해 책임을 나눴습니다.",
+            sourceIds: ["approach-1"],
+            sources: [child],
+            formItem: "technicalStructure",
+            evidence: [{ sourceId: "approach-1", quote: child.text }],
+          },
+        ],
+      },
+      evaluationId: "evaluation-1",
+      evaluatedAt: "2026-11-06T00:00:00.000Z",
+      inputRef: "snapshot-1",
+      outputRef: "output-1",
+      pdfPageCount: 1,
+    });
+
+    expect(
+      run.cases.filter(
+        ({ metricId, caseId }) =>
+          metricId === "required-fact-preservation" &&
+          caseId.endsWith("/technicalStructure/text"),
+      ),
+    ).toEqual([expect.objectContaining({ decision: "needs_review" })]);
+  });
+  it("자체 id를 가진 자식 원문을 그대로 출력한 블록은 출처를 찾아 차단하지 않는다", () => {
+    const project = {
+      ...projectSource,
+      id: "project-5",
+      children: [
+        projectSource.children[0],
+        {
+          ...projectSource.children[1],
+          id: "approach-2",
+          name: "projectApproach",
+          text: "요구사항부터 배포까지 담당",
+        },
+      ],
+    };
+    const { run } = evaluateResumePdfQuality({
+      generated: { ...generated, claims: [], selection: [project] },
+      evaluationId: "evaluation-1",
+      evaluatedAt: "2026-11-06T00:00:00.000Z",
+      inputRef: "snapshot-1",
+      outputRef: "output-1",
+      pdfPageCount: 1,
+    });
+
+    expect(
+      run.cases.filter(
+        ({ metricId, blocking }) => metricId === "claim-support" && blocking,
+      ),
+    ).toEqual([]);
+  });
+  it("현재 기준값이 아닌 superseded 원문은 필수 사실로 요구하지 않는다", () => {
+    const project = {
+      ...projectSource,
+      id: "project-6",
+      children: [
+        projectSource.children[0],
+        {
+          ...projectSource.children[1],
+          id: "period-variant-1",
+          name: "periodVariant",
+          text: "2023-11",
+          status: "superseded",
+        },
+      ],
+    };
+    const { run } = evaluateResumePdfQuality({
+      generated: { ...generated, claims: [], selection: [project] },
+      evaluationId: "evaluation-1",
+      evaluatedAt: "2026-11-06T00:00:00.000Z",
+      inputRef: "snapshot-1",
+      outputRef: "output-1",
+      pdfPageCount: 1,
+    });
+
+    expect(
+      run.cases.filter(({ caseId }) => caseId.includes("/periodVariant/")),
+    ).toEqual([]);
+  });
+  it("period 블록에 start 값이 부분 문자열로만 들어 있으면 보존으로 보지 않는다", () => {
+    const withProbation = {
+      ...employment,
+      children: [
+        ...employment.children,
+        {
+          ...leaf("probation", ""),
+          children: [leaf("start", "2020")],
+        },
+      ],
+    };
+    const { run } = evaluateResumePdfQuality({
+      generated: {
+        ...generated,
+        claims: [],
+        selection: [withProbation],
+        resume: "경력",
+      },
+      evaluationId: "evaluation-1",
+      evaluatedAt: "2026-11-06T00:00:00.000Z",
+      inputRef: "snapshot-1",
+      outputRef: "output-1",
+      pdfPageCount: 1,
+    });
+
+    expect(
+      run.cases.filter(
+        ({ caseId }) =>
+          caseId.includes("/probation/") && caseId.endsWith("/start/text"),
+      ),
+    ).toEqual([expect.objectContaining({ decision: "fail" })]);
+  });
+
+  it("소유 레코드의 제목 블록은 같은 텍스트의 출력되지 않은 자식 원문을 대신 보존하지 않는다", () => {
+    const project = {
+      ...projectSource,
+      id: "project-7",
+      children: [
+        projectSource.children[0],
+        {
+          ...projectSource.children[1],
+          id: "variant-1",
+          name: "responsibilityVariant",
+          text: projectSource.children[0].text,
+        },
+      ],
+    };
+    const { run } = evaluateResumePdfQuality({
+      generated: { ...generated, claims: [], selection: [project] },
+      evaluationId: "evaluation-1",
+      evaluatedAt: "2026-11-06T00:00:00.000Z",
+      inputRef: "snapshot-1",
+      outputRef: "output-1",
+      pdfPageCount: 1,
+    });
+
+    expect(
+      run.cases.filter(
+        ({ metricId, caseId }) =>
+          metricId === "required-fact-preservation" &&
+          caseId.endsWith("/responsibilityVariant/text"),
+      ),
+    ).toEqual([expect.objectContaining({ decision: "fail" })]);
+  });
 });
