@@ -88,12 +88,17 @@ const field = (node: ResumeSelectionNode, name: string): string => {
   return [...new Set(nestedText(value))].join(" · ");
 };
 
-const periodOf = (node: ResumeSelectionNode): string => {
+export const periodOf = (node: ResumeSelectionNode): string => {
   const period = childOf(node, "period");
   const start = field(period ?? node, "start");
   const end = field(period ?? node, "end");
   return [start, end].filter(Boolean).join(" ~ ");
 };
+
+export const subtitleOf = (node: ResumeSelectionNode): string =>
+  [field(node, "position"), field(node, "department")]
+    .filter(Boolean)
+    .join(" · ");
 
 const descendantsHaveIds = (node: ResumeSelectionNode): Set<string> => {
   const ids = new Set<string>();
@@ -234,9 +239,7 @@ const recordOf = (
     ...(node.id ? { id: node.id } : {}),
     title: titleNames.map((name) => field(node, name)).find(Boolean) ?? "",
     period: periodOf(node),
-    subtitle: [field(node, "position"), field(node, "department")]
-      .filter(Boolean)
-      .join(" · "),
+    subtitle: subtitleOf(node),
     details: detailNames.flatMap(([, label], index) => {
       const value = content.values[index];
       return value ? [{ label, value }] : [];

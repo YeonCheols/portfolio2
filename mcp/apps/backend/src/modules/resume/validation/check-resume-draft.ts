@@ -4,6 +4,8 @@ export type ResumeSelectionNode = {
   name: string;
   text: string;
   unit?: string;
+  /** 현재 기준값이 아닌 `superseded`만 보존합니다. */
+  status?: "superseded";
   sourceRefs: readonly string[];
   employmentRef?: string;
   projectRef?: string;
