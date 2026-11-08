@@ -264,4 +264,67 @@ describe("checkResumeDraft", () => {
       { id: "employment-open", visibility: "" },
     ]);
   });
+  const linkChild = (text: string): ResumeSelectionNode => ({
+    section: "projects",
+    name: "link",
+    text,
+    sourceRefs: [],
+    visibility: "public",
+    children: [],
+  });
+  const projectWithLinks = (links: string[]): ResumeSelectionNode => ({
+    id: "project-links",
+    section: "projects",
+    name: "project",
+    text: "",
+    sourceRefs: [],
+    visibility: "public",
+    children: links.map(linkChild),
+  });
+
+  it("원문에 같은 이름의 항목이 여러 개이면 서로 다른 문장을 병렬 값으로 받는다", () => {
+    const result = checkResumeDraft(
+      [projectWithLinks(["https://a.example/", "https://m.a.example/"])],
+      [
+        {
+          text: "프로젝트 링크는 https://a.example/입니다.",
+          sourceIds: ["project-links"],
+          formItem: "link",
+        },
+        {
+          text: "모바일 프로젝트 링크는 https://m.a.example/입니다.",
+          sourceIds: ["project-links"],
+          formItem: "link",
+        },
+      ],
+    );
+
+    expect(result.conflicts).toEqual([]);
+    expect(result.validationIssues).toEqual([]);
+    expect(result.claims.map(({ text }) => text)).toEqual([
+      "프로젝트 링크는 https://a.example/입니다.",
+      "모바일 프로젝트 링크는 https://m.a.example/입니다.",
+    ]);
+  });
+
+  it("원문에 해당 항목이 하나뿐이면 서로 다른 문장은 계속 충돌로 둔다", () => {
+    const result = checkResumeDraft(
+      [projectWithLinks(["https://a.example/"])],
+      [
+        {
+          text: "링크는 https://a.example/입니다.",
+          sourceIds: ["project-links"],
+          formItem: "link",
+        },
+        {
+          text: "사이트는 https://a.example/ 입니다.",
+          sourceIds: ["project-links"],
+          formItem: "link",
+        },
+      ],
+    );
+
+    expect(result.claims).toEqual([]);
+    expect(result.conflicts).toHaveLength(1);
+  });
 });
