@@ -402,16 +402,35 @@ export const evaluateResumePdfQuality = (
     return [claimCase, ...numericCases];
   });
 
-  const sourceFactCases = sourceTexts.map((fact) => {
-    const matchingBlock = blocks.find(
-      (block) =>
-        Boolean(block.ownerId) &&
-        fact.ownerIds.includes(block.ownerId as string) &&
-        (normalizeText(block.text) === normalizeText(fact.text) ||
-          (/\/start\/text$|\/end\/text$/u.test(fact.factPath) &&
-            /\/period$/u.test(block.caseId) &&
-            normalizeText(block.text).includes(normalizeText(fact.text)))),
+  const isPeriodEdge = (fact: ResumeSourceFact) =>
+    /\/start\/text$|\/end\/text$/u.test(fact.factPath);
+  const textMatches = (block: PdfTextBlock, fact: ResumeSourceFact) =>
+    normalizeText(block.text) === normalizeText(fact.text) ||
+    (isPeriodEdge(fact) &&
+      /\/period$/u.test(block.caseId) &&
+      block.text
+        .split("~")
+        .some((edge) => normalizeText(edge) === normalizeText(fact.text)));
+  // 자신이 소유한 블록을 먼저 배정하고, 상위 레코드 블록은 남은 것만 자식 원문에 연결합니다.
+  const exactBlocks = new Map<ResumeSourceFact, PdfTextBlock>();
+  sourceTexts.forEach((fact) => {
+    const block = blocks.find(
+      (candidate) =>
+        candidate.ownerId === fact.reference && textMatches(candidate, fact),
     );
+    if (block) exactBlocks.set(fact, block);
+  });
+  const claimedBlocks = new Set(exactBlocks.values());
+  const sourceFactCases = sourceTexts.map((fact) => {
+    const matchingBlock =
+      exactBlocks.get(fact) ??
+      blocks.find(
+        (block) =>
+          !claimedBlocks.has(block) &&
+          Boolean(block.ownerId) &&
+          fact.ownerIds.includes(block.ownerId as string) &&
+          textMatches(block, fact),
+      );
     const supportedClaim = Boolean(
       fact.ownerId &&
         input.generated.claims.some(
