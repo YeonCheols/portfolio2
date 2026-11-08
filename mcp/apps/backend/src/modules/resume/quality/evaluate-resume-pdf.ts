@@ -35,6 +35,7 @@ type ResumeSourceFact = {
   section: string;
   text: string;
   ownerId?: string;
+  parentPath: string;
   /** 자신과 상위 노드의 id입니다. 출력 블록의 소유자는 이 중 하나입니다. */
   ownerIds: readonly string[];
 };
@@ -167,6 +168,7 @@ const collectSourceTexts = (
         facts.push({
           reference,
           factPath: `${path}/text`,
+          parentPath,
           section: node.section,
           text,
           ownerIds,
@@ -198,6 +200,7 @@ const collectDerivedTexts = (
             {
               reference: node.id as string,
               factPath: `selection/${node.section}/${node.id}/${name}`,
+              parentPath: "selection",
               section: node.section,
               text,
               ownerId: node.id as string,
@@ -421,9 +424,36 @@ export const evaluateResumePdfQuality = (
     if (block) exactBlocks.set(fact, block);
   });
   const claimedBlocks = new Set(exactBlocks.values());
+  // reportedYears·reportedMonths는 출력되는 reportedText("총 6년 4개월")를 구성하는 값입니다.
+  const reportedUnits: Record<string, string> = {
+    reportedYears: "년",
+    reportedMonths: "개월",
+  };
+  const componentBlock = (fact: ResumeSourceFact) => {
+    const unit =
+      reportedUnits[
+        /\/(reportedYears|reportedMonths)\/text$/u.exec(fact.factPath)?.[1] ??
+          ""
+      ];
+    if (!unit) return undefined;
+    const sibling = sourceTexts.find(
+      (candidate) =>
+        candidate.parentPath === fact.parentPath &&
+        candidate.factPath.endsWith("/reportedText/text") &&
+        normalizeText(candidate.text).includes(`${fact.text}${unit}`),
+    );
+    if (!sibling) return undefined;
+    return blocks.find(
+      (block) =>
+        Boolean(block.ownerId) &&
+        sibling.ownerIds.includes(block.ownerId as string) &&
+        normalizeText(block.text) === normalizeText(sibling.text),
+    );
+  };
   const sourceFactCases = sourceTexts.map((fact) => {
     const matchingBlock =
       exactBlocks.get(fact) ??
+      componentBlock(fact) ??
       blocks.find(
         (block) =>
           !claimedBlocks.has(block) &&
