@@ -1,5 +1,6 @@
 import Introduction from "@/features/home/ui/Introduction";
 import Services from "@/features/home/ui/Services";
+import { FeaturedProjectSection } from "@/features/projects";
 import Breakline from "@/shared/ui/Breakline";
 
 import ProjectPreview from "./ProjectPreview";
@@ -10,6 +11,8 @@ const Home = () => {
     <>
       <Introduction />
       <Breakline className="mb-7 mt-8" />
+      <FeaturedProjectSection />
+      <Breakline className="my-8" />
       <ProjectPreview />
       <Breakline className="my-8" />
       <SkillsSection />

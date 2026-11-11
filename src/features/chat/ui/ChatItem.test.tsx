@@ -4,7 +4,10 @@ import userEvent from "@testing-library/user-event";
 import ChatItem from "@/features/chat/ui/ChatItem";
 
 jest.mock("next/image", () => {
-  const MockImage = ({ alt }: { alt: string }) => <img alt={alt} />;
+  const MockImage = ({ alt }: { alt: string }) => (
+    // eslint-disable-next-line @next/next/no-img-element -- Mirrors next/image in the test.
+    <img alt={alt} />
+  );
   return MockImage;
 });
 jest.mock("next-auth/react", () => ({

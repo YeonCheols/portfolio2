@@ -30,10 +30,12 @@ const BlogDetailPage: NextPage<BlogDetailPageProps> = ({ blog }) => {
     await axios.post(`/api/views?&slug=${blogData?.slug}`);
   };
 
+  // Count one view per page mount; adding the local function would repeat the request on every render.
   useEffect(() => {
     if (process.env.NODE_ENV === "production") {
       incrementViews();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

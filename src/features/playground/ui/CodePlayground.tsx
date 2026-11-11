@@ -59,8 +59,10 @@ const CodePlayground = ({
     }
   };
 
+  // Keep the panel resize tied to breakpoint changes; the handler intentionally changes identity on render.
   useEffect(() => {
     isMobile && handlePanelResize();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMobile]);
 
   return (
