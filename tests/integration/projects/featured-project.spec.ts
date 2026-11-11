@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-test("대표 프로젝트는 직접 열 수 있고 기존 프로젝트 역할 절로 이동한다", async ({
+test("대표 프로젝트는 직접 열리고 기존 알바몬 역할 절을 링크한다", async ({
   page,
 }) => {
   const response = await page.goto("/projects/albamon-msa", {
@@ -24,11 +24,12 @@ test("대표 프로젝트는 직접 열 수 있고 기존 프로젝트 역할 �
     "https://www.ycseng.com/projects/albamon-msa",
   );
 
-  await page
-    .getByRole("link", { name: "기존 알바몬 프로젝트 상세의 역할 소개" })
-    .click();
-
-  await expect(page.locator('[id="41-역할-비즈니스-관점"]')).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "기존 알바몬 프로젝트 상세의 역할 소개" }),
+  ).toHaveAttribute(
+    "href",
+    `/projects/albamon#${encodeURIComponent("41-역할-비즈니스-관점")}`,
+  );
 });
 
 test("모바일과 데스크톱 화면에서 가로 넘침이 없다", async ({ page }) => {
