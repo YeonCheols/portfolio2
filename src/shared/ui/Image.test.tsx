@@ -14,7 +14,10 @@ jest.mock("next/image", () => ({
     src: string;
     onLoad?: () => void;
     className?: string;
-  }) => <img alt={alt} src={src} className={className} onLoad={onLoad} />,
+  }) => (
+    // eslint-disable-next-line @next/next/no-img-element -- Mirrors next/image in the test.
+    <img alt={alt} src={src} className={className} onLoad={onLoad} />
+  ),
 }));
 
 describe("Image", () => {

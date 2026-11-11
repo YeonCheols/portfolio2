@@ -6,6 +6,7 @@ import { CommentItemProps } from "@/shared/types/blog";
 jest.mock("next/image", () => ({
   __esModule: true,
   default: ({ alt, src }: { alt: string; src: string }) => (
+    // eslint-disable-next-line @next/next/no-img-element -- Mirrors next/image in the test.
     <img alt={alt} src={src} />
   ),
 }));
