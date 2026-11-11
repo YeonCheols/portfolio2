@@ -45,4 +45,16 @@ describe("playwright.config", () => {
 
     expect(config.webServer.stdout).toBe("pipe");
   });
+
+  it("PLAYWRIGHT_BASE_URL이 있으면 통합 테스트와 재사용 서버에 적용한다", () => {
+    process.env.PLAYWRIGHT_BASE_URL = "http://127.0.0.1:3001";
+
+    const config = require("../../playwright.config").default as {
+      use: { baseURL: string };
+      webServer: { url: string };
+    };
+
+    expect(config.use.baseURL).toBe("http://127.0.0.1:3001");
+    expect(config.webServer.url).toBe("http://127.0.0.1:3001");
+  });
 });

@@ -2,6 +2,13 @@ import { render, screen } from "@testing-library/react";
 
 import Home from "@/widgets/home/ui/Home";
 
+jest.mock("@/features/projects", () => ({
+  FeaturedProjectSection: () => (
+    <section>
+      <h2>대표 프로젝트</h2>
+    </section>
+  ),
+}));
 jest.mock("@/widgets/home/ui/ProjectPreview", () => {
   const ProjectPreview = () => <section>프로젝트 미리보기</section>;
   return ProjectPreview;
@@ -19,6 +26,9 @@ describe("Home", () => {
       screen.getByRole("heading", {
         name: "안녕하세요, 프론트엔드 개발자 성연철입니다",
       }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "대표 프로젝트" }),
     ).toBeInTheDocument();
     expect(screen.getByText("프로젝트 미리보기")).toBeInTheDocument();
     expect(screen.getByText("기술 스택 영역")).toBeInTheDocument();
