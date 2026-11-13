@@ -1,5 +1,6 @@
 import { Tooltip as CoreTooltip } from "@yeoncheols/portfolio-core-ui";
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { HiOutlineArrowSmRight as ViewIcon } from "react-icons/hi";
 
 import { ProjectResponse } from "docs/api";
@@ -16,12 +17,29 @@ const ProjectCard = ({
 }: ProjectResponse) => {
   const { StackIcons } = useStacks();
 
-  const stacksArray = JSON.parse(stacks);
+  const stacksArray: string[] = JSON.parse(stacks);
+  const availableStacks = stacksArray.filter((stack) => StackIcons[stack]);
+  const stackRowRef = useRef<HTMLDivElement>(null);
+  const [visibleStackCount, setVisibleStackCount] = useState(0);
+
+  useEffect(() => {
+    const row = stackRowRef.current;
+    if (!row) return;
+    const updateCount = (width: number) => {
+      setVisibleStackCount(Math.max(0, Math.floor((width + 8) / 28)));
+    };
+    updateCount(row.getBoundingClientRect().width);
+    const observer = new ResizeObserver(([entry]) => {
+      updateCount(entry.contentRect.width);
+    });
+    observer.observe(row);
+    return () => observer.disconnect();
+  }, []);
 
   return (
     <Link href={`/projects/${slug}`}>
-      <Card className="group relative cursor-pointer border border-neutral-200 dark:border-neutral-900 lg:hover:scale-[102%] h-[360px]">
-        <div className="relative">
+      <Card className="group relative flex h-[360px] cursor-pointer flex-col border border-neutral-200 hover:z-10 dark:border-neutral-900 lg:hover:scale-[102%]">
+        <div className="relative shrink-0">
           {image.startsWith("https") && (
             <Image
               src={image}
@@ -36,19 +54,24 @@ const ProjectCard = ({
             <ViewIcon size={20} />
           </div>
         </div>
-        <div className="space-y-2 p-5">
-          <div className="flex justify-between">
-            <div className="cursor-pointer  text-lg text-neutral-700 transition-all duration-300 dark:text-neutral-300 dark:group-hover:text-teal-400 lg:group-hover:text-teal-600">
+        <div className="flex min-h-0 flex-1 flex-col gap-2 p-4">
+          <div className="flex min-h-7 shrink-0 justify-between">
+            <div className="max-h-7 overflow-hidden text-lg text-neutral-700 transition-all duration-300 dark:text-neutral-300 dark:group-hover:text-teal-400 lg:group-hover:text-teal-600">
               {title}
             </div>
           </div>
-          <p className="text-[15px] leading-relaxed text-neutral-700 dark:text-neutral-400">
-            {description}
-          </p>
-          <div className="flex flex-wrap items-center gap-3 pt-2">
-            {stacksArray?.map((stack: string) => {
+          <CoreTooltip title={description}>
+            <p className="max-h-12 overflow-hidden text-sm leading-6 text-neutral-700 dark:text-neutral-400">
+              {description}
+            </p>
+          </CoreTooltip>
+          <div
+            ref={stackRowRef}
+            className="mt-auto flex shrink-0 items-center gap-2 pt-2"
+          >
+            {availableStacks.slice(0, visibleStackCount).map((stack) => {
               return (
-                <div key={stack}>
+                <div key={stack} className="h-5 w-5 shrink-0">
                   <CoreTooltip title={stack}>{StackIcons[stack]}</CoreTooltip>
                 </div>
               );
