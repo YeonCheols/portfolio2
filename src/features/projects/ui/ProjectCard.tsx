@@ -61,7 +61,7 @@ const ProjectCard = ({
             </div>
           </div>
           <CoreTooltip title={description}>
-            <p className="max-h-12 overflow-hidden text-sm leading-6 text-neutral-700 dark:text-neutral-400">
+            <p className="line-clamp-2 text-sm leading-6 text-neutral-700 dark:text-neutral-400">
               {description}
             </p>
           </CoreTooltip>
