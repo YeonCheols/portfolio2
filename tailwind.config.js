@@ -1,6 +1,15 @@
 module.exports = {
   content: ["./src/**/*.{js,ts,jsx,tsx}"],
   darkMode: "class",
+  // 태그 API의 color 값(예: text-pink-500)은 런타임에 내려오므로 소스에 없는 클래스도 CSS에 포함한다
+  safelist: [
+    {
+      pattern:
+        /^text-(red|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|pink|rose|slate|gray|zinc|neutral|stone)-(300|400|500|600)$/,
+    },
+    "text-black",
+    "dark:text-white",
+  ],
   theme: {
     extend: {
       fontFamily: {
