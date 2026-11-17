@@ -12,7 +12,7 @@ const FeaturedProjectPage = () => (
       description={FEATURED_PROJECT.summary}
       canonical="https://www.ycseng.com/projects/albamon-msa"
     />
-    <Container data-aos="fade-up">
+    <Container className="!mt-0" data-aos="fade-up">
       <BackButton url="/" />
       <PageHeading
         title={FEATURED_PROJECT.title}

@@ -22,6 +22,7 @@ const Layout = ({ children }: LayoutProps) => {
 
   const router = useRouter();
   const pageName = router.pathname.split("/")[1];
+  const isProjectDetail = router.pathname.startsWith("/projects/");
 
   const isFullPageHeader =
     pageName === "playground" ||
@@ -37,7 +38,11 @@ const Layout = ({ children }: LayoutProps) => {
           isDarkTheme ? "dark:text-darkText" : "",
         )}
       >
-        {isFullPageHeader ? (
+        {isProjectDetail ? (
+          <main className="w-full transition-all duration-300 xl:pb-8">
+            {children}
+          </main>
+        ) : isFullPageHeader ? (
           <div className="flex flex-col xl:pb-8">
             <HeaderTop />
             <main className="transition-all duration-300">{children}</main>
