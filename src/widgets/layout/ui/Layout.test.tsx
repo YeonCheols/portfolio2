@@ -23,6 +23,38 @@ jest.mock("@/features/chat/ui/ChatButton", () => {
 const mockedUseRouter = useRouter as jest.Mock;
 
 describe("Layout", () => {
+  it.each(["/projects/albamon-msa", "/projects/[slug]"])(
+    "%s에서 목록으로 이동하면 사이트 메뉴를 다시 보여 준다",
+    (pathname) => {
+      mockedUseRouter.mockReturnValue({ pathname });
+      const { rerender } = render(<Layout>상세</Layout>);
+
+      expect(screen.queryByText("사이드바")).not.toBeInTheDocument();
+      expect(screen.queryByText("상단 헤더")).not.toBeInTheDocument();
+
+      mockedUseRouter.mockReturnValue({ pathname: "/projects" });
+      rerender(<Layout>목록</Layout>);
+
+      expect(screen.getByText("사이드바")).toBeInTheDocument();
+      expect(screen.getByText("목록")).toBeInTheDocument();
+    },
+  );
+
+  it("프로젝트 상세면 사이트 메뉴 없이 본문과 채팅을 보여 준다", () => {
+    mockedUseRouter.mockReturnValue({ pathname: "/projects/[slug]" });
+
+    render(
+      <Layout>
+        <p>프로젝트 본문</p>
+      </Layout>,
+    );
+
+    expect(screen.queryByText("사이드바")).not.toBeInTheDocument();
+    expect(screen.queryByText("상단 헤더")).not.toBeInTheDocument();
+    expect(screen.getByText("프로젝트 본문")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "채팅" })).toBeInTheDocument();
+  });
+
   it("일반 페이지면 사이드바와 본문과 채팅을 보여 준다", () => {
     mockedUseRouter.mockReturnValue({ pathname: "/about" });
 

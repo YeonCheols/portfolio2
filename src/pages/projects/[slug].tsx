@@ -53,7 +53,7 @@ const ProjectsDetailPage = ({ project }: ProjectsDetailPageProps) => {
           siteName: "연철s 블로그",
         }}
       />
-      <Container data-aos="fade-up">
+      <Container className="!mt-0" data-aos="fade-up">
         <BackButton url="/projects" />
         <PageHeading title={PAGE_TITLE} description={PAGE_DESCRIPTION} />
         <ProjectPreviewDetail data={project} stackIcons={StackIcons} />

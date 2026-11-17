@@ -3,6 +3,9 @@
 const nextConfig = {
   output: "standalone",
   reactStrictMode: false,
+  experimental: {
+    agentUpgrade: "security",
+  },
   allowedDevOrigins: ["local.ycseng.com"],
   transpilePackages: [
     "@yeoncheols/portfolio-core-ui",
