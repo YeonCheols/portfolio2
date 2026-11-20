@@ -182,7 +182,7 @@ pnpm fetch-schema
 ## sitemap 파일 생성
 
 - sitemap config 설정은 next seo 설정을 따름
-- 설정은 [여기](https://github.com/YeonCheols/portfolio2/blob/master/next-sitemap.config.js)를 통해서 수정
+- 설정은 [여기](https://github.com/side-projects-labs/portfolio2/blob/master/next-sitemap.config.js)를 통해서 수정
 
 ```bash
 pnpm postbuild
