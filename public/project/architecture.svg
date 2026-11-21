@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="640" viewBox="0 0 1440 640" font-family="Pretendard, 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif">
+  <rect width="1440" height="640" fill="#111111"/>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#8a8f98"/></marker>
+  </defs>
+  <g fill="none" stroke="#8a8f98" stroke-width="2" marker-end="url(#a)">
+    <path d="M300 320H400"/>
+    <path d="M760 290H900"/>
+    <path d="M760 390H900"/>
+    <path d="M580 470V540"/>
+  </g>
+  <g text-anchor="middle">
+    <rect x="60" y="260" width="240" height="120" rx="14" fill="#1f2937" stroke="#374151"/>
+    <text x="180" y="310" fill="#f3f4f6" font-size="24" font-weight="700">방문자 브라우저</text>
+    <text x="180" y="345" fill="#9ca3af" font-size="17">라이트·다크 테마, 반응형</text>
+
+    <rect x="400" y="130" width="360" height="340" rx="16" fill="#172554" stroke="#3b82f6" stroke-width="2"/>
+    <text x="580" y="175" fill="#dbeafe" font-size="26" font-weight="700">포트폴리오 웹 (portfolio2)</text>
+    <text x="580" y="205" fill="#93c5fd" font-size="17">Next.js · TypeScript · TailwindCSS</text>
+    <rect x="428" y="232" width="304" height="52" rx="10" fill="#1e3a8a"/>
+    <text x="580" y="265" fill="#e0e7ff" font-size="19">화면: 홈·소개·프로젝트·학습·방명록</text>
+    <rect x="428" y="298" width="304" height="52" rx="10" fill="#1e3a8a"/>
+    <text x="580" y="331" fill="#e0e7ff" font-size="19">⌘K 검색 팔레트 · JS 플레이그라운드</text>
+    <rect x="428" y="364" width="304" height="52" rx="10" fill="#1e3a8a"/>
+    <text x="580" y="397" fill="#e0e7ff" font-size="19">Pages API: 데이터·챗봇 중계</text>
+    <text x="580" y="448" fill="#93c5fd" font-size="16">MDX 학습 콘텐츠와 이력서 XML 보유</text>
+
+    <rect x="900" y="250" width="480" height="80" rx="12" fill="#1f2937" stroke="#374151"/>
+    <text x="1140" y="285" fill="#f3f4f6" font-size="21" font-weight="700">portfolio-api</text>
+    <text x="1140" y="312" fill="#9ca3af" font-size="16">프로젝트·프로필·기술 스택 데이터</text>
+    <rect x="900" y="350" width="480" height="80" rx="12" fill="#1f2937" stroke="#374151"/>
+    <text x="1140" y="385" fill="#f3f4f6" font-size="21" font-weight="700">Gemini API</text>
+    <text x="1140" y="412" fill="#9ca3af" font-size="16">AI 기술 멘토 챗봇 (대화 세션 유지)</text>
+
+    <rect x="400" y="540" width="360" height="70" rx="12" fill="#1f2937" stroke="#374151"/>
+    <text x="580" y="571" fill="#f3f4f6" font-size="20" font-weight="700">portfolio-config</text>
+    <text x="580" y="596" fill="#9ca3af" font-size="16">환경별 실행 설정 · Cloud Run 배포</text>
+  </g>
+</svg>
