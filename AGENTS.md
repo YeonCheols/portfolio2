@@ -164,6 +164,7 @@ ln -s ../../.agents/skills/<kebab-case-name> .claude/skills/<kebab-case-name>
 - MCP 에이전트 진입점은 `mcp/AGENTS.md`의 표를 따른다. 루트 표에 MCP 절차를 넣지 않는다
 
 <!-- portfolio-hub:project-guidance:start -->
+
 ## 포트폴리오 문서 입력 계약
 
 - 기본 브랜치 루트 PROJECT.md를 프로젝트 소개의 원본으로 유지합니다. 프로젝트 초안 작업에서 이 저장소의 AI가 아래 규격으로 생성하고 내용 변경 시 함께 갱신합니다. Hub는 내용을 AI로 다시 생성하지 않고 검증한 필드를 그대로 전송합니다.
